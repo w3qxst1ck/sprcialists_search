@@ -1,0 +1,14 @@
+**/.git
+**/.gitignore
+**/.env
+**/.ssh
+Dockerfile
+README.md
+docker-compose.dev.yml
+docker-compose.prod.yml
+**/.DS_Store
+**/venv
+**/env
+.env.dev
+.env.prod
+.idea
