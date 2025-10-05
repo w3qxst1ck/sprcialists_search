@@ -2,8 +2,8 @@ services:
   bot:
     container_name: "bot"
     build: ./
-#    command: sh -c "alembic upgrade head && python main.py"
-    command: sh -c "python main.py"
+    command: sh -c "alembic upgrade head && python main.py"
+#    command: sh -c "python main.py"
     env_file:
       - ./.env.dev
     volumes:

@@ -18,7 +18,7 @@ class Base(DeclarativeBase):
 
 
 class User(Base):
-    """Пользователи"""
+    """Таблица пользователей"""
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -27,4 +27,34 @@ class User(Base):
     firstname: Mapped[str] = mapped_column(nullable=True)
     lastname: Mapped[str] = mapped_column(nullable=True)
     created_at: Mapped[datetime.datetime]
+    is_banned: Mapped[bool] = mapped_column(default=False)
+    role: Mapped[str] = mapped_column(index=True)
 
+    profile: Mapped["Executor"] = relationship(uselist=False, back_populates="user")
+
+
+class Executor(Base):
+    """Таблица профиля исполнителей"""
+    __tablename__ = "profiles"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tg_id: Mapped[str] = mapped_column(ForeignKey("users.tg_id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(nullable=False)
+    description: Mapped[str] = mapped_column(nullable=False)
+
+    # TODO может быть сделать отдельной таблицей
+    tags: Mapped[str] = mapped_column(nullable=False)
+
+    rate: Mapped[str] = mapped_column(nullable=False)
+    experience: Mapped[str] = mapped_column(nullable=False)
+
+    links: Mapped[str] = mapped_column(nullable=False)
+    # TODO доступность (в работе/свободен/занят частично)
+    availability: Mapped[str] = mapped_column()
+
+    contact: Mapped[str] = mapped_column(nullable=True)
+
+    is_active: Mapped[bool] = mapped_column(default=True)
+    is_confirmed: Mapped[bool] = mapped_column(default=False)
+
+    user: Mapped["User"] = relationship(back_populates="profile")
