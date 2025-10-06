@@ -1,7 +1,25 @@
 import datetime
+from enum import Enum
 
 from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, relationship
-from sqlalchemy import text, ForeignKey
+from sqlalchemy import text, ForeignKey, String, Enum as SQLEnum
+
+
+class ClientType(Enum):
+    INDIVIDUAL = "индивидуальный предприниматель"
+    STUDIO = "студия"
+    COMPANY = "компания"
+
+
+class Availability(Enum):
+    FREE = "свободен"
+    BUSY = "в работе"
+    HALF_BUSY = "занят частично"
+
+
+class UserRoles(Enum):
+    CLIENT = "client"
+    EXECUTOR = "executor"
 
 
 class Base(DeclarativeBase):
@@ -28,33 +46,72 @@ class User(Base):
     lastname: Mapped[str] = mapped_column(nullable=True)
     created_at: Mapped[datetime.datetime]
     is_banned: Mapped[bool] = mapped_column(default=False)
-    role: Mapped[str] = mapped_column(index=True)
+    is_admin: Mapped[bool] = mapped_column(default=False)
+    role: Mapped[str] = mapped_column(SQLEnum(UserRoles), index=True)
 
-    profile: Mapped["Executor"] = relationship(uselist=False, back_populates="user")
+    executor_profile: Mapped["Executor"] = relationship(uselist=False, back_populates="user")
+    client_profile: Mapped["Client"] = relationship(uselist=False, back_populates="user")
 
 
-class Executor(Base):
-    """Таблица профиля исполнителей"""
-    __tablename__ = "profiles"
+class Client(Base):
+    """Таблица с полями профиля клиента"""
+    __tablename__ = "clients"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tg_id: Mapped[str] = mapped_column(ForeignKey("users.tg_id", ondelete="CASCADE"))
-    name: Mapped[str] = mapped_column(nullable=False)
-    description: Mapped[str] = mapped_column(nullable=False)
+    name: Mapped[str] = mapped_column(String(50), nullable=False, comment="Имя пользователя должно содержать не более 50 символов")
+    description: Mapped[str] = mapped_column(String(500), nullable=False)
+    type: Mapped[str] = mapped_column(SQLEnum(ClientType), nullable=False)
+    links: Mapped[str] = mapped_column(nullable=True, default=None)
+    lang: Mapped[str] = mapped_column(nullable=False, default="RUS")
+    location: Mapped[str] = mapped_column(nullable=True, default=None)
+    verified: Mapped[bool] = mapped_column(default=False)
 
-    # TODO может быть сделать отдельной таблицей
-    tags: Mapped[str] = mapped_column(nullable=False)
+    user: Mapped["User"] = relationship(back_populates="client_profile")
 
+
+class Executor(Base):
+    """Таблица с полями профиля исполнителя"""
+    __tablename__ = "executors"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tg_id: Mapped[str] = mapped_column(ForeignKey("users.tg_id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(50), nullable=False, comment="Имя пользователя должно содержать не более 50 символов")
+    age: Mapped[int] = mapped_column(nullable=True, default=None)
+    description: Mapped[str] = mapped_column(String(500), nullable=False)
     rate: Mapped[str] = mapped_column(nullable=False)
     experience: Mapped[str] = mapped_column(nullable=False)
-
     links: Mapped[str] = mapped_column(nullable=False)
-    # TODO доступность (в работе/свободен/занят частично)
-    availability: Mapped[str] = mapped_column()
+    availability: Mapped[str] = mapped_column(SQLEnum(Availability), default=Availability.FREE, nullable=False)
+    contacts: Mapped[str] = mapped_column(nullable=True, default=None)
+    location: Mapped[str] = mapped_column(nullable=True, default=None)
+    verified: Mapped[bool] = mapped_column(default=False)
 
-    contact: Mapped[str] = mapped_column(nullable=True)
+    tags: Mapped[list["Tags"]] = relationship(back_populates="executors", secondary="executors_tags")
+    user: Mapped["User"] = relationship(back_populates="executor_profile")
 
-    is_active: Mapped[bool] = mapped_column(default=True)
-    is_confirmed: Mapped[bool] = mapped_column(default=False)
 
-    user: Mapped["User"] = relationship(back_populates="profile")
+class Tags(Base):
+    """Таблица с тегами специализации"""
+    __tablename__ = "tags"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(20), nullable=False, index=True, unique=True)
+
+    executors: Mapped[list["Executor"]] = relationship(back_populates="tags", secondary="executors_tags")
+
+
+class ExecutorsTags(Base):
+    """Many-to-many relationship"""
+    __tablename__ = "executors_tags"
+
+    executor_id: Mapped[int] = mapped_column(
+        ForeignKey("executors.id", ondelete="CASCADE"),
+        primary_key=True
+    )
+
+    tag_id: Mapped[int] = mapped_column(
+        ForeignKey("tags.id", ondelete="CASCADE"),
+        primary_key=True
+    )
+

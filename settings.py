@@ -1,5 +1,17 @@
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+LANGUAGES = {
+    'ENG': '🇺🇸',
+    'RUS': '🇷🇺',
+    'KZ': '🇰🇿',
+    'GER': '🇩🇪',
+    'ITA': '🇮🇹',
+    'ESP': '🇪🇸',
+    'FRA': '🇫🇷',
+    'UZB': '🇺🇿',
+    'POL': '🇵🇱',
+}
 
 
 class Database(BaseSettings):
@@ -19,6 +31,10 @@ class Settings(BaseSettings):
     admins: list = Field(..., env='ADMINS')
 
     db: Database = Database()
+
+    @property
+    def languages(self):
+        return LANGUAGES
 
 
 settings = Settings()
