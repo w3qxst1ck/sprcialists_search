@@ -49,11 +49,11 @@ class User(Base):
     is_admin: Mapped[bool] = mapped_column(default=False)
     role: Mapped[str] = mapped_column(SQLEnum(UserRoles), index=True)
 
-    executor_profile: Mapped["Executor"] = relationship(uselist=False, back_populates="user")
-    client_profile: Mapped["Client"] = relationship(uselist=False, back_populates="user")
+    executor_profile: Mapped["Executors"] = relationship(uselist=False, back_populates="user")
+    client_profile: Mapped["Clients"] = relationship(uselist=False, back_populates="user")
 
 
-class Client(Base):
+class Clients(Base):
     """Таблица с полями профиля клиента"""
     __tablename__ = "clients"
 
@@ -70,7 +70,7 @@ class Client(Base):
     user: Mapped["User"] = relationship(back_populates="client_profile")
 
 
-class Executor(Base):
+class Executors(Base):
     """Таблица с полями профиля исполнителя"""
     __tablename__ = "executors"
 
@@ -89,6 +89,7 @@ class Executor(Base):
 
     tags: Mapped[list["Tags"]] = relationship(back_populates="executors", secondary="executors_tags")
     user: Mapped["User"] = relationship(back_populates="executor_profile")
+    jobs: Mapped[list["Jobs"]] = relationship(back_populates="executors", secondary="executors_jobs")
 
 
 class Tags(Base):
@@ -98,7 +99,7 @@ class Tags(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(20), nullable=False, index=True, unique=True)
 
-    executors: Mapped[list["Executor"]] = relationship(back_populates="tags", secondary="executors_tags")
+    executors: Mapped[list["Executors"]] = relationship(back_populates="tags", secondary="executors_tags")
 
 
 class ExecutorsTags(Base):
@@ -114,4 +115,39 @@ class ExecutorsTags(Base):
         ForeignKey("tags.id", ondelete="CASCADE"),
         primary_key=True
     )
+
+
+class Professions(Base):
+    """Список профессий"""
+    __tablename__ = "professions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(nullable=False, index=True, unique=True)
+
+    jobs: Mapped[list["Jobs"]] = relationship(back_populates="profession")
+
+
+class Jobs(Base):
+    """Выполняемые работы в профессии"""
+    __tablename__ = "jobs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(nullable=False, index=True, unique=True)
+
+    profession_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
+    executors: Mapped[list["Executors"]] = relationship(back_populates="jobs", secondary="executors_jobs")
+
+
+class ExecutorsJobs(Base):
+    """
+        Связь пользователя (исполнителя) с профессией и выполняемыми работами
+        Many-to-many relationship
+    """
+    __tablename__ = "executors_jobs"
+
+    job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"), primary_key=True)
+    executor_id: Mapped[int] = mapped_column(ForeignKey("executors.id", ondelete="CASCADE"), primary_key=True)
+
+
+
 
