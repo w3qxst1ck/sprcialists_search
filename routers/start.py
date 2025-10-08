@@ -1,6 +1,6 @@
-from aiogram import Router, types
+from aiogram import Router, types, F, Bot
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from middlewares.admin import AdminMiddleware
@@ -41,7 +41,7 @@ async def start(message: types.Message, admin: bool, session: any) -> None:
         )
         await AsyncOrm.create_user(new_user, session)
 
-        keyboard = await choose_role_keyboard()
+        keyboard = await choose_role_keyboard(message)
         msg = await get_start_message()
         await message.answer(msg, reply_markup=keyboard.as_markup())
         return
@@ -52,11 +52,16 @@ async def get_start_message() -> str:
     return "Привет! Это HIRE — бот для быстрого поиска проверенных креативных специалистов."
 
 
-async def choose_role_keyboard() -> InlineKeyboardBuilder:
+async def choose_role_keyboard(callback: CallbackQuery) -> InlineKeyboardBuilder:
     """Клавиатура выбора рли"""
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(InlineKeyboardButton(text=f"Я клиент", callback_data="choose_role|client"))
     keyboard.row(InlineKeyboardButton(text=f"Я исполнитель", callback_data="choose_role|executor"))
+    keyboard.row(InlineKeyboardButton(text=f"ТЕст", callback_data="choose_role|test"))
 
     return keyboard
+
+
+async def show_unregistered_message(event: CallbackQuery | Message, bot: Bot):
+    await bot.send_message(event.from_user.id, "Вы еще не зарегистрированы")

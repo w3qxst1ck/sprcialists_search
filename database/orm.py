@@ -61,4 +61,19 @@ class AsyncOrm:
             logger.error(f"Ошибка при создании пользователя {user.tg_id} "
                          f"{'@' + user.username if user.username else ''}: {e}")
 
+    @staticmethod
+    async def user_has_role(tg_id: str, session: Any) -> bool:
+        """Проверяет выбрана ли роль исполнитель/заказчик"""
+        try:
+            query = await session.fetchrow(
+                """
+                SELECT FROM users 
+                WHERE tg_id = $1
+                AND role IS NOT NULL
+                """,
+                tg_id
+            )
+            return query is not None
 
+        except Exception as e:
+            logger.error(f"Ошибка при проверки роли у пользователя {tg_id}: {e}")
