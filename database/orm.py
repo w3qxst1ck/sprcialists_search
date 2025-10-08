@@ -30,15 +30,33 @@ class AsyncOrm:
             await conn.run_sync(Base.metadata.drop_all)
 
     @staticmethod
+    async def check_user_already_exists(tg_id: str, session: any) -> bool:
+        """Проверка зарегистрирован ли пользователь"""
+        try:
+            exists = await session.fetchval(
+                """
+                SELECT EXISTS(SELECT 1 FROM users WHERE tg_id = $1)
+                """,
+                tg_id)
+            return exists
+        except Exception as e:
+            logger.error(f"Ошибка при проверке регистрации пользователя {tg_id}: {e}")
+
+    @staticmethod
     async def create_user(user: UserAdd, session: Any) -> None:
         """Создание пользователя"""
         try:
             created_at = datetime.datetime.now()
-            await session.execute("""
-                INSERT INTO users (tg_id, username, firstname, lastname, created_at)
-                VALUES ($1, $2, $3, $4, $5)
+            await session.execute(
+                """
+                INSERT INTO users (tg_id, username, firstname, lastname, role, created_at, is_banned, is_admin)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 ON CONFLICT (tg_id) DO NOTHING
-                """, user.tg_id, user.username, user.firstname, user.lastname, created_at)
+                """,
+                user.tg_id, user.username, user.firstname, user.lastname, user.role, created_at, False, False
+            )
+            logger.info(f"Пользователь tg_id {user.tg_id} зарегистрировался")
+
         except Exception as e:
             logger.error(f"Ошибка при создании пользователя {user.tg_id} "
                          f"{'@' + user.username if user.username else ''}: {e}")

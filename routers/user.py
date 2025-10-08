@@ -8,7 +8,7 @@ from schemas.user import UserAdd
 router = Router()
 
 
-@router.message(Command(f"start"))
+@router.message(Command(f"test"))
 async def start(message: types.Message, session: any) -> None:
     """Стартовый роутер"""
     user = UserAdd(

@@ -2,7 +2,7 @@ import datetime
 from enum import Enum
 
 from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, relationship
-from sqlalchemy import text, ForeignKey, String, Enum as SQLEnum
+from sqlalchemy import ForeignKey, String
 
 
 class ClientType(Enum):
@@ -47,7 +47,7 @@ class User(Base):
     created_at: Mapped[datetime.datetime]
     is_banned: Mapped[bool] = mapped_column(default=False)
     is_admin: Mapped[bool] = mapped_column(default=False)
-    role: Mapped[str] = mapped_column(SQLEnum(UserRoles), index=True)
+    role: Mapped[UserRoles] = mapped_column(String, index=True, nullable=True)
 
     executor_profile: Mapped["Executors"] = relationship(uselist=False, back_populates="user")
     client_profile: Mapped["Clients"] = relationship(uselist=False, back_populates="user")
@@ -61,7 +61,7 @@ class Clients(Base):
     tg_id: Mapped[str] = mapped_column(ForeignKey("users.tg_id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(50), nullable=False, comment="Имя пользователя должно содержать не более 50 символов")
     description: Mapped[str] = mapped_column(String(500), nullable=False)
-    type: Mapped[str] = mapped_column(SQLEnum(ClientType), nullable=False)
+    type: Mapped[ClientType] = mapped_column(String, nullable=False)
     links: Mapped[str] = mapped_column(nullable=True, default=None)
     lang: Mapped[str] = mapped_column(nullable=False, default="RUS")
     location: Mapped[str] = mapped_column(nullable=True, default=None)
@@ -82,7 +82,7 @@ class Executors(Base):
     rate: Mapped[str] = mapped_column(nullable=False)
     experience: Mapped[str] = mapped_column(nullable=False)
     links: Mapped[str] = mapped_column(nullable=False)
-    availability: Mapped[str] = mapped_column(SQLEnum(Availability), default=Availability.FREE, nullable=False)
+    availability: Mapped[Availability] = mapped_column(String, default=Availability.FREE, nullable=False)
     contacts: Mapped[str] = mapped_column(nullable=True, default=None)
     location: Mapped[str] = mapped_column(nullable=True, default=None)
     verified: Mapped[bool] = mapped_column(default=False)

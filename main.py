@@ -47,8 +47,8 @@ async def start_bot() -> None:
     # MIDDLEWARES
     dp.message.middleware(DatabaseMiddleware())
     dp.callback_query.middleware(DatabaseMiddleware())
-    dp.message.middleware(AdminMiddleware())
-    dp.callback_query.middleware(AdminMiddleware())
+    # dp.message.middleware(AdminMiddleware())
+    # dp.callback_query.middleware(AdminMiddleware())
 
     # TODO create tables DEV
     await AsyncOrm.create_tables()
