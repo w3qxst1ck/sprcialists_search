@@ -5,6 +5,8 @@ class Executor(StatesGroup):
     name = State()
     age = State()
     profession = State()
+    # TODO сделать аватар
+    # photo = State()
     jobs = State()
     description = State()
     rate = State()
@@ -14,6 +16,5 @@ class Executor(StatesGroup):
     contacts = State()
     location = State()
     tags = State()
-    verification = State
+    verification = State()
 
-    user: Mapped["User"] = relationship(back_populates="executor_profile")

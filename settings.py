@@ -42,5 +42,12 @@ class Settings(BaseSettings):
     def languages(self):
         return LANGUAGES
 
+    @property
+    def roles(self):
+        return {
+            "client": "клиент",
+            "executor": "исполнитель"
+        }
+
 
 settings = Settings()

@@ -77,3 +77,19 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при проверки роли у пользователя {tg_id}: {e}")
+
+    @staticmethod
+    async def get_user_role(tg_id: str, session: Any) -> str | None:
+        """Получение роли пользователя"""
+        try:
+            role = await session.fetchval(
+                """
+                SELECT role 
+                FROM users
+                WHERE tg_id = $1 
+                """,
+                tg_id
+            )
+            return role
+        except Exception as e:
+            logger.error(f"Ошибка при получении роли пользователя {tg_id}: {e}")

@@ -1,3 +1,5 @@
+from typing import Any
+
 from aiogram import Router, types, F, Bot
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
@@ -17,30 +19,34 @@ router.callback_query.middleware.register(AdminMiddleware())
 
 
 @router.message(Command(f"{cmd.START[0]}"))
-async def start(message: types.Message, admin: bool, session: any) -> None:
+async def start(message: types.Message, admin: bool, session: Any) -> None:
     """Старт хендлер"""
     tg_id = str(message.from_user.id)
     user_exists: bool = await AsyncOrm.check_user_already_exists(tg_id, session)
+    user_has_role: bool = await AsyncOrm.user_has_role(tg_id, session)
 
-    # если пользователь зарегистрирован
-    if user_exists:
+    # Если пользователь зарегистрирован и у него выбрана роль
+    if user_exists and user_has_role:
         msg = "Главное меню"
         keyboard = main_menu_keyboard(admin)
         await message.answer(msg, reply_markup=keyboard.as_markup())
         return
 
-    # первый запуск бота пользователем
+    # Если пользователь не первый раз или не выбрана роль
     else:
-        # создаем пользователя
-        new_user = UserAdd(
-            tg_id=tg_id,
-            username=message.from_user.username,
-            firstname=message.from_user.first_name,
-            lastname=message.from_user.last_name,
-            role=None
-        )
-        await AsyncOrm.create_user(new_user, session)
+        # Если пользователь первый раз
+        if not user_exists:
+            # создаем пользователя
+            new_user = UserAdd(
+                tg_id=tg_id,
+                username=message.from_user.username,
+                firstname=message.from_user.first_name,
+                lastname=message.from_user.last_name,
+                role=None
+            )
+            await AsyncOrm.create_user(new_user, session)
 
+        # Предлагаем выбрать роль
         keyboard = await choose_role_keyboard()
         msg = await get_start_message()
         await message.answer(msg, reply_markup=keyboard.as_markup())
