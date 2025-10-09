@@ -4,6 +4,7 @@ from aiogram import Router, types, F, Bot
 from aiogram.filters import Command, and_f, StateFilter
 from aiogram.fsm.context import FSMContext
 
+from middlewares.database import DatabaseMiddleware
 from routers.states.registration import Executor
 
 from middlewares.admin import AdminMiddleware
@@ -19,8 +20,8 @@ from routers.keyboards import executor_registration as kb
 from utils.validations import is_valid_age
 
 router = Router()
-router.message.middleware.register(AdminMiddleware())
-router.callback_query.middleware.register(AdminMiddleware())
+router.message.middleware.register(DatabaseMiddleware())
+router.callback_query.middleware.register(DatabaseMiddleware())
 
 
 @router.callback_query(and_f(F.data.split("|")[0] == "choose_role", F.data.split("|")[1] == "executor"))
@@ -172,6 +173,10 @@ async def get_jobs_multiselect(callback: types.CallbackQuery, session: Any, stat
     if job_id in selected_jobs:
         selected_jobs.remove(job_id)
     else:
+        # Убираем одну если больше 5
+        if len(selected_jobs) == 5:
+            selected_jobs.pop()
+
         selected_jobs.append(job_id)
 
     # Обновляем выбранные работы в стейте

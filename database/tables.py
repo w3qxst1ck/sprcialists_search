@@ -18,8 +18,8 @@ class Availability(Enum):
 
 
 class UserRoles(Enum):
-    CLIENT = "client"
-    EXECUTOR = "executor"
+    CLIENT = "клиент"
+    EXECUTOR = "исполнитель"
 
 
 class Base(DeclarativeBase):
