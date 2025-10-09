@@ -62,5 +62,11 @@ async def choose_role_keyboard() -> InlineKeyboardBuilder:
     return keyboard
 
 
-async def show_unregistered_message(event: CallbackQuery | Message, bot: Bot):
-    await bot.send_message(event.from_user.id, "Вы еще не зарегистрированы")
+async def send_empty_role_message(event: CallbackQuery | Message, bot: Bot) -> None:
+    """Сообщение для пользователей не выбравших роль"""
+    keyboard = await choose_role_keyboard()
+    await bot.send_message(
+        event.from_user.id,
+        "Чтобы получить доступ к функциям бота, вам необходимо создать профиль\"клиента\" или \"исполнителя\"",
+        reply_markup=keyboard.as_markup()
+    )

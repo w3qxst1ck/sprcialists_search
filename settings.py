@@ -29,6 +29,12 @@ class Database(BaseSettings):
 class Settings(BaseSettings):
     bot_token: str = Field(..., env='BOT_TOKEN')
     admins: list = Field(..., env='ADMINS')
+    admin_tg_username: str = "kill_rilll"
+    profile_photo_path: str = "media/profiles"
+
+    s3_secret_key: str = Field(..., env='S3_SECRET_KEY')
+    s3_access_key: str = Field(..., env='S3_ACCESS_KEY')
+    s3_url: str = "https://s3.ru-7.storage.selcloud.ru"
 
     db: Database = Database()
 

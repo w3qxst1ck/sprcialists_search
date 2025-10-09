@@ -8,6 +8,7 @@ services:
       - ./.env.dev
     volumes:
       - ./logs:/app/logs/
+      - ./media:/app/media/
     depends_on:
       postgresdb:
         condition: service_healthy
