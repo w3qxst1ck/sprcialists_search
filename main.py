@@ -50,8 +50,8 @@ async def start_bot() -> None:
     dp.include_router(main_router)
 
     # MIDDLEWARES
-    dp.message.middleware(DatabaseMiddleware())
-    dp.callback_query.middleware(DatabaseMiddleware())
+    # dp.message.middleware(DatabaseMiddleware())
+    # dp.callback_query.middleware(DatabaseMiddleware())
     # dp.message.middleware(AdminMiddleware())
     # dp.callback_query.middleware(AdminMiddleware())
 
