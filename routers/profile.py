@@ -15,7 +15,6 @@ from database.tables import UserRoles
 router = Router()
 router.message.middleware.register(RegisteredMiddleware())
 router.callback_query.middleware.register(RegisteredMiddleware())
-router.message.middleware.register(RegisteredMiddleware())
 
 
 @router.callback_query(F.data.split("|")[1] == "test")
