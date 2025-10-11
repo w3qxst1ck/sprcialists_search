@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     s3_url: str = "https://s3.ru-7.storage.selcloud.ru"
     s3_bucket_name: str = "profile-media"
 
+    executors_profile_path: str = "profiles/executors/"
+    clients_profile_path: str = "profiles/clients/"
+    executors_cv_path: str = "cv/executors/"
+
     db: Database = Database()
 
     @property
