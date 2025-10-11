@@ -63,7 +63,7 @@ class Clients(Base):
     description: Mapped[str] = mapped_column(String(500), nullable=False)
     type: Mapped[ClientType] = mapped_column(String, nullable=False)
     links: Mapped[str] = mapped_column(nullable=True, default=None)
-    lang: Mapped[str] = mapped_column(nullable=False, default="RUS")
+    langs: Mapped[str] = mapped_column(nullable=False, default="RUS") # RUS|KZ|POL
     location: Mapped[str] = mapped_column(nullable=True, default=None)
     verified: Mapped[bool] = mapped_column(default=False)
 
@@ -85,6 +85,7 @@ class Executors(Base):
     availability: Mapped[Availability] = mapped_column(String, default=Availability.FREE, nullable=False)
     contacts: Mapped[str] = mapped_column(nullable=True, default=None)
     location: Mapped[str] = mapped_column(nullable=True, default=None)
+    langs: Mapped[str] = mapped_column(nullable=False, default="RUS") # RUS|KZ|POL
     verified: Mapped[bool] = mapped_column(default=False)
 
     tags: Mapped[list["Tags"]] = relationship(back_populates="executors", secondary="executors_tags")

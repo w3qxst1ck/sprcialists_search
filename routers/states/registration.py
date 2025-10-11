@@ -12,9 +12,9 @@ class Executor(StatesGroup):
     rate = State()
     experience = State()
     links = State()
-    availability = State()
     contacts = State()
     location = State()
     tags = State()
+    langs = State()
     verification = State()
 

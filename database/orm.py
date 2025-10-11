@@ -9,6 +9,7 @@ from database.database import async_engine
 from database.tables import Base
 
 from logger import logger
+from schemas.profession import Profession, Job
 from schemas.user import UserAdd
 
 # для model_validate регистрируем возвращаемый из asyncpg.fetchrow класс Record
@@ -93,3 +94,72 @@ class AsyncOrm:
             return role
         except Exception as e:
             logger.error(f"Ошибка при получении роли пользователя {tg_id}: {e}")
+
+    @staticmethod
+    async def get_professions(session: Any) -> List[Profession]:
+        """Получение всех профессий"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT *
+                FROM professions
+                """
+            )
+            professions = [Profession.model_validate(row) for row in rows]
+            return professions
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении всех профессий: {e}")
+
+    @staticmethod
+    async def get_profession(profession_id: int, session: Any) -> Profession:
+        """Получение профессии по id"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT * 
+                FROM professions
+                WHERE id=$1 
+                """,
+                profession_id
+            )
+            return Profession.model_validate(row)
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении профессии с id {profession_id}: {e}")
+
+    @staticmethod
+    async def get_jobs_by_profession(profession_id: int, session: Any) -> List[Job]:
+        """Получение всех работ по выбранной профессии"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT *
+                FROM jobs
+                WHERE profession_id=$1
+                """,
+                profession_id
+            )
+            jobs = [Job.model_validate(row) for row in rows]
+            return jobs
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении всех jobs по профессии {profession_id}: {e}")
+
+    @staticmethod
+    async def get_jobs_by_ids(jobs_ids: List[int], session: Any) -> List[Job]:
+        """Получение Jobs по списку id"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT * 
+                FROM jobs
+                WHERE id = ANY($1::int[])
+                """,
+                jobs_ids
+            )
+            jobs = [Job.model_validate(row) for row in rows]
+            return jobs
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении jobs с ids {jobs_ids}: {e}")

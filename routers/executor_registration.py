@@ -1,15 +1,17 @@
-from typing import Any
+from typing import Any, List
 
 from aiogram import Router, types, F, Bot
 from aiogram.filters import Command, and_f, StateFilter
 from aiogram.fsm.context import FSMContext
 
 from middlewares.database import DatabaseMiddleware
+from routers.messages.registation import get_executor_profile_message
 from routers.states.registration import Executor
 
 from middlewares.admin import AdminMiddleware
 from routers.buttons import commands as cmd
-from routers.keyboards.menu import main_menu_keyboard
+from routers.buttons.menu import WAIT_MSG
+from routers.keyboards.admin import confirm_registration_executor_keyboard
 
 from database.orm import AsyncOrm
 from schemas.profession import Job, Profession
@@ -17,7 +19,7 @@ from schemas.user import UserAdd
 from database.tables import UserRoles
 from settings import settings
 from routers.keyboards import executor_registration as kb
-from utils.validations import is_valid_age
+from utils.validations import is_valid_age, is_valid_url, is_valid_tag
 
 router = Router()
 router.message.middleware.register(DatabaseMiddleware())
@@ -59,7 +61,8 @@ async def get_name(message: types.Message, session: Any, state: FSMContext) -> N
 
     # Если отправлен не текст
     if not message.text:
-        prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст")
+        prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                         reply_markup=kb.cancel_keyboard().as_markup())
         # Сохраняем предыдущее сообщение
         await state.update_data(prev_mess=prev_mess)
         return
@@ -90,14 +93,16 @@ async def get_age(message: types.Message, session: Any, state: FSMContext) -> No
 
     # Если отправлен не текст
     if not message.text:
-        prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст", reply_markup=kb.cancel_keyboard().as_markup())
+        prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                         reply_markup=kb.cancel_keyboard().as_markup())
         # Сохраняем предыдущее сообщение
         await state.update_data(prev_mess=prev_mess)
         return
 
     # Если возраст введен некорректный
     if not is_valid_age(message.text):
-        prev_mess = await message.answer("Необходимо отправить возраст одним числом от 18 до 100", reply_markup=kb.cancel_keyboard().as_markup())
+        prev_mess = await message.answer("Необходимо отправить возраст одним числом от 18 до 100",
+                                         reply_markup=kb.cancel_keyboard().as_markup())
         # Сохраняем предыдущее сообщение
         await state.update_data(prev_mess=prev_mess)
         return
@@ -109,12 +114,7 @@ async def get_age(message: types.Message, session: Any, state: FSMContext) -> No
     await state.set_state(Executor.profession)
 
     # Получаем доступные профессии
-    # TODO получать из базы
-    professions = [
-        Profession(id=1, title="Designer"),
-        Profession(id=2, title="Developer"),
-        Profession(id=3, title="VideoMaker"),
-    ]
+    professions: List[Profession] = await AsyncOrm.get_professions(session)
 
     # Отправляем сообщение
     msg = "Выберите профессию из списка"
@@ -136,26 +136,18 @@ async def get_profession(callback: types.CallbackQuery, session: Any, state: FSM
     await state.set_state(Executor.jobs)
 
     # Получаем Jobs для профессии
-    # TODO брать из базы
-    all_jobs = [
-        Job(id=1, title="Веб разработка"),
-        Job(id=2, title="Frontend"),
-        Job(id=3, title="Backend"),
-        Job(id=4, title="Devops"),
-        Job(id=5, title="1C"),
-        Job(id=6, title="CloudDev"),
-    ]
+    jobs: List[Job] = await AsyncOrm.get_jobs_by_profession(profession_id, session)
 
     # Заготовка для мультиселекта
     selected_jobs = []
 
     # Записываем все Jobs и заготовку выбранных Jobs в стейт, чтобы каждый раз не получать заново
-    await state.update_data(all_jobs=all_jobs)
+    await state.update_data(all_jobs=jobs)
     await state.update_data(selected_jobs=selected_jobs)
 
     # Отправляем сообщение
     msg = "Выберите специализации из списка (до 5 штук)"
-    keyboard = kb.jobs_keyboard(all_jobs, selected_jobs)
+    keyboard = kb.jobs_keyboard(jobs, selected_jobs)
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
@@ -189,11 +181,435 @@ async def get_jobs_multiselect(callback: types.CallbackQuery, session: Any, stat
 
 
 @router.callback_query(F.data == "choose_jobs_done", Executor.jobs)
-async def get_jobs(callback: types.CallbackQuery, session: Any, state: FSMContext) -> None:
+async def get_jobs(callback: types.CallbackQuery, state: FSMContext) -> None:
     """Запись Jobs после мультиселекта, запрос описания"""
+    # Меняем стейт
+    await state.set_state(Executor.description)
+
+    # Отправляем сообщение
+    msg = "Отправьте текстом информацию о себе, не более 500 символов"
+    prev_mess = await callback.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
+
+    # Сохраняем сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.message(Executor.description)
+async def get_description(message: types.Message, state: FSMContext) -> None:
+    """Получение описания, запрос ставки"""
+    # Меняем предыдущее сообщение
     data = await state.get_data()
-    jobs = ", ".join(data["selected_jobs"])
-    await callback.message.edit_text(jobs)
+    try:
+        await data["prev_mess"].edit_text(data["prev_mess"].text)
+    except Exception:
+        pass
+
+    # Если отправлен не текст
+    if not message.text:
+        prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                         reply_markup=kb.cancel_keyboard().as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Если текст длиннее 500 символов
+    if len(message.text) > 500:
+        prev_mess = await message.answer(f"Текст должен быть не более 500 символов, вы отправили {len(message.text)}",
+                                         reply_markup=kb.cancel_keyboard().as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Сохраняем текст
+    await state.update_data(description=message.text)
+
+    # Меняем стейт
+    await state.set_state(Executor.rate)
+
+    # Отправляем сообщение
+    msg = "Отправьте текстом вашу рабочую ставку (например: от 2000 ₽/час или 30 000 рублей/месяц)"
+    prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
+
+    # Сохраняем сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.message(Executor.rate)
+async def get_rate(message: types.Message, state: FSMContext) -> None:
+    """Получаем ставку, запрашиваем опыт"""
+    # Меняем предыдущее сообщение
+    data = await state.get_data()
+    try:
+        await data["prev_mess"].edit_text(data["prev_mess"].text)
+    except Exception:
+        pass
+
+    # Если отправлен не текст
+    if not message.text:
+        prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                         reply_markup=kb.cancel_keyboard().as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Записываем ставку
+    await state.update_data(rate=message.text)
+
+    # Меняем стейт
+    await state.set_state(Executor.experience)
+
+    # Отправляем сообщение
+    msg = "Отправьте информацию о своем рабочем опыте/уровень (например: 6 лет или senior)"
+    prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
+
+    # Сохраняем предыдущее сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.message(Executor.experience)
+async def get_experience(message: types.Message, state: FSMContext) -> None:
+    """Получаем опыт, запрашиваем ссылки на портфолио"""
+    # Меняем предыдущее сообщение
+    data = await state.get_data()
+    try:
+        await data["prev_mess"].edit_text(data["prev_mess"].text)
+    except Exception:
+        pass
+
+    # Если отправлен не текст
+    if not message.text:
+        prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                         reply_markup=kb.cancel_keyboard().as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Записываем опыт
+    await state.update_data(experience=message.text)
+
+    # Делаем заготовку под ссылки
+    await state.update_data(links=[])
+
+    # Меняем стейт
+    await state.set_state(Executor.links)
+
+    # Отправляем сообщение
+    msg = "Отдельными сообщениями отправьте ссылки на портфолио"
+    prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
+
+    # Сохраняем сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.message(Executor.links)
+async def get_link(message: types.Message, state: FSMContext) -> None:
+    """Вспомогательный хэндлер для получения ссылок на портфолио"""
+    # Меняем предыдущее сообщение
+    data = await state.get_data()
+    try:
+        await data["prev_mess"].edit_text(data["prev_mess"].text, disable_web_page_preview=True)
+    except Exception:
+        pass
+
+    # Если отправлен не текст
+    if not message.text:
+        prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                         reply_markup=kb.cancel_keyboard().as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Если ссылка не валидна
+    if not is_valid_url(message.text):
+        # Проверяем может ли пользователь продолжить (если есть хотя бы одна валидная ссылка)
+        if len(data["links"]) != 0:
+            keyboard = kb.continue_cancel_keyboard()
+        else:
+            keyboard = kb.cancel_keyboard()
+
+        prev_mess = await message.answer("Неверный формат ссылки, необходимо отправить текст формата <i>https://www.google.com</i> "
+                                         "без дополнительных символов\nОтправьте ссылку заново",
+                                         reply_markup=keyboard.as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Записываем ссылку
+    links = data["links"]
+    links.append(message.text)
+    links_text = "\n".join([f"{link}" for link in links])
+    links_count = len(links)
+    await state.update_data(links=links)
+
+    # Отправляем сообщение
+    msg = f"Отправьте следующую ссылку или нажмите кнопку \"Продолжить\"\n\n" \
+          f"Отправлено ссылок {links_count} шт.:\n{links_text}"
+    prev_mess = await message.answer(msg, reply_markup=kb.continue_cancel_keyboard().as_markup(), disable_web_page_preview=True)
+
+    # Сохраняем сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data == "continue", Executor.links)
+async def get_links(callback: types.CallbackQuery, state: FSMContext) -> None:
+    """Получаем список ссылок на портфолио, запрашиваем контакты"""
+    # Меняем стейт
+    await state.set_state(Executor.contacts)
+
+    # Заготовка на случай пропуска контактов
+    await state.update_data(contacts=None)
+
+    # Отправляем сообщение
+    msg = "Отправьте контакт для связи (например телефон: 8-999-888-77-66)"
+    prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
+
+    # Сохраняем последнее сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.message(Executor.contacts)
+# Если пропускают контакты
+@router.callback_query(F.data == "skip", Executor.contacts)
+async def get_contacts(message: types.Message | types.CallbackQuery, state: FSMContext) -> None:
+    """Получаем контакты, запрашиваем город"""
+    # Если ввели контакты
+    if type(message) == types.Message:
+        # Меняем предыдущее сообщение
+        data = await state.get_data()
+        try:
+            await data["prev_mess"].edit_text(data["prev_mess"].text, disable_web_page_preview=True)
+        except Exception:
+            pass
+
+        # Если отправлен не текст
+        if not message.text:
+            prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
+            # Сохраняем предыдущее сообщение
+            await state.update_data(prev_mess=prev_mess)
+            return
+
+        # Записываем контакты
+        await state.update_data(contacts=message.text)
+
+    # Меняем стейт
+    await state.set_state(Executor.location)
+
+    # Заготовка на случай пропуска города
+    await state.update_data(location=None)
+
+    # Отправляем сообщение
+    msg = "Отправьте ваш город"
+
+    # Без пропуска контактов
+    if type(message) == types.Message:
+        prev_mess = await message.answer(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
+
+    # С пропуском контактов
+    else:
+        prev_mess = await message.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
+
+    # Сохраняем сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.message(Executor.location)
+# Если пропускают город
+@router.callback_query(F.data == "skip", Executor.location)
+async def get_location(message: types.Message | types.CallbackQuery, state: FSMContext) -> None:
+    """Получаем город, запрашиваем теги"""
+    # Если город был отправлен
+    if type(message) == types.Message:
+        # Меняем предыдущее сообщение
+        data = await state.get_data()
+        try:
+            await data["prev_mess"].edit_text(data["prev_mess"].text)
+        except Exception:
+            pass
+
+        # Если отправлен не текст
+        if not message.text:
+            prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
+            # Сохраняем предыдущее сообщение
+            await state.update_data(prev_mess=prev_mess)
+            return
+
+        # Записываем город
+        await state.update_data(location=message.text)
+
+    # Заготовка под теги
+    await state.update_data(tags=[])
+
+    # Меняем стейт
+    await state.set_state(Executor.tags)
+
+    # Отправляем сообщение
+    msg = "Последовательно отдельными сообщениями отправьте теги для удобства поиска вашей анкеты " \
+          "(теги будут отображаться в вашей анкете в формате <i>#web #uiux #figma #landing</i>)"
+
+    # Если город был отправлен
+    if type(message) == types.Message:
+        prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
+
+    # Если город пропущен
+    else:
+        prev_mess = await message.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
+
+    # Сохраняем сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.message(Executor.tags)
+async def get_tag(message: types.Message, state: FSMContext) -> None:
+    """Вспомогательный тег"""
+    # Меняем предыдущее сообщение
+    data = await state.get_data()
+    try:
+        await data["prev_mess"].edit_text(data["prev_mess"].text)
+    except Exception:
+        pass
+
+    # Если отправлен не текст
+    if not message.text:
+        prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                         reply_markup=kb.cancel_keyboard().as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Если тег не валидный
+    if not is_valid_tag(message.text):
+        # Проверяем может ли пользователь продолжить (если есть хотя бы один валидный тег)
+        if len(data["tags"]) != 0:
+            keyboard = kb.continue_cancel_keyboard()
+        else:
+            keyboard = kb.cancel_keyboard()
+
+        prev_mess = await message.answer("Неверный формат данных, необходимо отправить тег одним словом без специальных "
+                                         "символов таких как \"#\", \".\", \",\" и т.д.\n"
+                                         "Отправьте тег заново (например <i>design</i>)",
+                                         reply_markup=keyboard.as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Добавляем тег в список
+    tags = data["tags"]
+    tags.append(message.text)
+    tags_text = " ".join([f"#{tag}" for tag in tags])
+    tags_count = len(tags)
+    await state.update_data(tags=tags)
+
+    # Отправляем сообщение
+    msg = f"Отправьте следюущий тег или нажмите кнопку \"Продолжить\"\n\n" \
+          f"Отправлено тегов {tags_count} шт.:\n{tags_text}"
+    prev_mess = await message.answer(msg, reply_markup=kb.continue_cancel_keyboard().as_markup())
+
+    # Сохраняем сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data == "continue", Executor.tags)
+async def get_tags(callback: types.CallbackQuery, state: FSMContext) -> None:
+    """Получаем список тегов, запрашиваем языки"""
+    # Меняем стейт
+    await state.set_state(Executor.langs)
+
+    # Заготовка для мультиселекта
+    await state.update_data(selected_langs=[])
+
+    # Отправляем сообщение
+    msg = "Выберите языки, с которыми вы работаете"
+    prev_mess = await callback.message.edit_text(msg, reply_markup=kb.choose_langs_keyboard([]).as_markup())
+
+    # Сохраняем последнее сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data.split("|")[0] == "choose_langs")
+async def get_langs_multiselect(callback: types.CallbackQuery, state: FSMContext) -> None:
+    """Вспомогательный хендлер для мультиселекта языков"""
+    lang = callback.data.split("|")[1]
+
+    # Получаем дату
+    data = await state.get_data()
+    selected_langs = data["selected_langs"]
+
+    # Добавляем или убираем язык из списка выбранных
+    if lang in selected_langs:
+        # Убираем из выбранных язык
+        selected_langs.remove(lang)
+    else:
+        # Добавляем язык в выбраные
+        selected_langs.append(lang)
+
+    # Сохраняем обновленный список
+    await state.update_data(selected_langs=selected_langs)
+
+    # Отправляем сообщение
+    msg = "Выберите языки, с которыми вы работаете"
+    keyboard = kb.choose_langs_keyboard(selected_langs)
+    prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+
+    # Сохраняем последнее сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data == "choose_langs_done")
+async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Записываем языки, показываем демо анкеты"""
+    # Сообщение об ожидании
+    wait_msg = await callback.message.edit_text(WAIT_MSG)
+
+    # Меняем стейт
+    await state.set_state(Executor.verification)
+
+    # Получаем все введенные данные
+    data = await state.get_data()
+
+    # Формируем анкету
+    profession: Profession = await AsyncOrm.get_profession(data["profession_id"], session)
+    jobs: List[Job] = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
+    questionnaire = get_executor_profile_message(data, profession, jobs)
+
+    # Отправляем сообщение
+    msg = f"Ваша анкета готова. Проверьте введенные данные\n\n" \
+          f"{questionnaire}\n\n" \
+          f"Публикуем?"
+    prev_mess = await wait_msg.edit_text(msg, reply_markup=kb.confirm_registration_keyboard().as_markup(), disable_web_page_preview=True)
+
+    # Сохраняем сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data == "confirm_registration")
+async def registration_confirmation(callback: types.CallbackQuery, state: FSMContext, session: Any, bot: Bot) -> None:
+    """Подтверждение регистрации"""
+    tg_id = str(callback.message.from_user.id)
+
+    # Получаем все введенные данные
+    data = await state.get_data()
+
+    # Отправка сообщения пользователю
+    msg = "ℹ️ Ожидайте, ваша анкета отправлена администратору для верификации\n"
+    await callback.message.edit_text(msg)
+
+    # Предварительная регистрация исполнителя
+
+    # Формируем анкету
+    profession: Profession = await AsyncOrm.get_profession(data["profession_id"], session)
+    jobs: List[Job] = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
+    questionnaire = get_executor_profile_message(data, profession, jobs)
+
+    # Отправляем в группу анкету на согласование
+    admin_tg_id = settings.admins[0]
+    await bot.send_message(
+        admin_tg_id,
+        questionnaire,
+        reply_markup=confirm_registration_executor_keyboard(tg_id, 1).as_markup(),
+        disable_web_page_preview = True
+    )
 
 
 @router.callback_query(F.data == "cancel_executor_registration", StateFilter("*"))
