@@ -7,8 +7,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
 from routers.states.media import LoadMedia
-
-from settings import settings
+from utils.s3_storage import save_file_to_s3_storage
+from utils.download_files import load_photo_from_tg
 
 router = Router()
 
@@ -44,45 +44,16 @@ async def add_photo_handler(callback: types.CallbackQuery, state: FSMContext):
 
 @router.message(LoadMedia.photo)
 async def get_photo(message: types.Message, bot: Bot, state: FSMContext):
-    # формируем путь для сохранения фото
-    filename = str(message.from_user.id)
-    filepath = f"{settings.profile_photo_path}/{filename}.jpg"
-
     try:
-        # получаем фото
-        photo = message.photo[-1]
-        # скачиваем фото в локальную директорию
-        await bot.download(photo.file_id, filepath)
+        filename: str = await load_photo_from_tg(message, bot)
+        await save_file_to_s3_storage(filename)
 
-        # save to s3
-        await save_to_s3_storage(filepath, filename)
-
-    except TypeError:
-        await message.answer("Не удалось загрузить фотографию из вашего сообщения. "
-                             "Пожалуйста, пришлите фотографию еще раз.")
+    except Exception:
+        await message.answer(f"Не удалось загрузить фото, попробуйте еще раз")
         return
 
     await message.answer("Фото успешно загружено")
     await state.clear()
 
-
-async def save_to_s3_storage(photo_path: str, filename: str):
-    import boto3
-
-    # Создаем клиент S3
-    s3_client = boto3.client(
-        's3',
-        endpoint_url=settings.s3_url,
-        aws_access_key_id=settings.s3_access_key,
-        aws_secret_access_key=settings.s3_secret_key
-    )
-
-    # Загружаем файл
-    s3_client.upload_file(
-        photo_path,
-        "profile-media",
-        filename
-    )
-    print(f"Фото {filename} успешно загружено!")
 
 
