@@ -12,7 +12,7 @@ class CheckPrivateMessageMiddleware(BaseMiddleware):
             event: TelegramObject,
             data: Dict[str, Any]) -> Any:
 
-        # проверяем является ли пользователь админом
+        # типа чата
         if data["event_chat"].type == "private":
             return await handler(event, data)
         return

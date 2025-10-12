@@ -4,7 +4,7 @@ from settings import settings
 from logger import logger
 
 
-async def load_photo_from_tg(message: types.Message, bot: Bot, local_file_dir: str = "profiles/executors") -> str:
+async def load_photo_from_tg(message: types.Message, bot: Bot, local_file_dir: str) -> str:
     """
         Загрузка фото из ТГ и сохранение в локальную директорию
         file_dir_type: bool - True for executor, False for client

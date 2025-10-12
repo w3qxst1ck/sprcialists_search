@@ -65,6 +65,7 @@ class Clients(Base):
     links: Mapped[str] = mapped_column(nullable=True, default=None)
     langs: Mapped[str] = mapped_column(nullable=False, default="RUS")   # RUS|KZ|POL
     location: Mapped[str] = mapped_column(nullable=True, default=None)
+    photo: Mapped[bool] = mapped_column(nullable=False, default=False)
     verified: Mapped[bool] = mapped_column(default=False)
 
     user: Mapped["User"] = relationship(back_populates="client_profile")
@@ -86,6 +87,7 @@ class Executors(Base):
     contacts: Mapped[str] = mapped_column(nullable=True, default=None)
     location: Mapped[str] = mapped_column(nullable=True, default=None)
     langs: Mapped[str] = mapped_column(nullable=False, default="RUS")   # RUS|KZ|POL
+    photo: Mapped[bool] = mapped_column(nullable=False, default=False)
     verified: Mapped[bool] = mapped_column(default=False)
 
     tags: Mapped[list["Tags"]] = relationship(back_populates="executors", secondary="executors_tags")

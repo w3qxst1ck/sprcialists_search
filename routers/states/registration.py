@@ -3,10 +3,9 @@ from aiogram.fsm.state import StatesGroup, State
 
 class Executor(StatesGroup):
     name = State()
+    photo = State()
     age = State()
     profession = State()
-    # TODO сделать аватар
-    # photo = State()
     jobs = State()
     description = State()
     rate = State()

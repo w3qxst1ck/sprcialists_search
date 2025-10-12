@@ -5,6 +5,7 @@ from aiogram.filters import Command, and_f, StateFilter
 from aiogram.fsm.context import FSMContext
 
 from middlewares.database import DatabaseMiddleware
+from middlewares.group import CheckPrivateMessageMiddleware
 from routers.messages.registation import get_executor_profile_message
 from routers.states.registration import Executor
 
@@ -15,13 +16,14 @@ from routers.keyboards.admin import confirm_registration_executor_keyboard
 
 from database.orm import AsyncOrm
 from schemas.profession import Job, Profession
-from schemas.user import UserAdd
-from database.tables import UserRoles
+from utils.download_files import load_photo_from_tg
 from settings import settings
 from routers.keyboards import executor_registration as kb
 from utils.validations import is_valid_age, is_valid_url, is_valid_tag
 
 router = Router()
+router.message.middleware.register(CheckPrivateMessageMiddleware())
+router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
 router.message.middleware.register(DatabaseMiddleware())
 router.callback_query.middleware.register(DatabaseMiddleware())
 
@@ -53,7 +55,7 @@ async def start_registration(callback: types.CallbackQuery, session: Any, state:
 
 
 @router.message(Executor.name)
-async def get_name(message: types.Message, session: Any, state: FSMContext) -> None:
+async def get_name(message: types.Message, state: FSMContext) -> None:
     """Запись имени, запрос возраста"""
     # Меняем предыдущее сообщение
     data = await state.get_data()
@@ -74,10 +76,45 @@ async def get_name(message: types.Message, session: Any, state: FSMContext) -> N
     await state.update_data(name=message.text)
 
     # Меняем стейт
+    await state.set_state(Executor.photo)
+
+    # Отправляем сообщение с запросом аватара
+    msg = "Отправьте фото профиля"
+    prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
+
+    # Сохраняем предыдущее сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.message(Executor.photo)
+async def get_photo(message: types.Message, bot: Bot, state: FSMContext) -> None:
+    """Получение фото, запрос возраста"""
+    # Меняем предыдущее сообщение
+    data = await state.get_data()
+    try:
+        await data["prev_mess"].edit_text(data["prev_mess"].text)
+    except Exception:
+        pass
+
+    # Проверяем что отправлено фото
+    if not message.photo:
+        prev_mess = await message.answer("Неверный формат данных, необходимо отправить фотографию",
+                                         reply_markup=kb.cancel_keyboard().as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Сохраняем фото локально
+    await load_photo_from_tg(message, bot, settings.executors_profile_path)
+
+    # Сохраняем фото в стейт
+    await state.update_data(photo=True)
+
+    # Меняем стейт
     await state.set_state(Executor.age)
 
-    # Отправляем сообщение с запросом возраста
-    msg = "Укажите возраст"
+    # Отправляем сообщение
+    msg = "Отправьте свой возраст"
     prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -611,7 +648,7 @@ async def registration_confirmation(callback: types.CallbackQuery, state: FSMCon
         admin_tg_id,
         questionnaire,
         reply_markup=confirm_registration_executor_keyboard(tg_id, 1).as_markup(),
-        disable_web_page_preview = True
+        disable_web_page_preview=True
     )
 
 
