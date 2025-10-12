@@ -55,11 +55,15 @@ async def start(message: types.Message, admin: bool, session: Any) -> None:
         keyboard = await choose_role_keyboard()
         msg = await get_start_message()
 
-        start_image = FSInputFile(settings.local_media_path + "start.jpg")
-        await message.answer_photo(
-            photo=start_image,
-            caption=msg,
-        )
+        try:
+            start_image = FSInputFile(settings.local_media_path + "start.jpg")
+            await message.answer_photo(
+                photo=start_image,
+                caption=msg,
+            )
+        except:
+            pass
+
         await message.answer(f"Выберите роль и пройдите регистрацию", reply_markup=keyboard.as_markup())
 
 
