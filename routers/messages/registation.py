@@ -15,7 +15,7 @@ def get_executor_profile_message(data: dict, profession: Profession, jobs: List[
     contacts = data["contacts"] if data["contacts"] else "не указаны"
     location = data["location"] if data["location"] else "не указан"
 
-    msg = f"👤 {data['name']}, {age}  — {profession.title} ({jobs})\n" \
+    msg = f"👤 {data['name']}, {age} — {profession.title} ({jobs})\n" \
           f"💼 {data['experience']} | 💲 {data['rate']} | {langs}\n" \
           f"🏷️ {tags}\n" \
           f"📎 {links}\n" \

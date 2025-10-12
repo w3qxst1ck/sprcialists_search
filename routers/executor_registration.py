@@ -38,6 +38,9 @@ async def start_registration(callback: types.CallbackQuery, session: Any, state:
         await callback.message.edit_text(msg)
         return
 
+    # Записываем роль
+    await state.update_data(role="исполнитель")
+
     # Ставим стейт
     await state.set_state(Executor.name)
 
