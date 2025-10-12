@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from middlewares.database import DatabaseMiddleware
-from routers.messages.registation import get_executor_profile_message
+from routers.messages.executor import get_executor_profile_message
 from routers.states.registration import Executor, Client
 
 from middlewares.admin import AdminMiddleware

@@ -1,7 +1,4 @@
-from typing import List
-
 from schemas.executor import ExecutorAdd
-from schemas.profession import Profession, Job
 from settings import settings
 from utils.age import get_age_text
 
@@ -15,6 +12,7 @@ def get_executor_profile_message(executor: ExecutorAdd) -> str:
     links = " | ".join(executor.links)
     contacts = executor.contacts if executor.contacts else "не указаны"
     location = executor.location if executor.location else "не указан"
+    verified = "✔️ Подтверждена" if executor.verified else "🚫 Не подтверждена"
 
     msg = f"👤 {executor.name}, {age} — {executor.profession.title} ({jobs})\n" \
           f"💼 {executor.experience} | 💲 {executor.rate} | {langs}\n" \
@@ -22,6 +20,7 @@ def get_executor_profile_message(executor: ExecutorAdd) -> str:
           f"📎 {links}\n" \
           f"О себе: {executor.description}\n" \
           f"Город: {location}\n" \
-          f"Контакты: {contacts}"
+          f"Контакты: {contacts}\n" \
+          f"Верификация: {verified}"
 
     return msg

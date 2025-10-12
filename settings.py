@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     bot_token: str = Field(..., env='BOT_TOKEN')
     admins: list = Field(..., env='ADMINS')
     admin_tg_username: str = "kill_rilll"
+    admin_group_id: str = Field(..., env='ADMIN_GROUP_ID')
     local_media_path: str = "media/"
 
     s3_secret_key: str = Field(..., env='S3_SECRET_KEY')

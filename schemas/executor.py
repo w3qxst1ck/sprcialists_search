@@ -10,7 +10,7 @@ class ExecutorAdd(BaseModel):
     tg_id: str
     name: str
     age: int
-    description: int
+    description: str
     rate: str
     experience: str
     links: List[str]

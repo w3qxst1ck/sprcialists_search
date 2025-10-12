@@ -1,16 +1,16 @@
 from typing import Any, List
 
 from aiogram import Router, types, F, Bot
-from aiogram.filters import Command, and_f, StateFilter
+from aiogram.filters import and_f, StateFilter
 from aiogram.fsm.context import FSMContext
+from aiogram.types import FSInputFile
 
 from database.tables import Availability
 from middlewares.database import DatabaseMiddleware
-from middlewares.group import CheckPrivateMessageMiddleware
-from routers.messages.registation import get_executor_profile_message
+from middlewares.private import CheckPrivateMessageMiddleware
+from routers.messages.executor import get_executor_profile_message
 from routers.states.registration import Executor
 
-from middlewares.admin import AdminMiddleware
 from routers.buttons import commands as cmd
 from routers.buttons.menu import WAIT_MSG
 from routers.keyboards.admin import confirm_registration_executor_keyboard
@@ -18,7 +18,7 @@ from routers.keyboards.admin import confirm_registration_executor_keyboard
 from database.orm import AsyncOrm
 from schemas.executor import ExecutorAdd
 from schemas.profession import Job, Profession
-from utils.download_files import load_photo_from_tg
+from utils.download_files import load_photo_from_tg, get_photo_path
 from settings import settings
 from routers.keyboards import executor_registration as kb
 from utils.validations import is_valid_age, is_valid_url, is_valid_tag
@@ -614,7 +614,7 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
     profession: Profession = await AsyncOrm.get_profession(data["profession_id"], session)
     jobs: List[Job] = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
     executor = ExecutorAdd(
-        tg_id=str(callback.message.from_user.id),
+        tg_id=str(callback.from_user.id),
         name=data["name"],
         age=data["age"],
         description=data["description"],
@@ -625,7 +625,7 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
         availability=Availability.FREE,
         contacts=data["contacts"],
         location=data["location"],
-        langs=data["langs"],
+        langs=data["selected_langs"],
         photo=data["photo"],
         profession=profession,
         jobs=jobs,
@@ -637,11 +637,26 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
     await state.update_data(executor=executor)
     await state.update_data(questionnaire=questionnaire)
 
-    # Отправляем сообщение
+    # Получаем фотографию
+    filepath = get_photo_path(settings.executors_profile_path, executor.tg_id)
+    profile_image = FSInputFile(filepath)
+    await state.update_data(filepath=filepath)
+
+    # Удаляем сообщение об ожидании
+    try:
+        await wait_msg.delete()
+    except Exception:
+        pass
+
+    # Отправляем сообщение с фотографией
     msg = f"Ваша анкета готова. Проверьте введенные данные\n\n" \
           f"{questionnaire}\n\n" \
           f"Публикуем?"
-    prev_mess = await wait_msg.edit_text(msg, reply_markup=kb.confirm_registration_keyboard().as_markup(), disable_web_page_preview=True)
+    prev_mess = await callback.message.answer_photo(
+        profile_image,
+        caption=msg,
+        reply_markup=kb.confirm_registration_keyboard().as_markup()
+    )
 
     # Сохраняем сообщение
     await state.update_data(prev_mess=prev_mess)
@@ -650,25 +665,32 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
 @router.callback_query(F.data == "confirm_registration")
 async def registration_confirmation(callback: types.CallbackQuery, state: FSMContext, session: Any, bot: Bot) -> None:
     """Подтверждение регистрации"""
+    # Убираем клавиатуру
+    await callback.message.edit_reply_markup(reply_markup=None)
+
     # Отправка сообщения пользователю
     msg = "ℹ️ Ожидайте, ваша анкета отправлена администратору для верификации\n"
-    await callback.message.edit_text(msg)
+    await callback.message.answer(msg)
 
     # Получаем все данные
     data = await state.get_data()
 
+    # Очищаем стейт
+    await state.clear()
+
     # Предварительная регистрация исполнителя
     executor: ExecutorAdd = data["executor"]
-    print(type(executor))
-    print(executor)
+    await AsyncOrm.create_executor(executor, session)
 
     # Отправляем в группу анкету на согласование
-    admin_tg_id = settings.admins[0]
-    await bot.send_message(
-        admin_tg_id,
-        data["questionnaire"],
+    admin_group_id = settings.admin_group_id
+    profile_image = FSInputFile(data["filepath"])
+    msg = data["questionnaire"]
+    await bot.send_photo(
+        admin_group_id,
+        photo=profile_image,
+        caption=msg,
         reply_markup=confirm_registration_executor_keyboard(executor.tg_id).as_markup(),
-        disable_web_page_preview=True
     )
 
 

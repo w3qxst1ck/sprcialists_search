@@ -9,6 +9,7 @@ from database.database import async_engine
 from database.tables import Base
 
 from logger import logger
+from schemas.executor import ExecutorAdd
 from schemas.profession import Profession, Job
 from schemas.user import UserAdd
 
@@ -163,3 +164,52 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении jobs с ids {jobs_ids}: {e}")
+
+    @staticmethod
+    async def create_executor(e: ExecutorAdd, session: Any) -> None:
+        """Создание профиля исполнителя"""
+        links = "|".join(e.links)
+        langs = "|".join(e.langs)
+        try:
+            # Создание профиля исполнителя
+            executor_id = await session.fetchval(
+                """
+                INSERT INTO executors (tg_id, name, age, description, rate, experience, links, availability, contacts, 
+                location, langs, photo, verified) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                RETURNING id
+                """,
+                e.tg_id, e.name, e.age, e.description, e.rate, e.experience, links, e.availability, e.contacts,
+                e.location, langs, e.photo, e.verified
+            )
+
+            # Создание связи ExecutorsJobs
+            for job in e.jobs:
+                await session.execute(
+                    """
+                    INSERT INTO executors_jobs (job_id, executor_id)
+                    VALUES ($1, $2)
+                    """,
+                    job.id, executor_id
+                )
+            logger.info(f"Создан профиль Исполнителя пользователем {e.tg_id}")
+
+        except Exception as ex:
+            logger.error(f"Ошибка при создании профиля исполнителя пользователем {e.tg_id}: {ex}")
+
+    @staticmethod
+    async def verify_executor(tg_id: str, admin_tg_id: str, session: Any) -> None:
+        """Верификация исполнителя"""
+        try:
+            await session.execute(
+                """
+                UPDATE executors
+                SET verified=True
+                WHERE tg_id=$1
+                """,
+                tg_id
+            )
+            logger.info(f"Исполнитель {tg_id} верифицирован админом {admin_tg_id}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при верификации исполнителя: {e}")

@@ -28,3 +28,8 @@ async def load_photo_from_tg(message: types.Message, bot: Bot, local_file_dir: s
     return filename
 
 
+def get_photo_path(path: str, tg_id: str) -> str:
+    """Получение пути в зависимости от роли"""
+    return settings.local_media_path + path + f"{tg_id}.jpg"
+
+
