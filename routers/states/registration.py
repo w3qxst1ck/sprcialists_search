@@ -22,5 +22,8 @@ class Client(StatesGroup):
     name = State()
     description = State()
     client_type = State()
-
+    links = State()
+    langs = State()
+    location = State()
+    photo = State()
 

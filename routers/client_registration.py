@@ -119,16 +119,164 @@ async def get_client_description(message: CallbackQuery|Message, state: FSMConte
 
     # Без пропуска описания
     if isinstance(message, Message):
-        prev_mess = await message.answer(msg, reply_markup=kb.pick_client_type_keyboard().as_markup())
+        await message.answer(msg, reply_markup=kb.pick_client_type_keyboard().as_markup())
 
     # С пропуском описания
     else:
-        prev_mess = await message.message.edit_text(msg, reply_markup=kb.pick_client_type_keyboard().as_markup())
+        await message.message.edit_text(msg, reply_markup=kb.pick_client_type_keyboard().as_markup())
 
-    # Сохраняем сообщение
+
+@router.callback_query(Client.client_type)
+async def get_client_type(callback: CallbackQuery, state: FSMContext) -> None:
+    """Получаем тип клиента"""
+    client_type = callback.data.split("|")[1]
+
+    # Записываем тип клиента
+    await state.update_data(client_type=client_type)
+
+    # Меняем стейт
+    await state.set_state(Client.links)
+
+    msg = "Отправьте ссылку для информации о себе (соц.сети/сайт/портфолио)"
+
+    prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
     await state.update_data(prev_mess=prev_mess)
 
 
+@router.message(Client.links)
+@router.callback_query(Client.links, F.data == "skip")
+async def get_client_link(message: CallbackQuery | Message, state: FSMContext) -> None:
+    """Получаем отправленную ссылку"""
+    data = await state.get_data()
+
+    # Если ссылка была отправлена
+    if isinstance(message, Message):
+
+        # Если отправлен не текст
+        if not message.text:
+            prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
+            # Сохраняем предыдущее сообщение
+            await state.update_data(prev_mess=prev_mess)
+            return
+
+        await data["prev_mess"].edit_text(data["prev_mess"].text)
+
+        # Если ссылка не валидна
+        if not is_valid_url(message.text):
+            prev_mess = await message.answer(
+                "Неверный формат ссылки, необходимо отправить текст формата <i>https://www.google.com</i> "
+                "без дополнительных символов\nОтправьте ссылку заново",
+                reply_markup=kb.skip_cancel_keyboard().as_markup())
+            # Сохраняем предыдущее сообщение
+            await state.update_data(prev_mess=prev_mess)
+            return
+
+        # Валидную ссылку записываем в память
+        await state.update_data(links=message.text)
+
+    # Сохраняем пустое значение для поля ссылок, если клиент пропустил отправку
+    elif isinstance(message, CallbackQuery):
+        await state.update_data(links=None)
+
+    # Меняем стейт
+    await state.set_state(Client.langs)
+    # Заготовка для мультиселекта
+    await state.update_data(selected_langs=[])
+
+    # Отправляем сообщение
+    msg = "Выберите языки, с которыми вы работаете"
+
+    if isinstance(message, Message):
+        prev_mess = await message.answer(msg, reply_markup=kb.choose_langs_keyboard([]).as_markup())
+
+    else:
+        prev_mess = await message.message.edit_text(msg, reply_markup=kb.choose_langs_keyboard([]).as_markup())
+
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data.split("|")[0] == "choose_langs", Client.langs)
+async def get_langs_multiselect(callback: types.CallbackQuery, state: FSMContext) -> None:
+    """Вспомогательный хэндлер для мультиселекта языков"""
+
+    lang = callback.data.split("|")[1]
+
+    # Получаем дату
+    data = await state.get_data()
+    selected_langs = data["selected_langs"]
+
+    # Добавляем или убираем язык из списка выбранных
+    if lang in selected_langs:
+        # Убираем из выбранных язык
+        selected_langs.remove(lang)
+    else:
+        # Добавляем язык в выбраные
+        selected_langs.append(lang)
+
+    # Сохраняем обновленный список
+    await state.update_data(selected_langs=selected_langs)
+
+    # Отправляем сообщение
+    msg = "Выберите языки, с которыми вы работаете"
+    keyboard = kb.choose_langs_keyboard(selected_langs)
+    prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+
+    # Сохраняем последнее сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data == "choose_langs_done", Client.langs)
+async def get_langs(callback: types.CallbackQuery, state: FSMContext) -> None:
+    """Записываем языки, запрашиваем location"""
+    # Сообщение об ожидании
+    wait_msg = await callback.message.edit_text(WAIT_MSG)
+
+    # Меняем стейт
+    await state.set_state(Client.location)
+
+    # Отправляем сообщение
+    msg = "Отправьте ваш город"
+    await wait_msg.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
+
+
+@router.callback_query(F.data == "skip", Client.location)
+@router.message(Client.location)
+async def get_location(message: CallbackQuery | Message, state: FSMContext) -> None:
+    """Получаем локацию"""
+    data = await state.get_data()
+
+    # Если локация была отправлена
+    if isinstance(message, Message):
+
+        # Если отправлен не текст
+        if not message.text:
+            prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
+            # Сохраняем предыдущее сообщение
+            await state.update_data(prev_mess=prev_mess)
+            return
+
+        await data["prev_mess"].edit_text(data["prev_mess"].text)
+
+        # Валидную ссылку записываем в память
+        await state.update_data(links=message.text)
+
+    # Сохраняем пустое значение для поля ссылок, если клиент пропустил отправку
+    elif isinstance(message, CallbackQuery):
+        await state.update_data(links=None)
+
+    # Меняем стейт
+    await state.set_state(Client.photo)
+
+    # Отправляем сообщение
+    msg = "Отправьте фото профиля"
+    if type(message) == Message:
+        prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
+    else:
+        prev_mess = await message.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
+
+    await state.update_data(prev_mess=prev_mess)
 
 
 
