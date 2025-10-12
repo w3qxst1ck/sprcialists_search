@@ -31,6 +31,11 @@ private_router.callback_query.middleware.register(CheckPrivateMessageMiddleware(
 @group_router.callback_query(F.data.split("|")[0] == "executor_confirm")
 async def confirm_executor_registration(callback: CallbackQuery, session: Any, bot: Bot, admin: bool) -> None:
     """Верификация новой анкеты исполнителя в группе"""
+    # Проверяем админа
+    if not admin:
+        await callback.message.answer("⚠️ Функция доступна только администраторам")
+        return
+
     # Убираем клавиатуру сразу после нажатия
     await callback.message.edit_reply_markup(reply_markup=None)
 

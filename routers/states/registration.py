@@ -8,13 +8,13 @@ class Executor(StatesGroup):
     profession = State()
     jobs = State()
     description = State()
-    rate = State()
+    rate = State() # опционально
     experience = State()
     links = State()
-    contacts = State()
-    location = State()
-    tags = State()
-    langs = State()
+    contacts = State() # опционально
+    location = State() # опционально
+    tags = State() # убрать
+    langs = State() # опционально
     verification = State()
 
 
