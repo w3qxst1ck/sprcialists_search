@@ -18,3 +18,10 @@ class Executor(StatesGroup):
     langs = State()
     verification = State()
 
+
+class Client(StatesGroup):
+    name = State()
+    description = State()
+    client_type = State()
+
+

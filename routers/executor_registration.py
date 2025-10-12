@@ -190,7 +190,7 @@ async def get_jobs(callback: types.CallbackQuery, state: FSMContext) -> None:
     await state.set_state(Executor.description)
 
     # Отправляем сообщение
-    msg = "Отправьте текстом информацию о себе, не более 500 символов"
+    msg = "Отправьте информацию о себе (не более 500 символов)"
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем сообщение
