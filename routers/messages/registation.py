@@ -1,25 +1,26 @@
 from typing import List
 
+from schemas.executor import ExecutorAdd
 from schemas.profession import Profession, Job
 from settings import settings
 from utils.age import get_age_text
 
 
-def get_executor_profile_message(data: dict, profession: Profession, jobs: List[Job]) -> str:
+def get_executor_profile_message(executor: ExecutorAdd) -> str:
     """Анкета исполнителя для показа при регистрации"""
-    age = get_age_text(data["age"])
-    jobs = ", ".join([job.title for job in jobs])
-    langs = "/".join([settings.languages[lang] for lang in data["selected_langs"]])
-    tags = " ".join([f"#{tag}" for tag in data["tags"]])
-    links = " | ".join(data["links"])
-    contacts = data["contacts"] if data["contacts"] else "не указаны"
-    location = data["location"] if data["location"] else "не указан"
+    age = get_age_text(executor.age)
+    jobs = ", ".join([job.title for job in executor.jobs])
+    langs = "/".join([settings.languages[lang] for lang in executor.langs])
+    tags = " ".join([f"#{tag}" for tag in executor.tags])
+    links = " | ".join(executor.links)
+    contacts = executor.contacts if executor.contacts else "не указаны"
+    location = executor.location if executor.location else "не указан"
 
-    msg = f"👤 {data['name']}, {age} — {profession.title} ({jobs})\n" \
-          f"💼 {data['experience']} | 💲 {data['rate']} | {langs}\n" \
+    msg = f"👤 {executor.name}, {age} — {executor.profession.title} ({jobs})\n" \
+          f"💼 {executor.experience} | 💲 {executor.rate} | {langs}\n" \
           f"🏷️ {tags}\n" \
           f"📎 {links}\n" \
-          f"О себе: {data['description']}\n" \
+          f"О себе: {executor.description}\n" \
           f"Город: {location}\n" \
           f"Контакты: {contacts}"
 

@@ -4,6 +4,7 @@ from aiogram import Router, types, F, Bot
 from aiogram.filters import Command, and_f, StateFilter
 from aiogram.fsm.context import FSMContext
 
+from database.tables import Availability
 from middlewares.database import DatabaseMiddleware
 from middlewares.group import CheckPrivateMessageMiddleware
 from routers.messages.registation import get_executor_profile_message
@@ -15,6 +16,7 @@ from routers.buttons.menu import WAIT_MSG
 from routers.keyboards.admin import confirm_registration_executor_keyboard
 
 from database.orm import AsyncOrm
+from schemas.executor import ExecutorAdd
 from schemas.profession import Job, Profession
 from utils.download_files import load_photo_from_tg
 from settings import settings
@@ -567,7 +569,7 @@ async def get_tags(callback: types.CallbackQuery, state: FSMContext) -> None:
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.callback_query(F.data.split("|")[0] == "choose_langs")
+@router.callback_query(F.data.split("|")[0] == "choose_langs", Executor.langs)
 async def get_langs_multiselect(callback: types.CallbackQuery, state: FSMContext) -> None:
     """Вспомогательный хендлер для мультиселекта языков"""
     lang = callback.data.split("|")[1]
@@ -596,7 +598,7 @@ async def get_langs_multiselect(callback: types.CallbackQuery, state: FSMContext
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.callback_query(F.data == "choose_langs_done")
+@router.callback_query(F.data == "choose_langs_done", Executor.langs)
 async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: Any) -> None:
     """Записываем языки, показываем демо анкеты"""
     # Сообщение об ожидании
@@ -611,7 +613,29 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
     # Формируем анкету
     profession: Profession = await AsyncOrm.get_profession(data["profession_id"], session)
     jobs: List[Job] = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
-    questionnaire = get_executor_profile_message(data, profession, jobs)
+    executor = ExecutorAdd(
+        tg_id=str(callback.message.from_user.id),
+        name=data["name"],
+        age=data["age"],
+        description=data["description"],
+        rate=data["rate"],
+        experience=data["experience"],
+        links=data["links"],
+        tags=data["tags"],
+        availability=Availability.FREE,
+        contacts=data["contacts"],
+        location=data["location"],
+        langs=data["langs"],
+        photo=data["photo"],
+        profession=profession,
+        jobs=jobs,
+        verified=False
+    )
+    questionnaire = get_executor_profile_message(executor)
+
+    # Сохраняем для дальнейшего использования
+    await state.update_data(executor=executor)
+    await state.update_data(questionnaire=questionnaire)
 
     # Отправляем сообщение
     msg = f"Ваша анкета готова. Проверьте введенные данные\n\n" \
@@ -626,28 +650,24 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
 @router.callback_query(F.data == "confirm_registration")
 async def registration_confirmation(callback: types.CallbackQuery, state: FSMContext, session: Any, bot: Bot) -> None:
     """Подтверждение регистрации"""
-    tg_id = str(callback.message.from_user.id)
-
-    # Получаем все введенные данные
-    data = await state.get_data()
-
     # Отправка сообщения пользователю
     msg = "ℹ️ Ожидайте, ваша анкета отправлена администратору для верификации\n"
     await callback.message.edit_text(msg)
 
-    # Предварительная регистрация исполнителя
+    # Получаем все данные
+    data = await state.get_data()
 
-    # Формируем анкету
-    profession: Profession = await AsyncOrm.get_profession(data["profession_id"], session)
-    jobs: List[Job] = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
-    questionnaire = get_executor_profile_message(data, profession, jobs)
+    # Предварительная регистрация исполнителя
+    executor: ExecutorAdd = data["executor"]
+    print(type(executor))
+    print(executor)
 
     # Отправляем в группу анкету на согласование
     admin_tg_id = settings.admins[0]
     await bot.send_message(
         admin_tg_id,
-        questionnaire,
-        reply_markup=confirm_registration_executor_keyboard(tg_id, 1).as_markup(),
+        data["questionnaire"],
+        reply_markup=confirm_registration_executor_keyboard(executor.tg_id).as_markup(),
         disable_web_page_preview=True
     )
 
