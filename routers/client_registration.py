@@ -331,8 +331,11 @@ async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, 
 
     # Отправляем сообщение
     msg = f"Ваша анкета готова. Проверьте введенные данные\n\n" \
-          f"{data.keys()}" \
-          # f"{questionnaire}\n\n" \f"Публикуем?"
+          # f"{data.keys()}" \
+          # f"{questionnaire}\n\n" \
+    msg += f"{data['name']}\n{data['description']}\n{data['location']}\n{data['client_type']}\n{data['links']}" \
+           f"{data['selected_langs']}\n{data['photo']}" \
+           f"Публикуем?"
 
     if isinstance(message, Message):
         prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup(),
