@@ -20,12 +20,12 @@ group_router.callback_query.middleware.register(CheckGroupMessageMiddleware())
 
 # Роутер для использования в ЛС
 private_router = Router()
-group_router.message.middleware.register(DatabaseMiddleware())
-group_router.callback_query.middleware.register(DatabaseMiddleware())
-group_router.message.middleware.register(AdminMiddleware())
-group_router.callback_query.middleware.register(AdminMiddleware())
-group_router.message.middleware.register(CheckPrivateMessageMiddleware())
-group_router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
+private_router.message.middleware.register(DatabaseMiddleware())
+private_router.callback_query.middleware.register(DatabaseMiddleware())
+private_router.message.middleware.register(AdminMiddleware())
+private_router.callback_query.middleware.register(AdminMiddleware())
+private_router.message.middleware.register(CheckPrivateMessageMiddleware())
+private_router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
 
 
 @group_router.callback_query(F.data.split("|")[0] == "executor_confirm")
