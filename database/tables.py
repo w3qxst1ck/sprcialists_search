@@ -60,10 +60,10 @@ class Clients(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     tg_id: Mapped[str] = mapped_column(ForeignKey("users.tg_id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(50), nullable=False, comment="Имя пользователя должно содержать не более 50 символов")
-    description: Mapped[str] = mapped_column(String(500), nullable=False)
+    description: Mapped[str] = mapped_column(String(500), nullable=True, default=None)
     type: Mapped[ClientType] = mapped_column(String, nullable=False)
     links: Mapped[str] = mapped_column(nullable=True, default=None)
-    langs: Mapped[str] = mapped_column(nullable=False, default="RUS") # RUS|KZ|POL
+    langs: Mapped[str] = mapped_column(nullable=False, default="RUS")   # RUS|KZ|POL
     location: Mapped[str] = mapped_column(nullable=True, default=None)
     verified: Mapped[bool] = mapped_column(default=False)
 
@@ -85,7 +85,7 @@ class Executors(Base):
     availability: Mapped[Availability] = mapped_column(String, default=Availability.FREE, nullable=False)
     contacts: Mapped[str] = mapped_column(nullable=True, default=None)
     location: Mapped[str] = mapped_column(nullable=True, default=None)
-    langs: Mapped[str] = mapped_column(nullable=False, default="RUS") # RUS|KZ|POL
+    langs: Mapped[str] = mapped_column(nullable=False, default="RUS")   # RUS|KZ|POL
     verified: Mapped[bool] = mapped_column(default=False)
 
     tags: Mapped[list["Tags"]] = relationship(back_populates="executors", secondary="executors_tags")

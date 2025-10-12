@@ -2,7 +2,7 @@ from typing import Any
 
 from aiogram import Router, types, F, Bot
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
+from aiogram.types import InlineKeyboardButton, CallbackQuery, Message, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from middlewares.admin import AdminMiddleware
@@ -13,6 +13,8 @@ from routers.keyboards.menu import main_menu_keyboard
 from database.orm import AsyncOrm
 from schemas.user import UserAdd
 from database.tables import UserRoles
+
+from settings import settings
 
 router = Router()
 router.message.middleware.register(DatabaseMiddleware())
@@ -52,8 +54,13 @@ async def start(message: types.Message, admin: bool, session: Any) -> None:
         # Предлагаем выбрать роль
         keyboard = await choose_role_keyboard()
         msg = await get_start_message()
-        await message.answer(msg, reply_markup=keyboard.as_markup())
-        return
+
+        start_image = FSInputFile(settings.local_media_path + "start.jpg")
+        await message.answer_photo(
+            photo=start_image,
+            caption=msg,
+        )
+        await message.answer(f"Выберите роль и пройдите регистрацию", reply_markup=keyboard.as_markup())
 
 
 async def get_start_message() -> str:
