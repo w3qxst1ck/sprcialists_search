@@ -6,10 +6,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, FSInputFile
 
 from middlewares.database import DatabaseMiddleware
+from middlewares.private import CheckPrivateMessageMiddleware
 from routers.messages.client import get_client_profile_message
 from routers.states.registration import Client
 from routers.keyboards.admin import confirm_registration_client_keyboard
-from routers.buttons import commands as cmd
+from routers.buttons import commands as cmd, menu
+from routers.menu import main_menu
 
 from database.orm import AsyncOrm
 from schemas.client import ClientAdd
@@ -18,6 +20,9 @@ from routers.keyboards import client_reg as kb
 from utils.download_files import load_photo_from_tg, get_photo_path
 
 router = Router()
+
+router.message.middleware.register(CheckPrivateMessageMiddleware())
+router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
 router.message.middleware.register(DatabaseMiddleware())
 router.callback_query.middleware.register(DatabaseMiddleware())
 
@@ -148,13 +153,16 @@ async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, 
     """Получаем фото клиента"""
     data = await state.get_data()
 
-    # Убираем клавиатуру у предыдущего сообщения
-    try:
-        await data["prev_mess"].edit_text(data["prev_mess"].text)
-    except Exception:
-        pass
-
     if isinstance(message, Message):
+        # Убираем клавиатуру у предыдущего сообщения
+        try:
+            await data["prev_mess"].edit_text(data["prev_mess"].text)
+        except Exception:
+            pass
+
+        # Отправляем сообщение об ожидании
+        wait_msg = await message.answer(menu.WAIT_MSG)
+
         # Проверяем что было отправлено фото
         if not message.photo:
             prev_mess = await message.answer("Неверный формат данных, необходимо отправить фотографию",
@@ -166,19 +174,21 @@ async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, 
         # Сохраняем фото локально
         await load_photo_from_tg(message, bot, settings.clients_profile_path)
 
-        # Сохраняем фото в стейт
+        # Сохраняем информацию фото в стейт
         await state.update_data(photo=True)
 
     # Если был пропуск выбора фото
-    elif isinstance(message, CallbackQuery):
+    else:
+        # Отправляем сообщение об ожидании
+        wait_msg = await message.message.edit_text(menu.WAIT_MSG)
+        # Сохраняем информацию фото в стейт
         await state.update_data(photo=False)
 
     # Меняем стейт
     await state.set_state(Client.verification)
 
-    data = await state.get_data()
-
     # Формируем анкету из обязательных полей
+    data = await state.get_data()
     client = ClientAdd(
         tg_id=str(message.from_user.id),
         name=data["name"],
@@ -206,7 +216,13 @@ async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, 
     # Отправляем сообщение с фотографией (если она есть)
     msg = f"Ваша анкета готова. Проверьте введенные данные\n\n" \
           f"{questionnaire}\n\n" \
-          f"Публикуем? (дополнительную информацию вы можете указать в настройках профиля)"
+          f"Публикуем? (дополнительную информацию вы можете указать позже в настройках профиля)"
+
+    # Удаляем сообщение об ожидании
+    try:
+        await wait_msg.delete()
+    except Exception:
+        pass
 
     if isinstance(message, Message):
         prev_mess = await message.answer_photo(
@@ -249,13 +265,14 @@ async def verify_client(callback: CallbackQuery, state: FSMContext, session: Any
     admin_group_id = settings.admin_group_id
     profile_image = FSInputFile(data["filepath"])
     msg = data["questionnaire"]
-
     await bot.send_photo(
         admin_group_id,
         photo=profile_image,
         caption=msg,
         reply_markup=confirm_registration_client_keyboard(client.tg_id).as_markup(),
     )
+
+    await main_menu(callback, session)
 
 
 @router.callback_query(F.data == "cancel_client_registration", StateFilter("*"))
@@ -283,7 +300,6 @@ async def cancel_verification(callback: CallbackQuery, state: FSMContext) -> Non
     msg = f"Нажмите /{cmd.START[0]}, чтобы начать регистрацию заново"
     await callback.message.answer(msg)
 
-# TODO возможно далее нужно отправлять в главное меню
 
 # @router.message(Client.links)
 # @router.callback_query(Client.links, F.data == "skip")

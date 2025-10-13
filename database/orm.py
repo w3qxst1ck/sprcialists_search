@@ -198,23 +198,6 @@ class AsyncOrm:
             logger.error(f"Ошибка при создании профиля исполнителя пользователем {e.tg_id}: {ex}")
 
     @staticmethod
-    async def verify_executor(tg_id: str, admin_tg_id: str, session: Any) -> None:
-        """Верификация исполнителя"""
-        try:
-            await session.execute(
-                """
-                UPDATE executors
-                SET verified=True
-                WHERE tg_id=$1
-                """,
-                tg_id
-            )
-            logger.info(f"Исполнитель {tg_id} верифицирован админом {admin_tg_id}")
-
-        except Exception as e:
-            logger.error(f"Ошибка при верификации исполнителя: {e}")
-
-    @staticmethod
     async def create_client(client: ClientAdd, session: Any) -> None:
         """Запись в таблицу клиентов"""
         try:
@@ -242,3 +225,38 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при создании профиля клиента для пользователя {client.tg_id}: {e}")
+
+    @staticmethod
+    async def verify_executor(tg_id: str, admin_tg_id: str, session: Any) -> None:
+        """Верификация исполнителя"""
+        try:
+            await session.execute(
+                """
+                UPDATE executors
+                SET verified=True
+                WHERE tg_id=$1
+                """,
+                tg_id
+            )
+            logger.info(f"Исполнитель {tg_id} верифицирован админом {admin_tg_id}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при верификации исполнителя: {e}")
+
+    @staticmethod
+    async def verify_client(tg_id: str, admin_tg_id: str, session: Any) -> None:
+        """Верификация клиента"""
+        try:
+            await session.execute(
+                """
+                UPDATE clients
+                SET verified=True
+                WHERE tg_id=$1
+                """,
+                tg_id
+            )
+            logger.info(f"Клиент {tg_id} верифицирован админом {admin_tg_id}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при верификации клиента: {e}")
+

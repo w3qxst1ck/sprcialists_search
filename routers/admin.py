@@ -57,3 +57,38 @@ async def confirm_executor_registration(callback: CallbackQuery, session: Any, b
         msg
     )
 
+
+@group_router.callback_query(F.data.split("|")[0] == "client_confirm")
+async def confirm_client_registration(callback: CallbackQuery, session: Any, bot: Bot, admin: bool) -> None:
+    """Верификация новой анкеты клиента в группе"""
+    # Проверяем админа
+    if not admin:
+        await callback.message.answer("⚠️ Функция доступна только администраторам")
+        return
+
+    # Убираем клавиатуру сразу после нажатия
+    await callback.message.edit_reply_markup(reply_markup=None)
+
+    # получаем tg_id исполнителя
+    client_tg_id = callback.data.split("|")[1]
+
+    # Меняем статус верификации
+    admin_tg_id = str(callback.from_user.id)
+    admin_name = str(callback.from_user.first_name)
+
+    await AsyncOrm.verify_client(client_tg_id, admin_tg_id, session)
+
+    # Оповещаем админов в группе
+    msg = f"\n\n✅ <i>Анкета исполнителя верифицирована администратором \"{admin_name}\"</i>"
+    await callback.message.edit_caption(caption=callback.message.caption + msg)
+
+    # Оповещаем клиента
+    msg = f"✅ Ваша анкета клиента успешно верифицирована\n\nТеперь вы можете размещать заказы и нанимать исполнителей"
+    await bot.send_message(
+        client_tg_id,
+        msg
+    )
+
+
+
+
