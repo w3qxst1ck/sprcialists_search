@@ -12,6 +12,7 @@ from middlewares.database import DatabaseMiddleware
 from middlewares.admin import AdminMiddleware
 from settings import settings
 from routers import main_router
+from routers.buttons import commands as cmd
 
 
 # from database.database import async_engine
@@ -21,9 +22,11 @@ from routers import main_router
 async def set_commands(bot: io.Bot):
     """Перечень команд для бота"""
     commands = [
-        BotCommand(command=f"start", description=f"🚀 Запуск"),
+        BotCommand(command=f"{cmd.MENU[0]}", description=f"{cmd.MENU[1]}"),
+        BotCommand(command=f"{cmd.START[0]}", description=f"{cmd.START[1]}"),
+        BotCommand(command=f"{cmd.INSTRUCTION[0]}", description=f"{cmd.INSTRUCTION[1]}"),
+        BotCommand(command=f"{cmd.HELP[0]}", description=f"{cmd.HELP[1]}")
     ]
-
     await bot.set_my_commands(commands, BotCommandScopeDefault())
 
 

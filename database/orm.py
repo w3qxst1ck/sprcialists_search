@@ -1,14 +1,14 @@
 import datetime
 from collections.abc import Mapping
-from pydantic import ValidationError
 from typing import Any, List
 
 import asyncpg
 
 from database.database import async_engine
-from database.tables import Base
+from database.tables import Base, UserRoles
 
 from logger import logger
+from schemas.client import ClientAdd
 from schemas.executor import ExecutorAdd
 from schemas.profession import Profession, Job
 from schemas.user import UserAdd
@@ -213,3 +213,32 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при верификации исполнителя: {e}")
+
+    @staticmethod
+    async def create_client(client: ClientAdd, session: Any) -> None:
+        """Запись в таблицу клиентов"""
+        try:
+            async with session.transaction():
+                # Создаем профиль клиента
+                client_id = await session.fetchval(
+                    """
+                    INSERT INTO clients (tg_id, name, description, type, links, langs, location, photo, verified)
+                    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    RETURNING id
+                    """,
+                    client.tg_id, client.name, client.description, client.type.value, client.links, client.langs, client.location,
+                    client.photo, client.verified
+                )
+                # Указываем роль у пользователя
+                await session.execute(
+                    """
+                    UPDATE users
+                    SET role = $1
+                    """,
+                    UserRoles.CLIENT.value
+                )
+
+            logger.info(f"Создан профиль клиента пользователя {client.tg_id}, id: {client_id}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при создании профиля клиента для пользователя {client.tg_id}: {e}")

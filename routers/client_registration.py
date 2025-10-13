@@ -1,27 +1,21 @@
-from typing import Any, List
+from typing import Any
 
-from aiogram import Router, types, F, Bot
-from aiogram.filters import Command, and_f, StateFilter
+from aiogram import Router, F, Bot
+from aiogram.filters import and_f, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, FSInputFile
 
 from middlewares.database import DatabaseMiddleware
-from routers.messages.executor import get_executor_profile_message
-from routers.states.registration import Executor, Client
-
-from middlewares.admin import AdminMiddleware
+from routers.messages.client import get_client_profile_message
+from routers.states.registration import Client
+from routers.keyboards.admin import confirm_registration_client_keyboard
 from routers.buttons import commands as cmd
-from routers.buttons.menu import WAIT_MSG
-from routers.keyboards.admin import confirm_registration_executor_keyboard
 
 from database.orm import AsyncOrm
-from schemas.profession import Job, Profession
-from schemas.user import UserAdd
-from database.tables import UserRoles
+from schemas.client import ClientAdd
 from settings import settings
 from routers.keyboards import client_reg as kb
-from utils.download_files import load_photo_from_tg
-from utils.validations import is_valid_age, is_valid_url, is_valid_tag
+from utils.download_files import load_photo_from_tg, get_photo_path
 
 router = Router()
 router.message.middleware.register(DatabaseMiddleware())
@@ -73,46 +67,6 @@ async def get_client_name(message: Message, state: FSMContext) -> None:
     await state.update_data(name=message.text)
 
     # Меняем стейт
-    await state.set_state(Client.description)
-
-    # Отправляем сообщение с запросом возраста
-    msg = "Отправьте информацию о себе (не более 500 символов)"
-    prev_mess = await message.answer(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
-
-    # Сохраняем предыдущее сообщение
-    await state.update_data(prev_mess=prev_mess)
-
-
-@router.message(Client.description)
-@router.callback_query(Client.description)
-async def get_client_description(message: CallbackQuery|Message, state: FSMContext) -> None:
-    """Получение описание или пропуск для регитсраиции клиента"""
-
-    # Если пользователь отправил описание
-    if isinstance(message, Message):
-        # Меняем предыдущее сообщение
-        data = await state.get_data()
-        try:
-            await data["prev_mess"].edit_text(data["prev_mess"].text)
-        except Exception:
-            pass
-
-        # Если отправлен не текст
-        if not message.text:
-            prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
-                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
-            # Сохраняем предыдущее сообщение
-            await state.update_data(prev_mess=prev_mess)
-            return
-
-        # Записываем описание клиента
-        await state.update_data(description=message.text)
-
-    elif isinstance(message, CallbackQuery):
-        # Записываем пустое описание клиента в случае пропуска
-        await state.update_data(description=None)
-
-    # Меняем стейт
     await state.set_state(Client.client_type)
 
     # Отправляем сообщение
@@ -136,150 +90,50 @@ async def get_client_type(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(client_type=client_type)
 
     # Меняем стейт
-    await state.set_state(Client.links)
+    await state.set_state(Client.description)
 
-    msg = "Отправьте ссылку для информации о себе (соц.сети/сайт/портфолио)"
+    msg = "Отправьте дополнительную информацию о себе/компании/организации"
 
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.message(Client.links)
-@router.callback_query(Client.links, F.data == "skip")
-async def get_client_link(message: CallbackQuery | Message, state: FSMContext) -> None:
-    """Получаем отправленную ссылку"""
+@router.message(Client.description)
+@router.callback_query(Client.description, F.data == "skip")
+async def get_client_description(message: CallbackQuery | Message, state: FSMContext) -> None:
+    """Получение описание или пропуск для регитсраиции клиента"""
     data = await state.get_data()
 
-    # Меняем предыдущее сообщение
-    try:
-        await data["prev_mess"].edit_text(data["prev_mess"].text)
-    except Exception:
-        pass
-
-    # Если ссылка была отправлена
+    # Если пользователь отправил описание
     if isinstance(message, Message):
-
-        # Если отправлен не текст
-        if not message.text:
-            prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
-                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
-            # Сохраняем предыдущее сообщение
-            await state.update_data(prev_mess=prev_mess)
-            return
-
-        # Если ссылка не валидна
-        if not is_valid_url(message.text):
-            prev_mess = await message.answer(
-                "Неверный формат ссылки, необходимо отправить текст формата <i>https://www.google.com</i> "
-                "без дополнительных символов\nОтправьте ссылку заново",
-                reply_markup=kb.skip_cancel_keyboard().as_markup())
-            # Сохраняем предыдущее сообщение
-            await state.update_data(prev_mess=prev_mess)
-            return
-
-        # Валидную ссылку записываем в память
-        await state.update_data(links=message.text)
-
-    # Сохраняем пустое значение для поля ссылок, если клиент пропустил отправку
-    elif isinstance(message, CallbackQuery):
-        await state.update_data(links=None)
-
-    # Меняем стейт
-    await state.set_state(Client.langs)
-    # Заготовка для мультиселекта
-    await state.update_data(selected_langs=[])
-
-    # Отправляем сообщение
-    msg = "Выберите языки, с которыми вы работаете"
-
-    if isinstance(message, Message):
-        prev_mess = await message.answer(msg, reply_markup=kb.choose_langs_keyboard([]).as_markup())
-
-    else:
-        prev_mess = await message.message.edit_text(msg, reply_markup=kb.choose_langs_keyboard([]).as_markup())
-
-    await state.update_data(prev_mess=prev_mess)
-
-
-@router.callback_query(F.data.split("|")[0] == "choose_langs", Client.langs)
-async def get_langs_multiselect(callback: types.CallbackQuery, state: FSMContext) -> None:
-    """Вспомогательный хэндлер для мультиселекта языков"""
-
-    lang = callback.data.split("|")[1]
-
-    # Получаем дату
-    data = await state.get_data()
-    selected_langs = data["selected_langs"]
-
-    # Добавляем или убираем язык из списка выбранных
-    if lang in selected_langs:
-        # Убираем из выбранных язык
-        selected_langs.remove(lang)
-    else:
-        # Добавляем язык в выбраные
-        selected_langs.append(lang)
-
-    # Сохраняем обновленный список
-    await state.update_data(selected_langs=selected_langs)
-
-    # Отправляем сообщение
-    msg = "Выберите языки, с которыми вы работаете"
-    keyboard = kb.choose_langs_keyboard(selected_langs)
-    prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
-
-    # Сохраняем последнее сообщение
-    await state.update_data(prev_mess=prev_mess)
-
-
-@router.callback_query(F.data == "choose_langs_done", Client.langs)
-async def get_langs(callback: types.CallbackQuery, state: FSMContext) -> None:
-    """Записываем языки, запрашиваем location"""
-    # Сообщение об ожидании
-    wait_msg = await callback.message.edit_text(WAIT_MSG)
-
-    # Меняем стейт
-    await state.set_state(Client.location)
-
-    # Отправляем сообщение
-    msg = "Отправьте ваш город"
-    prev_mess = await wait_msg.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
-
-    await state.update_data(prev_mess=prev_mess)
-
-
-@router.callback_query(F.data == "skip", Client.location)
-@router.message(Client.location)
-async def get_location(message: CallbackQuery | Message, state: FSMContext) -> None:
-    """Получаем локацию"""
-    data = await state.get_data()
-
-    # Если локация была отправлена
-    if isinstance(message, Message):
-
-        # Если отправлен не текст
-        if not message.text:
+        # Меняем предыдущее сообщение
+        try:
             await data["prev_mess"].edit_text(data["prev_mess"].text)
+        except Exception:
+            pass
+
+        # Если отправлен не текст
+        if not message.text:
             prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
                                              reply_markup=kb.skip_cancel_keyboard().as_markup())
             # Сохраняем предыдущее сообщение
             await state.update_data(prev_mess=prev_mess)
             return
 
-        await data["prev_mess"].edit_text(data["prev_mess"].text)
+        # Записываем описание клиента
+        await state.update_data(description=message.text)
 
-        # Валидную ссылку записываем в память
-        await state.update_data(location=message.text)
-
-    # Сохраняем пустое значение для поля ссылок, если клиент пропустил отправку
     elif isinstance(message, CallbackQuery):
-        await state.update_data(location=None)
+        # Записываем пустое описание клиента в случае пропуска
+        await state.update_data(description=None)
 
     # Меняем стейт
     await state.set_state(Client.photo)
 
     # Отправляем сообщение
-    msg = "Отправьте фото профиля"
+    msg = "Отправьте фото для вашего профиля"
     keyboard = kb.skip_cancel_keyboard()
+
     if type(message) == Message:
         prev_mess = await message.answer(msg, reply_markup=keyboard.as_markup())
     else:
@@ -293,6 +147,8 @@ async def get_location(message: CallbackQuery | Message, state: FSMContext) -> N
 async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, bot: Bot) -> None:
     """Получаем фото клиента"""
     data = await state.get_data()
+
+    # Убираем клавиатуру у предыдущего сообщения
     try:
         await data["prev_mess"].edit_text(data["prev_mess"].text)
     except Exception:
@@ -317,33 +173,257 @@ async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, 
     elif isinstance(message, CallbackQuery):
         await state.update_data(photo=False)
 
+    # Меняем стейт
+    await state.set_state(Client.verification)
+
     data = await state.get_data()
 
-    # Формируем анкету
-    # profession: Profession = await AsyncOrm.get_profession(data["profession_id"], session)
-    # jobs: List[Job] = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
-    # client = ClientAdd()
-    # questionnaire = get_executor_profile_message(executor)
-    #
-    # # Сохраняем для дальнейшего использования
-    # await state.update_data(executor=executor)
-    # await state.update_data(questionnaire=questionnaire)
+    # Формируем анкету из обязательных полей
+    client = ClientAdd(
+        tg_id=str(message.from_user.id),
+        name=data["name"],
+        type=data["client_type"],
+        description=data["description"],
+        photo=data["photo"],
+        verified=False,
+    )
+    questionnaire: str = get_client_profile_message(client)
 
-    # Отправляем сообщение
+    # Получаем фотографию
+    if client.photo:
+        filepath = get_photo_path(settings.clients_profile_path, client.tg_id)
+    else:
+        # Ставим дефолтную если пользователь не загрузил
+        filepath = settings.local_media_path + "client.jpg"
+
+    profile_image = FSInputFile(filepath)
+
+    # Сохраняем для дальнейшего использования
+    await state.update_data(filepath=filepath)
+    await state.update_data(client=client)
+    await state.update_data(questionnaire=questionnaire)
+
+    # Отправляем сообщение с фотографией (если она есть)
     msg = f"Ваша анкета готова. Проверьте введенные данные\n\n" \
-          # f"{data.keys()}" \
-          # f"{questionnaire}\n\n" \
-    msg += f"{data['name']}\n{data['description']}\n{data['location']}\n{data['client_type']}\n{data['links']}" \
-           f"{data['selected_langs']}\n{data['photo']}" \
-           f"Публикуем?"
+          f"{questionnaire}\n\n" \
+          f"Публикуем? (дополнительную информацию вы можете указать в настройках профиля)"
 
     if isinstance(message, Message):
-        prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup(),
-                                         disable_web_page_preview=True)
-
+        prev_mess = await message.answer_photo(
+            profile_image,
+            caption=msg,
+            reply_markup=kb.confirm_registration_keyboard().as_markup()
+        )
     else:
-        prev_mess = await message.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup(),
-                                                    disable_web_page_preview=True)
+        prev_mess = await message.message.answer_photo(
+            profile_image,
+            caption=msg,
+            reply_markup=kb.confirm_registration_keyboard().as_markup()
+        )
 
     # Сохраняем сообщение
     await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(Client.verification, F.data == "confirm_client_registration")
+async def verify_client(callback: CallbackQuery, state: FSMContext, session: Any, bot: Bot) -> None:
+    """Отправка анкеты на верификацию администраторам и оповещение клиента"""
+    # Убираем клавиатуру
+    await callback.message.edit_reply_markup(reply_markup=None)
+
+    # Отправка сообщения пользователю
+    msg = "ℹ️ Ожидайте, ваша анкета отправлена администратору для верификации\n"
+    await callback.message.answer(msg)
+
+    # Получаем все данные
+    data = await state.get_data()
+
+    # Очищаем стейт
+    await state.clear()
+
+    # Предварительная регистрация исполнителя
+    client: ClientAdd = data["client"]
+    await AsyncOrm.create_client(client, session)
+
+    # Отправляем в группу анкету на согласование
+    admin_group_id = settings.admin_group_id
+    profile_image = FSInputFile(data["filepath"])
+    msg = data["questionnaire"]
+
+    await bot.send_photo(
+        admin_group_id,
+        photo=profile_image,
+        caption=msg,
+        reply_markup=confirm_registration_client_keyboard(client.tg_id).as_markup(),
+    )
+
+
+@router.callback_query(F.data == "cancel_client_registration", StateFilter("*"))
+async def cancel_registration(callback: CallbackQuery, state: FSMContext) -> None:
+    """Отмена регистрации клиента"""
+    await state.clear()
+    msg = f"Нажмите /{cmd.START[0]}, чтобы начать регистрацию заново"
+    await callback.message.edit_text(msg)
+
+
+@router.callback_query(F.data == "cancel_verification_client", Client.verification)
+async def cancel_verification(callback: CallbackQuery, state: FSMContext) -> None:
+    """Отмена регистрации клиента на последнем шаге"""
+    data = await state.get_data()
+
+    # Удаляем сообщение с анкетой
+    try:
+        await data["prev_mess"].delete()
+    except:
+        pass
+
+    # Очищаем стейт
+    await state.clear()
+
+    msg = f"Нажмите /{cmd.START[0]}, чтобы начать регистрацию заново"
+    await callback.message.answer(msg)
+
+# TODO возможно далее нужно отправлять в главное меню
+
+# @router.message(Client.links)
+# @router.callback_query(Client.links, F.data == "skip")
+# async def get_client_link(message: CallbackQuery | Message, state: FSMContext) -> None:
+#     """Получаем отправленную ссылку"""
+#     data = await state.get_data()
+#
+#     # Меняем предыдущее сообщение
+#     try:
+#         await data["prev_mess"].edit_text(data["prev_mess"].text)
+#     except Exception:
+#         pass
+#
+#     # Если ссылка была отправлена
+#     if isinstance(message, Message):
+#
+#         # Если отправлен не текст
+#         if not message.text:
+#             prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+#                                              reply_markup=kb.skip_cancel_keyboard().as_markup())
+#             # Сохраняем предыдущее сообщение
+#             await state.update_data(prev_mess=prev_mess)
+#             return
+#
+#         # Если ссылка не валидна
+#         if not is_valid_url(message.text):
+#             prev_mess = await message.answer(
+#                 "Неверный формат ссылки, необходимо отправить текст формата <i>https://www.google.com</i> "
+#                 "без дополнительных символов\nОтправьте ссылку заново",
+#                 reply_markup=kb.skip_cancel_keyboard().as_markup())
+#             # Сохраняем предыдущее сообщение
+#             await state.update_data(prev_mess=prev_mess)
+#             return
+#
+#         # Валидную ссылку записываем в память
+#         await state.update_data(links=message.text)
+#
+#     # Сохраняем пустое значение для поля ссылок, если клиент пропустил отправку
+#     elif isinstance(message, CallbackQuery):
+#         await state.update_data(links=None)
+#
+#     # Меняем стейт
+#     await state.set_state(Client.langs)
+#     # Заготовка для мультиселекта
+#     await state.update_data(selected_langs=[])
+#
+#     # Отправляем сообщение
+#     msg = "Выберите языки, с которыми вы работаете"
+#
+#     if isinstance(message, Message):
+#         prev_mess = await message.answer(msg, reply_markup=kb.choose_langs_keyboard([]).as_markup())
+#
+#     else:
+#         prev_mess = await message.message.edit_text(msg, reply_markup=kb.choose_langs_keyboard([]).as_markup())
+#
+#     await state.update_data(prev_mess=prev_mess)
+#
+#
+# @router.callback_query(F.data.split("|")[0] == "choose_langs", Client.langs)
+# async def get_langs_multiselect(callback: types.CallbackQuery, state: FSMContext) -> None:
+#     """Вспомогательный хэндлер для мультиселекта языков"""
+#
+#     lang = callback.data.split("|")[1]
+#
+#     # Получаем дату
+#     data = await state.get_data()
+#     selected_langs = data["selected_langs"]
+#
+#     # Добавляем или убираем язык из списка выбранных
+#     if lang in selected_langs:
+#         # Убираем из выбранных язык
+#         selected_langs.remove(lang)
+#     else:
+#         # Добавляем язык в выбраные
+#         selected_langs.append(lang)
+#
+#     # Сохраняем обновленный список
+#     await state.update_data(selected_langs=selected_langs)
+#
+#     # Отправляем сообщение
+#     msg = "Выберите языки, с которыми вы работаете"
+#     keyboard = kb.choose_langs_keyboard(selected_langs)
+#     prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+#
+#     # Сохраняем последнее сообщение
+#     await state.update_data(prev_mess=prev_mess)
+#
+#
+# @router.callback_query(F.data == "choose_langs_done", Client.langs)
+# async def get_langs(callback: types.CallbackQuery, state: FSMContext) -> None:
+#     """Записываем языки, запрашиваем location"""
+#     # Сообщение об ожидании
+#     wait_msg = await callback.message.edit_text(WAIT_MSG)
+#
+#     # Меняем стейт
+#     await state.set_state(Client.location)
+#
+#     # Отправляем сообщение
+#     msg = "Отправьте ваш город"
+#     prev_mess = await wait_msg.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
+#
+#     await state.update_data(prev_mess=prev_mess)
+#
+#
+# @router.callback_query(F.data == "skip", Client.location)
+# @router.message(Client.location)
+# async def get_location(message: CallbackQuery | Message, state: FSMContext) -> None:
+#     """Получаем локацию"""
+#     data = await state.get_data()
+#
+#     # Если локация была отправлена
+#     if isinstance(message, Message):
+#
+#         # Если отправлен не текст
+#         if not message.text:
+#             await data["prev_mess"].edit_text(data["prev_mess"].text)
+#             prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+#                                              reply_markup=kb.skip_cancel_keyboard().as_markup())
+#             # Сохраняем предыдущее сообщение
+#             await state.update_data(prev_mess=prev_mess)
+#             return
+#
+#         await data["prev_mess"].edit_text(data["prev_mess"].text)
+#
+#         # Валидную ссылку записываем в память
+#         await state.update_data(location=message.text)
+#
+#     # Сохраняем пустое значение для поля ссылок, если клиент пропустил отправку
+#     elif isinstance(message, CallbackQuery):
+#         await state.update_data(location=None)
+#
+#     # Меняем стейт
+#     await state.set_state(Client.photo)
+#
+#     # Отправляем сообщение
+#     msg = "Отправьте фото профиля"
+#     keyboard = kb.skip_cancel_keyboard()
+#     if type(message) == Message:
+#         prev_mess = await message.answer(msg, reply_markup=keyboard.as_markup())
+#     else:
+#         prev_mess = await message.message.edit_text(msg, reply_markup=keyboard.as_markup())
+#
+#     await state.update_data(prev_mess=prev_mess)

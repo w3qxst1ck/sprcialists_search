@@ -6,7 +6,7 @@ from sqlalchemy import ForeignKey, String
 
 
 class ClientType(Enum):
-    INDIVIDUAL = "индивидуальный предприниматель"
+    INDIVIDUAL = "частное лицо"
     STUDIO = "студия"
     COMPANY = "компания"
 
@@ -63,9 +63,9 @@ class Clients(Base):
     description: Mapped[str] = mapped_column(String(500), nullable=True, default=None)
     type: Mapped[ClientType] = mapped_column(String, nullable=False)
     links: Mapped[str] = mapped_column(nullable=True, default=None)
-    langs: Mapped[str] = mapped_column(nullable=False, default="RUS")   # RUS|KZ|POL
+    langs: Mapped[str] = mapped_column(nullable=True, default=None)   # RUS|KZ|POL
     location: Mapped[str] = mapped_column(nullable=True, default=None)
-    photo: Mapped[bool] = mapped_column(nullable=False, default=False)
+    photo: Mapped[bool] = mapped_column(nullable=True, default=None)
     verified: Mapped[bool] = mapped_column(default=False)
 
     user: Mapped["User"] = relationship(back_populates="client_profile")

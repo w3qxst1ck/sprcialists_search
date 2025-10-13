@@ -11,7 +11,7 @@ def pick_client_type_keyboard() -> InlineKeyboardBuilder:
 
     for client_type in ClientType:
         keyboard.row(InlineKeyboardButton(text=f"{client_type.value.capitalize()}",
-                                          callback_data=f"client_type|{client_type.name}"))
+                                          callback_data=f"client_type|{client_type.value}"))
 
     keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_executor_registration"))
 
@@ -43,12 +43,25 @@ def choose_langs_keyboard(selected_langs: list[str]) -> InlineKeyboardBuilder:
     return keyboard
 
 
+def confirm_registration_keyboard() -> InlineKeyboardBuilder:
+    """Клавиатура подтверждения регистрации"""
+    keyboard = InlineKeyboardBuilder()
+
+    # Кнопка подтвердить
+    keyboard.row(InlineKeyboardButton(text=f"Подтвердить", callback_data="confirm_client_registration"))
+
+    # Кнопка отмены
+    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_verification_client"))
+
+    return keyboard
+
+
 def skip_cancel_keyboard() -> InlineKeyboardBuilder:
     """Клавиатура Пропустить/Отменить"""
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(InlineKeyboardButton(text=f"Пропустить", callback_data="skip"))
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_executor_registration"))
+    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_client_registration"))
 
     return keyboard
 
@@ -57,6 +70,6 @@ def cancel_keyboard() -> InlineKeyboardBuilder:
     """Клавиатура отмены"""
     keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_executor_registration"))
+    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_client_registration"))
 
     return keyboard

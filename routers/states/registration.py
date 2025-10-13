@@ -20,10 +20,14 @@ class Executor(StatesGroup):
 
 class Client(StatesGroup):
     name = State()
-    description = State()
     client_type = State()
+    description = State()
+    photo = State()
+    verification = State()
+
+    # опционально (не требуется при первичной регистрации)
     links = State()
     langs = State()
     location = State()
-    photo = State()
+
 
