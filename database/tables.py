@@ -152,5 +152,15 @@ class ExecutorsJobs(Base):
     executor_id: Mapped[int] = mapped_column(ForeignKey("executors.id", ondelete="CASCADE"), primary_key=True)
 
 
+class RejectReasons(Base):
+    """Ответы для отклоненных заявок на регистрацию"""
+    __tablename__ = "reject_reasons"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reason: Mapped[str] = mapped_column(index=True, nullable=False)
+    text: Mapped[str] = mapped_column(nullable=False)
+
+
+
 
 

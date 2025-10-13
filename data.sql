@@ -19,3 +19,7 @@ INSERT INTO jobs (title, profession_id) VALUES ('ReelsMaker', 3);
 INSERT INTO jobs (title, profession_id) VALUES ('SEO', 4);
 INSERT INTO jobs (title, profession_id) VALUES ('Продвижение сайтов', 4);
 INSERT INTO jobs (title, profession_id) VALUES ('Раскрутка инстаграм', 4);
+--RejectReasons
+INSERT INTO reject_reasons(reason, text) VALUES('Недопустимая фотография', 'Необходимо поменять фотографию профиля');
+INSERT INTO reject_reasons(reason, text) VALUES('Недостаточно информации', 'Указано слишком мало информации о профиле');
+INSERT INTO reject_reasons(reason, text) VALUES('Мало опыта', 'Указано слишком мало информации о профиле');

@@ -19,3 +19,9 @@ class ClientAdd(BaseModel):
     location: str | None = None
     langs: List[str] | None = None
 
+
+class RejectReason(BaseModel):
+    id: int
+    reason: str
+    text: str
+

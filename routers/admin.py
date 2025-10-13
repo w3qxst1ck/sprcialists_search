@@ -7,7 +7,8 @@ from database.orm import AsyncOrm
 from middlewares.database import DatabaseMiddleware
 from middlewares.admin import AdminMiddleware
 from middlewares.private import CheckPrivateMessageMiddleware, CheckGroupMessageMiddleware
-
+from schemas.client import RejectReason
+from routers.keyboards import admin as kb
 
 # Роутер для использования в группе
 group_router = Router()
@@ -58,8 +59,9 @@ async def confirm_executor_registration(callback: CallbackQuery, session: Any, b
     )
 
 
+# Подтверждение анкеты клиента
 @group_router.callback_query(F.data.split("|")[0] == "client_confirm")
-async def confirm_client_registration(callback: CallbackQuery, session: Any, bot: Bot, admin: bool) -> None:
+async def confirm_client_verification(callback: CallbackQuery, session: Any, bot: Bot, admin: bool) -> None:
     """Верификация новой анкеты клиента в группе"""
     # Проверяем админа
     if not admin:
@@ -88,6 +90,47 @@ async def confirm_client_registration(callback: CallbackQuery, session: Any, bot
         client_tg_id,
         msg
     )
+
+
+# Отказ в верификации клиента
+@group_router.callback_query(F.data.split("|")[0] == "client_cancel")
+async def cancel_client_verification(callback: CallbackQuery, session: Any, admin: bool) -> None:
+    """Выбор причины отказа в верификации профиля клиента"""
+    # получаем tg_id исполнителя
+    client_tg_id = callback.data.split("|")[1]
+
+    # Проверяем админа
+    if not admin:
+        await callback.message.answer("⚠️ Функция доступна только администраторам")
+        return
+
+    # Убираем клавиатуру сразу после нажатия
+    await callback.message.edit_reply_markup(reply_markup=None)
+
+    reject_reasons: list[RejectReason] = await AsyncOrm.get_reject_reasons(session)
+
+    msg = "Выберите причину отказа в регистрации клиента"
+    keyboard = kb.all_reasons_keyboard(reject_reasons, client_tg_id)
+
+    await callback.message.answer(msg, reply_markup=keyboard.as_markup())
+
+
+@group_router.callback_query(F.data.split("|")[0] == "reject_reason")
+async def send_reject_reason_to_user(callback: CallbackQuery, session: Any, bot: Bot, admin: bool) -> None:
+    """Отправка сообщения об отказе в верификации клиента"""
+    reason_id = int(callback.data.split("|")[1])
+    client_tg_id = callback.data.split("|")[2]
+
+    reason: RejectReason = await AsyncOrm.get_reject_reason(reason_id, session)
+
+    msg = f"<b>\"{reason.reason}\"</b>\n\n{reason.text}"
+    keyboard = kb.send_reject_to_client_keyboard(reason, client_tg_id)
+
+    await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+
+# TODO отправить отказ клиенту
+
+
 
 
 

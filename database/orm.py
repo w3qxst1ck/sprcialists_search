@@ -8,7 +8,7 @@ from database.database import async_engine
 from database.tables import Base, UserRoles
 
 from logger import logger
-from schemas.client import ClientAdd
+from schemas.client import ClientAdd, RejectReason
 from schemas.executor import ExecutorAdd
 from schemas.profession import Profession, Job
 from schemas.user import UserAdd
@@ -260,3 +260,32 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при верификации клиента: {e}")
 
+    @staticmethod
+    async def get_reject_reasons(session: Any) -> list[RejectReason]:
+        """Получение причин отказа"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT * FROM reject_reasons
+                """
+            )
+            reasons: list[RejectReason] = [RejectReason.model_validate(row) for row in rows]
+            return reasons
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении причин отказа: {e}")
+
+    @staticmethod
+    async def get_reject_reason(reason_id: int, session: Any) -> RejectReason:
+        """Получение причины отказа по id"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT * FROM reject_reasons
+                """
+            )
+            reason: RejectReason = RejectReason.model_validate(row)
+            return reason
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении причины отказа id {reason_id}: {e}")
