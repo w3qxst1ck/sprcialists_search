@@ -13,7 +13,7 @@ class ClientAdd(BaseModel):
     photo: bool
 
     # Optional
-    verified: bool = True
+    verified: bool = False
     links: List[str] | None = None
     contacts: str | None = None
     location: str | None = None
