@@ -678,7 +678,7 @@ async def registration_confirmation(callback: types.CallbackQuery, state: FSMCon
     # Очищаем стейт
     await state.clear()
 
-    # Предварительная регистрация исполнителя
+    # Предварительная регистрация исполнителя и изменение роли пользователя на исполнителя
     executor: ExecutorAdd = data["executor"]
     await AsyncOrm.create_executor(executor, session)
 
@@ -699,5 +699,10 @@ async def cancel_registration(callback: types.CallbackQuery, state: FSMContext) 
     """Отмена регистрации"""
     await state.clear()
     msg = f"Нажмите /{cmd.START[0]}, чтобы начать регистрацию заново"
-    await callback.message.edit_text(msg)
+
+    try:
+        await callback.message.edit_text(msg)
+    except Exception:
+        await callback.message.delete()
+        await callback.message.answer(msg)
 

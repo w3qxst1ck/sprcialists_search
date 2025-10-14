@@ -171,28 +171,39 @@ class AsyncOrm:
         links = "|".join(e.links)
         langs = "|".join(e.langs)
         try:
-            # Создание профиля исполнителя
-            executor_id = await session.fetchval(
-                """
-                INSERT INTO executors (tg_id, name, age, description, rate, experience, links, availability, contacts, 
-                location, langs, photo, verified) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-                RETURNING id
-                """,
-                e.tg_id, e.name, e.age, e.description, e.rate, e.experience, links, e.availability, e.contacts,
-                e.location, langs, e.photo, e.verified
-            )
+            async with session.transaction():
+                # Создание профиля исполнителя
+                executor_id = await session.fetchval(
+                    """
+                    INSERT INTO executors (tg_id, name, age, description, rate, experience, links, availability, contacts, 
+                    location, langs, photo, verified) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    RETURNING id
+                    """,
+                    e.tg_id, e.name, e.age, e.description, e.rate, e.experience, links, e.availability, e.contacts,
+                    e.location, langs, e.photo, e.verified
+                )
 
-            # Создание связи ExecutorsJobs
-            for job in e.jobs:
+                # Создание связи ExecutorsJobs
+                for job in e.jobs:
+                    await session.execute(
+                        """
+                        INSERT INTO executors_jobs (job_id, executor_id)
+                        VALUES ($1, $2)
+                        """,
+                        job.id, executor_id
+                    )
+
+                # Указываем роль у пользователя
                 await session.execute(
                     """
-                    INSERT INTO executors_jobs (job_id, executor_id)
-                    VALUES ($1, $2)
+                    UPDATE users
+                    SET role = $1
+                    WHERE tg_id = $2
                     """,
-                    job.id, executor_id
+                    UserRoles.EXECUTOR.value, e.tg_id
                 )
-            logger.info(f"Создан профиль Исполнителя пользователем {e.tg_id}")
+                logger.info(f"Создан профиль Исполнителя пользователем {e.tg_id}, id: {executor_id}")
 
         except Exception as ex:
             logger.error(f"Ошибка при создании профиля исполнителя пользователем {e.tg_id}: {ex}")
@@ -217,8 +228,9 @@ class AsyncOrm:
                     """
                     UPDATE users
                     SET role = $1
+                    WHERE tg_id = $2
                     """,
-                    UserRoles.CLIENT.value
+                    UserRoles.CLIENT.value, client.tg_id
                 )
 
             logger.info(f"Создан профиль клиента пользователя {client.tg_id}, id: {client_id}")

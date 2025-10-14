@@ -23,3 +23,9 @@ class ExecutorAdd(BaseModel):
     profession: Profession
     jobs: List[Job]
     verified: bool = False
+
+
+class RejectReason(BaseModel):
+    id: int
+    reason: str
+    text: str

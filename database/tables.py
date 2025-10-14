@@ -95,6 +95,7 @@ class Executors(Base):
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="executors", secondary="executors_jobs")
 
 
+# TODO убрать по необходимости
 class Tags(Base):
     """Таблица с тегами специализации"""
     __tablename__ = "tags"
@@ -126,6 +127,7 @@ class Professions(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(nullable=False, index=True, unique=True)
+    tag: Mapped[str] = mapped_column(nullable=False, unique=True)
 
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="profession")
 
@@ -136,6 +138,7 @@ class Jobs(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(nullable=False, index=True, unique=True)
+    tag: Mapped[str] = mapped_column(nullable=False, unique=True)
 
     profession_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
     executors: Mapped[list["Executors"]] = relationship(back_populates="jobs", secondary="executors_jobs")

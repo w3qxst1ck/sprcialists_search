@@ -28,23 +28,23 @@ def confirm_registration_client_keyboard(tg_id: str) -> InlineKeyboardBuilder:
     return keyboard
 
 
-def all_reasons_keyboard(reasons: list[RejectReason], client_tg_id: str) -> InlineKeyboardBuilder:
+def all_reasons_keyboard(reasons: list[RejectReason], user_tg_id: str) -> InlineKeyboardBuilder:
     """Клавиатура со всем причинами отказа"""
     keyboard = InlineKeyboardBuilder()
 
     for reason in reasons:
         keyboard.row(
-            InlineKeyboardButton(text=f"{reason.reason}", callback_data=f"reject_reason|{reason.id}|{client_tg_id}")
+            InlineKeyboardButton(text=f"{reason.reason}", callback_data=f"reject_reason|{reason.id}|{user_tg_id}")
         )
     keyboard.adjust(1)
     return keyboard
 
 
-def send_reject_to_client_keyboard(reason: RejectReason, client_tg_id: str) -> InlineKeyboardBuilder:
-    """Клавиатура для отправки отказа клиенту"""
+def send_reject_to_user_keyboard(reason: RejectReason, user_tg_id: str) -> InlineKeyboardBuilder:
+    """Клавиатура для отправки отказа пользователю"""
     keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(InlineKeyboardButton(text="Отправить отказ", callback_data=f"send_reject|{reason.id}|{client_tg_id}"))
+    keyboard.row(InlineKeyboardButton(text="Отправить отказ", callback_data=f"send_reject|{reason.id}|{user_tg_id}"))
     # keyboard.row(InlineKeyboardButton(text="<<Назад", callback_data=f"reject_reason|{reason.id}|{client_tg_id}"))
     keyboard.adjust(1)
     return keyboard
