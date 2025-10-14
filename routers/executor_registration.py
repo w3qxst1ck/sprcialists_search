@@ -484,78 +484,6 @@ async def get_location(message: types.Message | types.CallbackQuery, state: FSMC
     await state.update_data(tags=[])
 
     # Меняем стейт
-    await state.set_state(Executor.tags)
-
-    # Отправляем сообщение
-    msg = "Последовательно отдельными сообщениями отправьте теги для удобства поиска вашей анкеты " \
-          "(теги будут отображаться в вашей анкете в формате <i>#web #uiux #figma #landing</i>)"
-
-    # Если город был отправлен
-    if type(message) == types.Message:
-        prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
-
-    # Если город пропущен
-    else:
-        prev_mess = await message.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
-
-    # Сохраняем сообщение
-    await state.update_data(prev_mess=prev_mess)
-
-
-@router.message(Executor.tags)
-async def get_tag(message: types.Message, state: FSMContext) -> None:
-    """Вспомогательный тег"""
-    # Меняем предыдущее сообщение
-    data = await state.get_data()
-    try:
-        await data["prev_mess"].edit_text(data["prev_mess"].text)
-    except Exception:
-        pass
-
-    # Если отправлен не текст
-    if not message.text:
-        prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
-                                         reply_markup=kb.cancel_keyboard().as_markup())
-        # Сохраняем предыдущее сообщение
-        await state.update_data(prev_mess=prev_mess)
-        return
-
-    # Если тег не валидный
-    if not is_valid_tag(message.text):
-        # Проверяем может ли пользователь продолжить (если есть хотя бы один валидный тег)
-        if len(data["tags"]) != 0:
-            keyboard = kb.continue_cancel_keyboard()
-        else:
-            keyboard = kb.cancel_keyboard()
-
-        prev_mess = await message.answer("Неверный формат данных, необходимо отправить тег одним словом без специальных "
-                                         "символов таких как \"#\", \".\", \",\" и т.д.\n"
-                                         "Отправьте тег заново (например <i>design</i>)",
-                                         reply_markup=keyboard.as_markup())
-        # Сохраняем предыдущее сообщение
-        await state.update_data(prev_mess=prev_mess)
-        return
-
-    # Добавляем тег в список
-    tags = data["tags"]
-    tags.append(message.text)
-    tags_text = " ".join([f"#{tag}" for tag in tags])
-    tags_count = len(tags)
-    await state.update_data(tags=tags)
-
-    # Отправляем сообщение
-    msg = f"Отправьте следюущий тег или нажмите кнопку \"Продолжить\"\n\n" \
-          f"Отправлено тегов {tags_count} шт.:\n{tags_text}"
-    prev_mess = await message.answer(msg, reply_markup=kb.continue_cancel_keyboard().as_markup())
-
-    # Сохраняем сообщение
-    await state.update_data(prev_mess=prev_mess)
-
-
-@router.callback_query(F.data == "continue", Executor.tags)
-async def get_tags(callback: types.CallbackQuery, state: FSMContext) -> None:
-    """Получаем список тегов, запрашиваем языки"""
-    # Меняем стейт
     await state.set_state(Executor.langs)
 
     # Заготовка для мультиселекта
@@ -563,9 +491,16 @@ async def get_tags(callback: types.CallbackQuery, state: FSMContext) -> None:
 
     # Отправляем сообщение
     msg = "Выберите языки, с которыми вы работаете"
-    prev_mess = await callback.message.edit_text(msg, reply_markup=kb.choose_langs_keyboard([]).as_markup())
 
-    # Сохраняем последнее сообщение
+    # Если город был отправлен
+    if type(message) == types.Message:
+        prev_mess = await message.answer(msg, reply_markup=kb.choose_langs_keyboard([]).as_markup())
+
+    # Если город пропущен
+    else:
+        prev_mess = await message.message.edit_text(msg, reply_markup=kb.choose_langs_keyboard([]).as_markup())
+
+    # Сохраняем сообщение
     await state.update_data(prev_mess=prev_mess)
 
 
@@ -613,6 +548,7 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
     # Формируем анкету
     profession: Profession = await AsyncOrm.get_profession(data["profession_id"], session)
     jobs: List[Job] = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
+    tags: List[str] = [profession.tag] + [job.tag for job in jobs]
     executor = ExecutorAdd(
         tg_id=str(callback.from_user.id),
         name=data["name"],
@@ -621,7 +557,7 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
         rate=data["rate"],
         experience=data["experience"],
         links=data["links"],
-        tags=data["tags"],
+        tags=tags,
         availability=Availability.FREE,
         contacts=data["contacts"],
         location=data["location"],

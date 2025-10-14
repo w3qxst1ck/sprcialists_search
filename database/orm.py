@@ -97,6 +97,23 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении роли пользователя {tg_id}: {e}")
 
     @staticmethod
+    async def delete_user_role(tg_id: str, session: Any) -> None:
+        """Удаление роли пользователя"""
+        try:
+            await session.execute(
+                """
+                UPDATE users
+                SET role=null
+                WHERE tg_id=$1
+                """,
+                tg_id
+            )
+            logger.info(f"Роль пользователя {tg_id} удалена")
+
+        except Exception as e:
+            logger.error(f"Ошибка при удалении роли пользователя {tg_id}: {e}")
+
+    @staticmethod
     async def get_professions(session: Any) -> List[Profession]:
         """Получение всех профессий"""
         try:
@@ -170,18 +187,19 @@ class AsyncOrm:
         """Создание профиля исполнителя"""
         links = "|".join(e.links)
         langs = "|".join(e.langs)
+        tags = "|".join(e.tags)
         try:
             async with session.transaction():
                 # Создание профиля исполнителя
                 executor_id = await session.fetchval(
                     """
                     INSERT INTO executors (tg_id, name, age, description, rate, experience, links, availability, contacts, 
-                    location, langs, photo, verified) 
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    location, langs, photo, verified, tags) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                     RETURNING id
                     """,
                     e.tg_id, e.name, e.age, e.description, e.rate, e.experience, links, e.availability, e.contacts,
-                    e.location, langs, e.photo, e.verified
+                    e.location, langs, e.photo, e.verified, tags
                 )
 
                 # Создание связи ExecutorsJobs
@@ -203,10 +221,27 @@ class AsyncOrm:
                     """,
                     UserRoles.EXECUTOR.value, e.tg_id
                 )
+
                 logger.info(f"Создан профиль Исполнителя пользователем {e.tg_id}, id: {executor_id}")
 
         except Exception as ex:
             logger.error(f"Ошибка при создании профиля исполнителя пользователем {e.tg_id}: {ex}")
+
+    @staticmethod
+    async def delete_executor(tg_id: str, session: Any) -> None:
+        """Удаление анкеты исполнителя"""
+        try:
+            await session.execute(
+                """
+                DELETE FROM executors
+                WHERE tg_id=$1
+                """,
+                tg_id
+            )
+            logger.info(f"Анкета исполнителя пользователя {tg_id} удалена")
+
+        except Exception as e:
+            logger.error(f"Ошибка при удалении анкеты исполнителя пользователя {tg_id}: {e}")
 
     @staticmethod
     async def create_client(client: ClientAdd, session: Any) -> None:
@@ -237,6 +272,22 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при создании профиля клиента для пользователя {client.tg_id}: {e}")
+
+    @staticmethod
+    async def delete_client(tg_id: str, session: Any) -> None:
+        """Удаление анкеты клиента"""
+        try:
+            await session.execute(
+                """
+                DELETE FROM clients
+                WHERE tg_id=$1
+                """,
+                tg_id
+            )
+            logger.info(f"Анкета клиента пользователя {tg_id} удалена")
+
+        except Exception as e:
+            logger.error(f"Ошибка при удалении анкеты клиента пользователя {tg_id}: {e}")
 
     @staticmethod
     async def verify_executor(tg_id: str, admin_tg_id: str, session: Any) -> None:

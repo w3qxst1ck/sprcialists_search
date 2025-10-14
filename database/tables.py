@@ -87,38 +87,12 @@ class Executors(Base):
     contacts: Mapped[str] = mapped_column(nullable=True, default=None)
     location: Mapped[str] = mapped_column(nullable=True, default=None)
     langs: Mapped[str] = mapped_column(nullable=False, default="RUS")   # RUS|KZ|POL
+    tags: Mapped[str] = mapped_column(nullable=True) # tag1|tag2|tag3|...
     photo: Mapped[bool] = mapped_column(nullable=False, default=False)
     verified: Mapped[bool] = mapped_column(default=False)
 
-    tags: Mapped[list["Tags"]] = relationship(back_populates="executors", secondary="executors_tags")
     user: Mapped["User"] = relationship(back_populates="executor_profile")
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="executors", secondary="executors_jobs")
-
-
-# TODO убрать по необходимости
-class Tags(Base):
-    """Таблица с тегами специализации"""
-    __tablename__ = "tags"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(20), nullable=False, index=True, unique=True)
-
-    executors: Mapped[list["Executors"]] = relationship(back_populates="tags", secondary="executors_tags")
-
-
-class ExecutorsTags(Base):
-    """Many-to-many relationship"""
-    __tablename__ = "executors_tags"
-
-    executor_id: Mapped[int] = mapped_column(
-        ForeignKey("executors.id", ondelete="CASCADE"),
-        primary_key=True
-    )
-
-    tag_id: Mapped[int] = mapped_column(
-        ForeignKey("tags.id", ondelete="CASCADE"),
-        primary_key=True
-    )
 
 
 class Professions(Base):

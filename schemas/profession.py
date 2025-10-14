@@ -6,14 +6,11 @@ from pydantic import BaseModel
 class Profession(BaseModel):
     id: int
     title: str
+    tag: str
 
 
 class Job(BaseModel):
     id: int
     title: str
+    tag: str
 
-
-class ProfessionJobs(BaseModel):
-    id: int
-    title: str
-    jobs: List[Job]

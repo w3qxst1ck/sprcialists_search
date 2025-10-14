@@ -38,13 +38,3 @@ def all_reasons_keyboard(reasons: list[RejectReason], user_tg_id: str) -> Inline
         )
     keyboard.adjust(1)
     return keyboard
-
-
-def send_reject_to_user_keyboard(reason: RejectReason, user_tg_id: str) -> InlineKeyboardBuilder:
-    """Клавиатура для отправки отказа пользователю"""
-    keyboard = InlineKeyboardBuilder()
-
-    keyboard.row(InlineKeyboardButton(text="Отправить отказ", callback_data=f"send_reject|{reason.id}|{user_tg_id}"))
-    # keyboard.row(InlineKeyboardButton(text="<<Назад", callback_data=f"reject_reason|{reason.id}|{client_tg_id}"))
-    keyboard.adjust(1)
-    return keyboard
