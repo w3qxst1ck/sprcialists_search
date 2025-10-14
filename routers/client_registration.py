@@ -197,7 +197,7 @@ async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, 
         type=data["client_type"],
         description=data["description"],
         photo=data["photo"],
-        # verified=True,
+        verified=True,  # без доп верификации
     )
     questionnaire: str = get_client_profile_message(client)
 
