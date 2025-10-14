@@ -11,9 +11,9 @@ class ClientAdd(BaseModel):
     type: ClientType
     description: str | None
     photo: bool
-    verified: bool = False
 
     # Optional
+    verified: bool = True
     links: List[str] | None = None
     contacts: str | None = None
     location: str | None = None

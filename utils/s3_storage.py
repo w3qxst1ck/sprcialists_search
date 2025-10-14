@@ -7,13 +7,13 @@ from settings import settings
 from logger import logger
 
 
-async def save_file_to_s3_storage(filename: str, local_file_dir: str = "profiles/executors"):
+async def save_file_to_s3_storage(filepath: str, remote_storage_filepath: str):
     """Загрузка файла в s3 хранилище"""
     # Формируем локальный путь до имеющегося файла
-    local_dir_path = f"{settings.local_media_path}/{local_file_dir}/{filename}"
+    # local_dir_path = f"{settings.local_media_path}/{local_file_dir}/{filename}"
 
     # Определяем в какую папку необходимо загрузить файл
-    s3_bucket_upload_dir = f"{local_file_dir}/{filename}"
+    # s3_bucket_upload_dir = f"{local_file_dir}/{filename}"
 
     try:
         # Создаем клиент S3
@@ -26,13 +26,13 @@ async def save_file_to_s3_storage(filename: str, local_file_dir: str = "profiles
 
         # Загружаем файл
         s3_client.upload_file(
-            local_dir_path,
+            filepath,
             settings.s3_bucket_name,
-            s3_bucket_upload_dir
+            remote_storage_filepath
         )
 
     except Exception as e:
-        logger.error(f"Ошибка при сохранении файла \"{filename}\" путь {local_dir_path} в s3 хранилище: {e}")
+        logger.error(f"Ошибка при сохранении файла \"{filepath}\" путь {remote_storage_filepath} в s3 хранилище: {e}")
         raise
 
 

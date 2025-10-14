@@ -18,6 +18,8 @@ from schemas.client import ClientAdd
 from settings import settings
 from routers.keyboards import client_reg as kb
 from utils.download_files import load_photo_from_tg, get_photo_path
+from logger import logger
+from utils.s3_storage import save_file_to_s3_storage
 
 router = Router()
 
@@ -185,7 +187,7 @@ async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, 
         await state.update_data(photo=False)
 
     # Меняем стейт
-    await state.set_state(Client.verification)
+    await state.set_state(Client.confirm)
 
     # Формируем анкету из обязательных полей
     data = await state.get_data()
@@ -195,7 +197,7 @@ async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, 
         type=data["client_type"],
         description=data["description"],
         photo=data["photo"],
-        verified=False,
+        # verified=True,
     )
     questionnaire: str = get_client_profile_message(client)
 
@@ -240,17 +242,14 @@ async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, 
     # Сохраняем сообщение
     await state.update_data(prev_mess=prev_mess)
 
+    # Сохраняем фото в s3 хранилище
+    if client.photo:
+        await save_file_to_s3_storage(filepath, settings.clients_profile_path)
 
-@router.callback_query(Client.verification, F.data == "confirm_client_registration")
-async def verify_client(callback: CallbackQuery, state: FSMContext, session: Any, bot: Bot) -> None:
-    """Отправка анкеты на верификацию администраторам и оповещение клиента"""
-    # Убираем клавиатуру
-    await callback.message.edit_reply_markup(reply_markup=None)
 
-    # Отправка сообщения пользователю
-    msg = "ℹ️ Ожидайте, ваша анкета отправлена администратору для верификации\n"
-    await callback.message.answer(msg)
-
+@router.callback_query(Client.confirm, F.data == "confirm_client_registration")
+async def confirm_client(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Подтверждение правильности анкеты клиента"""
     # Получаем все данные
     data = await state.get_data()
 
@@ -259,18 +258,36 @@ async def verify_client(callback: CallbackQuery, state: FSMContext, session: Any
 
     # Предварительная регистрация исполнителя
     client: ClientAdd = data["client"]
-    await AsyncOrm.create_client(client, session)
+    try:
+        await AsyncOrm.create_client(client, session)
+    except Exception as e:
+        await callback.message.answer(f"Не удалось создать профиль, попробуйте позже или обратитесь к администратору")
+        logger.error(f"Error: {e}")
+        return
+
+    # Убираем клавиатуру
+    # await callback.message.edit_reply_markup(reply_markup=None)
+
+    # Удаляем предыдущее сообщение
+    try:
+        await data["prev_mess"].delete()
+    except:
+        pass
+
+    # Отправка сообщения пользователю
+    msg = "✅ Профиль успешно создан\n\nВы можете изменить данные профиля в настройках"
+    await callback.message.answer(msg)
 
     # Отправляем в группу анкету на согласование
-    admin_group_id = settings.admin_group_id
-    profile_image = FSInputFile(data["filepath"])
-    msg = data["questionnaire"]
-    await bot.send_photo(
-        admin_group_id,
-        photo=profile_image,
-        caption=msg,
-        reply_markup=confirm_registration_client_keyboard(client.tg_id).as_markup(),
-    )
+    # admin_group_id = settings.admin_group_id
+    # profile_image = FSInputFile(data["filepath"])
+    # msg = data["questionnaire"]
+    # await bot.send_photo(
+    #     admin_group_id,
+    #     photo=profile_image,
+    #     caption=msg,
+    #     reply_markup=confirm_registration_client_keyboard(client.tg_id).as_markup(),
+    # )
 
     await main_menu(callback, session)
 
@@ -283,7 +300,7 @@ async def cancel_registration(callback: CallbackQuery, state: FSMContext) -> Non
     await callback.message.edit_text(msg)
 
 
-@router.callback_query(F.data == "cancel_verification_client", Client.verification)
+@router.callback_query(F.data == "cancel_verification_client", Client.confirm)
 async def cancel_verification(callback: CallbackQuery, state: FSMContext) -> None:
     """Отмена регистрации клиента на последнем шаге"""
     data = await state.get_data()

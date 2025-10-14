@@ -23,7 +23,7 @@ class Client(StatesGroup):
     client_type = State()
     description = State()
     photo = State()
-    verification = State()
+    confirm = State()
 
     # опционально (не требуется при первичной регистрации)
     links = State()

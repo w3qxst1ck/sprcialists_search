@@ -129,6 +129,8 @@ async def send_reject_reason_to_user(callback: CallbackQuery, session: Any, bot:
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 # TODO отправить отказ клиенту
+# TODO закоментить код
+
 
 
 

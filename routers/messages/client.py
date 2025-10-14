@@ -18,13 +18,13 @@ def get_client_profile_message(client: ClientAdd) -> str:
 
     contacts = client.contacts if client.contacts else "не указаны"
     location = client.location if client.location else "не указан"
-    verified = "✔️ Подтверждена" if client.verified else "🚫 Не подтверждена"
+    # verified = "✔️ Подтверждена" if client.verified else "🚫 Не подтверждена"
 
     msg = f"👤 {client.name} ({client.type.value.capitalize()}) {langs}\n" \
           f"{links}" \
           f"О себе: {client.description if client.description else 'не указано'}\n" \
           f"Город: {location}\n" \
           f"Контакты: {contacts}\n" \
-          f"Верификация: {verified}"
+          # f"Верификация: {verified}"
 
     return msg
