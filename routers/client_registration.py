@@ -5,6 +5,7 @@ from aiogram.filters import and_f, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, FSInputFile
 
+from database.tables import UserRoles
 from middlewares.database import DatabaseMiddleware
 from middlewares.private import CheckPrivateMessageMiddleware
 from routers.messages.client import get_client_profile_message
@@ -265,18 +266,16 @@ async def confirm_client(callback: CallbackQuery, state: FSMContext, session: An
         logger.error(f"Error: {e}")
         return
 
-    # Убираем клавиатуру
-    # await callback.message.edit_reply_markup(reply_markup=None)
-
-    # Удаляем предыдущее сообщение
+    # Убираем клавиатуру у предыдущего сообщения
     try:
-        await data["prev_mess"].delete()
+        await data["prev_mess"].edit_caption(caption=data["prev_mess"].caption)
     except:
         pass
 
     # Отправка сообщения пользователю
     msg = "✅ Профиль успешно создан\n\nВы можете изменить данные профиля в настройках"
-    await callback.message.answer(msg)
+    keyboard = kb.to_main_menu()
+    await callback.message.answer(msg, reply_markup=keyboard.as_markup())
 
     # Отправляем в группу анкету на согласование
     # admin_group_id = settings.admin_group_id
@@ -288,8 +287,7 @@ async def confirm_client(callback: CallbackQuery, state: FSMContext, session: An
     #     caption=msg,
     #     reply_markup=confirm_registration_client_keyboard(client.tg_id).as_markup(),
     # )
-
-    await main_menu(callback, session)
+    # await main_menu(callback, session)
 
 
 @router.callback_query(F.data == "cancel_client_registration", StateFilter("*"))

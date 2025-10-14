@@ -1,19 +1,26 @@
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from routers.buttons import menu as btn
+
+from database.tables import ClientType, UserRoles
+from routers.buttons import menu
+from settings import settings
 
 
-def main_menu_keyboard(admin: bool) -> InlineKeyboardBuilder:
-    """Клавиатура главного меню"""
+def main_menu(user_role: str) -> InlineKeyboardBuilder:
+    """Клавиатура с главным меню"""
     keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(
-        InlineKeyboardButton(text=f"{btn.SETTINGS}", callback_data="menu|settings"),
-        InlineKeyboardButton(text=f"{btn.CARDS}", callback_data="menu|cards"),
-        InlineKeyboardButton(text=f"{btn.ORDERS}", callback_data="menu|orders"),
-    )
+    # Меню для клиента
+    if user_role == UserRoles.CLIENT.value:
+        keyboard.row(InlineKeyboardButton(text="🔍 Исполнители", callback_data=f"main_menu|find_executor"))
+        keyboard.row(InlineKeyboardButton(text="📋 Мои заказы", callback_data=f"main_menu|my_orders"))
+        keyboard.row(InlineKeyboardButton(text="👤 Профиль", callback_data=f"main_menu|my_profile"))
+        keyboard.row(InlineKeyboardButton(text=f"{menu.SETTINGS}", callback_data=f"main_menu|client_settings"))
 
-    if admin:
-        keyboard.row(InlineKeyboardButton(text=f"{btn.ADMIN}", callback_data="menu|admin"))
+        keyboard.adjust(2)
+
+    # Меню для исполнителя
+    else:
+        pass
 
     return keyboard
