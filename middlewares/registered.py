@@ -2,10 +2,10 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram import BaseMiddleware, Bot
-from aiogram.types import TelegramObject
-from database.orm import AsyncOrm
+from aiogram.types import TelegramObject, CallbackQuery, Message, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from routers.start import send_empty_role_message
+from database.orm import AsyncOrm
 
 
 class RegisteredMiddleware(BaseMiddleware):
@@ -43,3 +43,21 @@ class RegisteredMiddleware(BaseMiddleware):
             return False
 
 
+async def send_empty_role_message(event: CallbackQuery | Message, bot: Bot) -> None:
+    """Сообщение для пользователей не выбравших роль"""
+    keyboard = await choose_role_keyboard()
+    await bot.send_message(
+        event.from_user.id,
+        "Чтобы получить доступ к функциям бота, вам необходимо создать профиль\"клиента\" или \"исполнителя\"",
+        reply_markup=keyboard.as_markup()
+    )
+
+
+async def choose_role_keyboard() -> InlineKeyboardBuilder:
+    """Клавиатура выбора роли"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text=f"Я клиент", callback_data="choose_role|client"))
+    keyboard.row(InlineKeyboardButton(text=f"Я исполнитель", callback_data="choose_role|executor"))
+
+    return keyboard

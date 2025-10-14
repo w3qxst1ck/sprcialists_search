@@ -8,7 +8,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from middlewares.admin import AdminMiddleware
 from middlewares.database import DatabaseMiddleware
 from routers.buttons import commands as cmd
-from routers.keyboards.menu import main_menu_keyboard
+# from routers.keyboards.menu import main_menu
+from routers.menu import main_menu
 
 from database.orm import AsyncOrm
 from schemas.user import UserAdd
@@ -32,9 +33,11 @@ async def start(message: types.Message, admin: bool, session: Any) -> None:
 
     # Если пользователь зарегистрирован и у него выбрана роль
     if user_exists and user_has_role:
-        msg = "Главное меню"
-        keyboard = main_menu_keyboard(admin)
-        await message.answer(msg, reply_markup=keyboard.as_markup())
+        await main_menu(message, session)
+        # user_role: str = await AsyncOrm.get_user_role(tg_id, session)
+        # msg = "Главное меню"
+        # keyboard = main_menu(user_role)
+        # await message.answer(msg, reply_markup=keyboard.as_markup())
         return
 
     # Если пользователь не первый раз или не выбрана роль
@@ -80,13 +83,3 @@ async def choose_role_keyboard() -> InlineKeyboardBuilder:
     keyboard.row(InlineKeyboardButton(text=f"Я исполнитель", callback_data="choose_role|executor"))
 
     return keyboard
-
-
-async def send_empty_role_message(event: CallbackQuery | Message, bot: Bot) -> None:
-    """Сообщение для пользователей не выбравших роль"""
-    keyboard = await choose_role_keyboard()
-    await bot.send_message(
-        event.from_user.id,
-        "Чтобы получить доступ к функциям бота, вам необходимо создать профиль\"клиента\" или \"исполнителя\"",
-        reply_markup=keyboard.as_markup()
-    )

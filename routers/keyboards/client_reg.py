@@ -1,6 +1,7 @@
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from routers.buttons.commands import MENU
 from database.tables import ClientType
 from settings import settings
 
@@ -53,6 +54,13 @@ def confirm_registration_keyboard() -> InlineKeyboardBuilder:
     # Кнопка отмены
     keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_verification_client"))
 
+    return keyboard
+
+
+def to_main_menu() -> InlineKeyboardBuilder:
+    """Переход в главное меню"""
+    keyboard = InlineKeyboardBuilder()
+    keyboard.row(InlineKeyboardButton(text=f"{MENU[1]}", callback_data="main_menu"))
     return keyboard
 
 

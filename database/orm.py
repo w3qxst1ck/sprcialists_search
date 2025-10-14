@@ -8,7 +8,7 @@ from database.database import async_engine
 from database.tables import Base, UserRoles
 
 from logger import logger
-from schemas.client import ClientAdd, RejectReason
+from schemas.client import ClientAdd, RejectReason, Client
 from schemas.executor import ExecutorAdd
 from schemas.profession import Profession, Job
 from schemas.user import UserAdd
@@ -352,3 +352,20 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении причины отказа id {reason_id}: {e}")
+
+    @staticmethod
+    async def get_client(tg_id: str, session: Any) -> Client:
+        """Получаем профиль клиента"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT * FROM clients
+                WHERE tg_id = $1
+                """,
+                tg_id
+            )
+            client: Client = Client.model_validate(row)
+            return client
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении профиля клиента у пользователя {tg_id}: {e}")
