@@ -369,3 +369,18 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении профиля клиента у пользователя {tg_id}: {e}")
+
+    # TODO доделать
+    @staticmethod
+    async def get_executors_by_jobs(jobs_id: list[int], session: Any):
+        """Подбор исполнителей по jobs"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT id FROM executors as ex
+                LEFT JOIN executors_jobs as ex_j ON ex.id = 
+                WHERE ex.verified=true
+                """
+            )
+        except:
+            pass

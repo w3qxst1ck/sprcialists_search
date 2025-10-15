@@ -2,7 +2,7 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from database.tables import ClientType
-from routers.buttons import menu as btn
+from routers.buttons import buttons as btn
 from settings import settings
 
 

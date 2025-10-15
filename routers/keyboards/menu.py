@@ -2,7 +2,8 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from database.tables import ClientType, UserRoles
-from routers.buttons import menu
+from routers.buttons import buttons as btn
+from routers.buttons import buttons
 from settings import settings
 
 
@@ -12,10 +13,10 @@ def main_menu(user_role: str) -> InlineKeyboardBuilder:
 
     # Меню для клиента
     if user_role == UserRoles.CLIENT.value:
-        keyboard.row(InlineKeyboardButton(text="🔍 Исполнители", callback_data=f"main_menu|find_executor"))
-        keyboard.row(InlineKeyboardButton(text="📋 Мои заказы", callback_data=f"main_menu|my_orders"))
-        keyboard.row(InlineKeyboardButton(text="👤 Профиль", callback_data=f"main_menu|my_profile"))
-        keyboard.row(InlineKeyboardButton(text=f"{menu.SETTINGS}", callback_data=f"main_menu|client_settings"))
+        keyboard.row(InlineKeyboardButton(text=f"{btn.FIND_EX}", callback_data=f"main_menu|find_executor"))
+        keyboard.row(InlineKeyboardButton(text=f"{btn.MY_ORDERS}", callback_data=f"main_menu|my_orders"))
+        keyboard.row(InlineKeyboardButton(text=f"{btn.PROFILE}", callback_data=f"main_menu|my_profile"))
+        keyboard.row(InlineKeyboardButton(text=f"{btn.SETTINGS}", callback_data=f"main_menu|client_settings"))
 
         keyboard.adjust(2)
 

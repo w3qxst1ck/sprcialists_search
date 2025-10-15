@@ -1,22 +1,18 @@
 from typing import Any
 
-from aiogram import Router, types, F, Bot
+from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, BufferedInputFile, Message, FSInputFile
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import CallbackQuery, Message, FSInputFile
 
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
 from middlewares.private import CheckPrivateMessageMiddleware
 
 from database.orm import AsyncOrm
-from database.tables import UserRoles
 
 from routers.buttons import commands as cmd
 from routers.keyboards import menu as kb
 from routers.messages import menu as ms
-from settings import settings
 from logger import logger
 
 router = Router()

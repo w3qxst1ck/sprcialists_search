@@ -12,7 +12,7 @@ from routers.messages.executor import get_executor_profile_message
 from routers.states.registration import Executor
 
 from routers.buttons import commands as cmd
-from routers.buttons.menu import WAIT_MSG
+from routers.buttons.buttons import WAIT_MSG
 from routers.keyboards.admin import confirm_registration_executor_keyboard
 
 from database.orm import AsyncOrm

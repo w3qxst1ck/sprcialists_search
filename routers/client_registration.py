@@ -11,7 +11,7 @@ from middlewares.private import CheckPrivateMessageMiddleware
 from routers.messages.client import get_client_profile_message
 from routers.states.registration import Client
 from routers.keyboards.admin import confirm_registration_client_keyboard
-from routers.buttons import commands as cmd, menu
+from routers.buttons import commands as cmd, buttons as btn
 from routers.menu import main_menu
 
 from database.orm import AsyncOrm
@@ -164,7 +164,7 @@ async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, 
             pass
 
         # Отправляем сообщение об ожидании
-        wait_msg = await message.answer(menu.WAIT_MSG)
+        wait_msg = await message.answer(btn.WAIT_MSG)
 
         # Проверяем что было отправлено фото
         if not message.photo:
@@ -183,7 +183,7 @@ async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, 
     # Если был пропуск выбора фото
     else:
         # Отправляем сообщение об ожидании
-        wait_msg = await message.message.edit_text(menu.WAIT_MSG)
+        wait_msg = await message.message.edit_text(btn.WAIT_MSG)
         # Сохраняем информацию фото в стейт
         await state.update_data(photo=False)
 
