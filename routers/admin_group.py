@@ -1,6 +1,7 @@
-from typing import Any
+from typing import Any, List
 
 from aiogram import Router, types, F, Bot
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from database.orm import AsyncOrm
 from database.tables import UserRoles
@@ -8,6 +9,7 @@ from database.tables import UserRoles
 from middlewares.database import DatabaseMiddleware
 from middlewares.admin import AdminMiddleware
 from middlewares.private import CheckPrivateMessageMiddleware, CheckGroupMessageMiddleware
+from routers.states.registration import Reject
 from schemas.executor import RejectReason
 from routers.keyboards import admin as kb
 from settings import settings
@@ -54,7 +56,7 @@ async def confirm_executor_registration(callback: CallbackQuery, session: Any, b
 
 # Отказ в верификации исполнителя
 @group_router.callback_query(F.data.split("|")[0] == "executor_cancel")
-async def cancel_verification(callback: CallbackQuery, session: Any, admin: bool) -> None:
+async def cancel_verification(callback: CallbackQuery, session: Any, admin: bool, state: FSMContext) -> None:
     """Выбор причины отказа в верификации профиля"""
     # Убираем клавиатуру сразу после нажатия
     await callback.message.edit_reply_markup(reply_markup=None)
@@ -64,42 +66,90 @@ async def cancel_verification(callback: CallbackQuery, session: Any, admin: bool
         await callback.message.answer("⚠️ Функция доступна только администраторам")
         return
 
-    # Получаем tg_id исполнителя
+    # Ставим стейт
+    await state.set_state(Reject.reason)
+
+    # Сохраняем анкету для дальнейшего использования
+    await state.update_data(caption_text=callback.message.caption)
+
+    # Сохраняем tg_id исполнителя
     user_tg_id = callback.data.split("|")[1]
+    await state.update_data(user_tg_id=user_tg_id)
 
-    reject_reasons: list[RejectReason] = await AsyncOrm.get_reject_reasons(session)
+    reject_reasons: List[RejectReason] = await AsyncOrm.get_reject_reasons(session)
 
-    msg = callback.message.caption + "\n\nВыберите причину отказа регистрации"
-    keyboard = kb.all_reasons_keyboard(reject_reasons, user_tg_id)
+    # Заготовки для мультиселекта
+    await state.update_data(reject_reasons=reject_reasons)
+    await state.update_data(selected_reasons=[])
+
+    msg = callback.message.caption + "\n\nВыберите причины отказа регистрации"
+    keyboard = kb.select_reasons_keyboard(reject_reasons, [])
 
     await callback.message.edit_caption(caption=msg, reply_markup=keyboard.as_markup())
 
 
-@group_router.callback_query(F.data.split("|")[0] == "reject_reason")
-async def send_reject_to_user(callback: CallbackQuery, session: Any, bot: Bot, admin: bool) -> None:
-    """Отправка сообщения об отказе в верификации"""
+@group_router.callback_query(F.data.split("|")[0] == "reject_reason", Reject.reason)
+async def select_reasons(callback: CallbackQuery, state: FSMContext, admin: bool) -> None:
+    """Вспомогательный хендлер для мультиселекта"""
     # Проверяем админа
     if not admin:
         await callback.message.answer("⚠️ Функция доступна только администраторам")
         return
 
     reason_id = int(callback.data.split("|")[1])
-    user_tg_id = callback.data.split("|")[2]
 
-    # Получаем причину
-    reason: RejectReason = await AsyncOrm.get_reject_reason(reason_id, session)
+    # Добавляем или убираем причину из списка
+    data = await state.get_data()
+    selected_reasons = data["selected_reasons"]
+
+    # Убираем из списка
+    if reason_id in selected_reasons:
+        selected_reasons.remove(reason_id)
+    # Добавляем список
+    else:
+        selected_reasons.append(reason_id)
+
+    # Сохраняем обновленный список
+    await state.update_data(selected_reasons=selected_reasons)
+
+    # Отправляем сообщение
+    reject_reasons: List[RejectReason] = data["reject_reasons"]
+    caption_text = data["caption_text"]
+    msg = caption_text + "\n\nВыберите причины отказа регистрации"
+    keyboard = kb.select_reasons_keyboard(reject_reasons, selected_reasons)
+
+    await callback.message.edit_caption(caption=msg, reply_markup=keyboard.as_markup())
+
+
+@group_router.callback_query(F.data.split("|")[0] == "reject_reasons_done", Reject.reason)
+async def send_reject_to_user(callback: CallbackQuery, state: FSMContext, session: Any, bot: Bot, admin: bool) -> None:
+    """Отправка сообщения об отказе в верификации"""
+    # Проверяем админа
+    if not admin:
+        await callback.message.answer("⚠️ Функция доступна только администраторам")
+        return
+
+    # Получаем данные
+    data = await state.get_data()
+    reason_ids = data["selected_reasons"]
+    user_tg_id = data["user_tg_id"]
+
+    # Скидываем стейт
+    await state.clear()
+
+    # Получаем причины
+    selected_reasons: List[RejectReason] = await AsyncOrm.get_reject_reasons_by_ids(reason_ids, session)
 
     # Сообщение в группу об отмене верификации
     admin_name = str(callback.from_user.first_name)
-    new_caption_list = callback.message.caption.split("\n\n")
-    new_caption_list[1] = f"\n\n❌ <i>Анкета отклонена администратором \"{admin_name}\"</i>" \
-                          f"\n<i>Причина: {reason.reason}</i>"
-    new_caption = "".join(new_caption_list)
-    await callback.message.edit_caption(caption=new_caption)
+    caption_text = data["caption_text"] + f"\n\n❌ <i>Анкета отклонена администратором \"{admin_name}\"\nПричины:\n</i>"
+    reasons_text = "\n".join([f"\t• {reason.reason}" for reason in selected_reasons])
+
+    await callback.message.edit_caption(caption=caption_text+reasons_text)
 
     # Сообщение пользователю об отмене верификации
     user_msg = f"❌ Верификация вашей анкеты отклонена администратором\n\n" \
-               f"<b>Причина: </b>{reason.text}\n\n" \
+               f"<b>Причины:\n</b>{reasons_text}\n\n" \
                f"Для получения получения более подробной информации обратитесь к администратору @{settings.admin_tg_username}"
     await bot.send_message(user_tg_id, user_msg)
 

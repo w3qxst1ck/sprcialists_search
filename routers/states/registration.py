@@ -30,3 +30,7 @@ class Client(StatesGroup):
     location = State()
 
 
+class Reject(StatesGroup):
+    reason = State()
+
+

@@ -339,6 +339,23 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении причин отказа: {e}")
 
     @staticmethod
+    async def get_reject_reasons_by_ids(reasons_ids: List[int], session: Any) -> List[RejectReason]:
+        """Получение причин отказа по id"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT * FROM reject_reasons
+                WHERE id = ANY($1::int[])
+                """,
+                reasons_ids
+            )
+            reasons: list[RejectReason] = [RejectReason.model_validate(row) for row in rows]
+            return reasons
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении причин отказа по ids {reasons_ids}: {e}")
+
+    @staticmethod
     async def get_reject_reason(reason_id: int, session: Any) -> RejectReason:
         """Получение причины отказа по id"""
         try:

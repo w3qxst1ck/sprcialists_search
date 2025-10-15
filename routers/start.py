@@ -7,6 +7,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from middlewares.admin import AdminMiddleware
 from middlewares.database import DatabaseMiddleware
+from middlewares.private import CheckPrivateMessageMiddleware
 from routers.buttons import commands as cmd
 # from routers.keyboards.menu import main_menu
 from routers.menu import main_menu
@@ -18,6 +19,8 @@ from database.tables import UserRoles
 from settings import settings
 
 router = Router()
+router.message.middleware.register(CheckPrivateMessageMiddleware())
+router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
 router.message.middleware.register(DatabaseMiddleware())
 router.callback_query.middleware.register(DatabaseMiddleware())
 router.message.middleware.register(AdminMiddleware())

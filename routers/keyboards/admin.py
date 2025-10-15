@@ -1,3 +1,5 @@
+from typing import List
+
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -28,13 +30,20 @@ def confirm_registration_client_keyboard(tg_id: str) -> InlineKeyboardBuilder:
     return keyboard
 
 
-def all_reasons_keyboard(reasons: list[RejectReason], user_tg_id: str) -> InlineKeyboardBuilder:
-    """Клавиатура со всем причинами отказа"""
+def select_reasons_keyboard(reasons: list[RejectReason], selected_reasons: List[int]) -> InlineKeyboardBuilder:
+    """Клавиатура с мультивыбором причин отказа"""
     keyboard = InlineKeyboardBuilder()
 
     for reason in reasons:
-        keyboard.row(
-            InlineKeyboardButton(text=f"{reason.reason}", callback_data=f"reject_reason|{reason.id}|{user_tg_id}")
-        )
-    keyboard.adjust(1)
+        if reason.id in selected_reasons:
+            text = f"[ ✓ ] {reason.reason}"
+        else:
+            text = reason.reason
+
+        keyboard.row(InlineKeyboardButton(text=text, callback_data=f"reject_reason|{reason.id}"))
+
+    # Кнопка Подтвердить
+    if selected_reasons:
+        keyboard.row(InlineKeyboardButton(text="Подтвердить", callback_data=f"reject_reasons_done"))
+
     return keyboard
