@@ -57,10 +57,11 @@ async def select_jobs_in_profession(callback: CallbackQuery, session: Any, state
     await state.set_state(SelectJobs.jobs)
 
     # Записываем необходимые данные
-    await state.update_data(jobs=jobs, selected=[])
+    selected = []
+    await state.update_data(jobs=jobs, selected=selected)
 
     msg = f"Выберите подкатегории для поиска"
-    keyboard = kb.jobs_keyboard(jobs, selected=[])
+    keyboard = kb.jobs_keyboard(jobs, selected)
 
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
@@ -85,20 +86,25 @@ async def pick_jobs(callback: CallbackQuery, state: FSMContext) -> None:
 
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
+    # Обновляем данные с выбранными jobs
+    await state.update_data(selected=selected)
+
 
 @router.callback_query(F.data == "find_ex_show|show_executors", SelectJobs.jobs)
-async def end_multiselect(callback: CallbackQuery, state: FSMContext) -> None:
+async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Завершение мультиселекта и подбор подходящих исполнителей"""
     # Отправляем сообщение об ожидании
     wait_mess = await callback.message.edit_text(btn.WAIT_MSG)
 
     # Получаем все данные
     data = await state.get_data()
+    jobs_ids: list[int] = data["selected"]
 
     # Очищаем стейт
     await state.clear()
 
-    # executors = await AsyncOrm.
+    executors = await AsyncOrm.get_executors_by_jobs(jobs_ids, session)
+    print(executors)
 
     await callback.message.edit_text(f"Выбранные id: {data['selected']}")
 

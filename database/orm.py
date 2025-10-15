@@ -9,7 +9,7 @@ from database.tables import Base, UserRoles
 
 from logger import logger
 from schemas.client import ClientAdd, RejectReason, Client
-from schemas.executor import ExecutorAdd
+from schemas.executor import ExecutorAdd, Executor
 from schemas.profession import Profession, Job
 from schemas.user import UserAdd
 
@@ -370,17 +370,26 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при получении профиля клиента у пользователя {tg_id}: {e}")
 
-    # TODO доделать
+    # TODO доделать валидацию
     @staticmethod
-    async def get_executors_by_jobs(jobs_id: list[int], session: Any):
+    async def get_executors_by_jobs(jobs_ids: list[int], session: Any) -> list[Executor]:
         """Подбор исполнителей по jobs"""
         try:
             rows = await session.fetch(
                 """
-                SELECT id FROM executors as ex
-                LEFT JOIN executors_jobs as ex_j ON ex.id = 
-                WHERE ex.verified=true
-                """
+                SELECT DISTINCT ex.id, ex.tg_id, ex.name, ex.age, ex.description, ex.rate, ex.experience, ex.links, 
+                ex.availability, ex.contacts, ex.location, ex.langs, ex.tags, ex.photo, ex.verified  
+                FROM executors as ex
+                LEFT JOIN executors_jobs as ex_j ON ex.id = ex_j.executor_id 
+                WHERE ex.verified=true AND ex_j.job_id = ANY($1::int[])
+                """,
+                jobs_ids
             )
-        except:
-            pass
+            executors: list[Executor] = [
+                Executor.model_validate(row) for row in rows
+            ]
+            return executors
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении исполнителей для работ jobs_id {jobs_ids}: {e}")
+

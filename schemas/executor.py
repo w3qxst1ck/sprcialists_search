@@ -25,6 +25,10 @@ class ExecutorAdd(BaseModel):
     verified: bool = False
 
 
+class Executor(ExecutorAdd):
+    id: int
+
+
 class RejectReason(BaseModel):
     id: int
     reason: str
