@@ -70,6 +70,8 @@ class Clients(Base):
 
     user: Mapped["User"] = relationship(back_populates="client_profile")
 
+    orders: Mapped[list["Orders"]] = relationship(back_populates="client")
+
 
 class Executors(Base):
     """Таблица с полями профиля исполнителя"""
@@ -137,6 +139,20 @@ class RejectReasons(Base):
     reason: Mapped[str] = mapped_column(index=True, nullable=False)
     text: Mapped[str] = mapped_column(nullable=False)
 
+
+class Orders(Base):
+    """Заказы размещаемые клиентами"""
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(nullable=False)
+    task: Mapped[str] = mapped_column(String(1000), nullable=False)
+    price: Mapped[str] = mapped_column(nullable=False)
+    deadline: Mapped[datetime.datetime]
+    created_at: Mapped[datetime.datetime]
+
+    profession_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
+    client_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
 
 
 
