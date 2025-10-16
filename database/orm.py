@@ -403,7 +403,10 @@ class AsyncOrm:
                 jobs_ids
             )
             executors: list[Executor] = [
-                Executor.model_validate(row) for row in rows
+                Executor(
+                    id=row["id"],
+
+                ) for row in rows
             ]
             return executors
 
