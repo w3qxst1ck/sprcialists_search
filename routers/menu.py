@@ -2,6 +2,7 @@ from typing import Any
 
 from aiogram import Router, F
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, FSInputFile
 
 from middlewares.registered import RegisteredMiddleware
@@ -29,8 +30,14 @@ router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
 
 @router.callback_query(F.data == "main_menu")
 @router.message(Command(cmd.MENU[0]))
-async def main_menu(message: CallbackQuery | Message, session: Any):
+async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMContext):
     """Главное меню"""
+    # Скидываем стейт если пришли по кнопке назад
+    try:
+        await state.clear()
+    except Exception:
+        pass
+
     tg_id = str(message.from_user.id)
 
     # Получаем роль пользователя

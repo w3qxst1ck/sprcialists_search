@@ -22,9 +22,9 @@ def main_menu(user_role: str) -> InlineKeyboardBuilder:
 
     # Меню для исполнителя
     elif user_role == UserRoles.EXECUTOR.value:
-        keyboard.row(InlineKeyboardButton(text=f"{btn.FIND_EX}", callback_data=f"main_menu|find_order"))
-        keyboard.row(InlineKeyboardButton(text=f"{btn.PROFILE}", callback_data=f"main_menu|my_profile"))
-        keyboard.row(InlineKeyboardButton(text=f"{btn.SETTINGS}", callback_data=f"main_menu|favorite_orders"))
+        keyboard.row(InlineKeyboardButton(text=f"{btn.FIND_ORDERS}", callback_data=f"main_menu|find_order"))
+        keyboard.row(InlineKeyboardButton(text=f"{btn.PROFILE}", callback_data=f"main_menu|executor_profile"))
+        keyboard.row(InlineKeyboardButton(text=f"{btn.FAVORITE}", callback_data=f"main_menu|favorite_orders"))
 
         keyboard.adjust(2)
 
