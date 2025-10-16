@@ -2,7 +2,7 @@ from typing import Any
 
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, FSInputFile
 
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
@@ -11,9 +11,15 @@ from middlewares.private import CheckPrivateMessageMiddleware
 from database.orm import AsyncOrm
 
 from routers.keyboards import find_executor as kb
-from routers.states.find import SelectJobs
+from routers.messages.executor import executor_profile_to_show
+from routers.states.find import SelectJobs, ExecutorsFeed
 from routers.buttons import buttons as btn
 from schemas.profession import Profession, Job
+from schemas.executor import ExecutorShow
+from utils.shuffle import shuffle_executors
+
+from settings import settings
+from logger import logger
 
 router = Router()
 
@@ -84,10 +90,11 @@ async def pick_jobs(callback: CallbackQuery, state: FSMContext) -> None:
     msg = f"Выберите подкатегории для поиска"
     keyboard = kb.jobs_keyboard(jobs, selected)
 
-    await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+    prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
     # Обновляем данные с выбранными jobs
     await state.update_data(selected=selected)
+    await state.update_data(prev_mess=prev_mess)
 
 
 @router.callback_query(F.data == "find_ex_show|show_executors", SelectJobs.jobs)
@@ -100,13 +107,58 @@ async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: A
     data = await state.get_data()
     jobs_ids: list[int] = data["selected"]
 
-    # Очищаем стейт
-    await state.clear()
+    # Получаем список подходящих исполнителей
+    executors: list[ExecutorShow] = await AsyncOrm.get_executors_by_jobs(jobs_ids, session)
 
-    executors = await AsyncOrm.get_executors_by_jobs(jobs_ids, session)
-    print(executors)
+    # Если исполнителей нет
+    if not executors:
+        # Очищаем стейт
+        await state.clear()
+        await wait_mess.message.edit_text("Исполнителей по вашему запросу не найдено")
+        return
 
-    await callback.message.edit_text(f"Выбранные id: {data['selected']}")
+    # Удаляем сообщение об ожидании
+    try:
+        await wait_mess.delete()
+    except:
+        pass
+
+    # Меняем стейт
+    await state.set_state(ExecutorsFeed.show)
+
+    # Сортируем список в случайный порядок
+    shuffled_executors: list[ExecutorShow] = shuffle_executors(executors)
+
+    # Получаем первого исполнителя
+    executor = shuffled_executors.pop()
+
+    # Остальных исполнителей сохраняем в память
+    await state.update_data(executors=shuffled_executors)
+
+    # Выводим первого исполнителя
+    msg = executor_profile_to_show(executor)
+    keyboard = kb.executor_show_keyboard()
+
+    # Получаем фото
+    if executor.photo:
+        filepath = settings.local_media_path + settings.executors_profile_path + f"{executor.tg_id}.jpg"
+    else:
+        filepath = settings.local_media_path + settings.executors_profile_path + f"{executor.tg_id}.jpg"
+    try:
+        profile_image = FSInputFile(filepath)
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке фото исполнителя {filepath} {executor.tg_id}: {e}")
+
+    await callback.message.answer(msg, reply_markup=keyboard, disable_web_page_preview=True)
+
+    await callback.message.answer_photo(
+        photo=profile_image,
+        caption=msg,
+        reply_markup=keyboard,
+    )
+
+
+
 
 
 

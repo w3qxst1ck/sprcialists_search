@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from routers.buttons import buttons as btn
@@ -42,3 +42,18 @@ def jobs_keyboard(jobs: list[Job], selected: list[int] = None) -> InlineKeyboard
     return keyboard
 
 
+def executor_show_keyboard() -> ReplyKeyboardMarkup:
+    """Клавиатура для свайпов в демонстрации исполнителей"""
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=f"{btn.SKIP}"),
+                KeyboardButton(text=f"{btn.TO_FAV}"),
+                KeyboardButton(text=f"{btn.WRITE}")
+            ],
+
+        ],
+        resize_keyboard=True,  # Автоматическое изменение размера
+    )
+
+    return keyboard
