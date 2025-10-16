@@ -9,7 +9,7 @@ from database.tables import Base, UserRoles
 
 from logger import logger
 from schemas.client import ClientAdd, RejectReason, Client
-from schemas.executor import ExecutorAdd, Executor
+from schemas.executor import ExecutorAdd, Executor, ExecutorShow
 from schemas.profession import Profession, Job
 from schemas.user import UserAdd
 
@@ -389,7 +389,7 @@ class AsyncOrm:
 
     # TODO доделать валидацию
     @staticmethod
-    async def get_executors_by_jobs(jobs_ids: list[int], session: Any) -> list[Executor]:
+    async def get_executors_by_jobs(jobs_ids: list[int], session: Any) -> list[ExecutorShow]:
         """Подбор исполнителей по jobs"""
         try:
             rows = await session.fetch(
@@ -402,10 +402,23 @@ class AsyncOrm:
                 """,
                 jobs_ids
             )
-            executors: list[Executor] = [
-                Executor(
+            executors: list[ExecutorShow] = [
+                ExecutorShow(
                     id=row["id"],
-
+                    tg_id=row["tg_id"],
+                    name=row["name"],
+                    age=row["age"],
+                    description=row["description"],
+                    rate=row["rate"],
+                    experience=row["experience"],
+                    links=row["links"].split("|"),
+                    tags=row["tags"].split("|"),
+                    availability=row["availability"],
+                    contacts=row["contacts"],
+                    location=row["location"],
+                    langs=row["langs"].split("|"),
+                    photo=row["photo"],
+                    verified=row["verified"]
                 ) for row in rows
             ]
             return executors
