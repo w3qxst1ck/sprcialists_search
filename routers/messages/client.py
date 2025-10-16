@@ -24,7 +24,7 @@ def get_client_profile_message(client: ClientAdd) -> str:
           f"{links}" \
           f"О себе: {client.description if client.description else 'не указано'}\n" \
           f"Город: {location}\n" \
-          f"Контакты: {contacts}\n" \
+          f"Контакты: {contacts}" \
           # f"Верификация: {verified}"
 
     return msg

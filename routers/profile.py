@@ -5,6 +5,7 @@ from aiogram.types import Message, CallbackQuery
 
 from database.tables import UserRoles
 from database.orm import  AsyncOrm
+from middlewares.private import CheckPrivateMessageMiddleware
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
 
@@ -19,6 +20,9 @@ router.callback_query.middleware.register(DatabaseMiddleware())
 
 router.message.middleware.register(RegisteredMiddleware())
 router.callback_query.middleware.register(RegisteredMiddleware())
+
+router.message.middleware.register(CheckPrivateMessageMiddleware())
+router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
 
 
 @router.callback_query(F.data == "main_menu|my_profile")

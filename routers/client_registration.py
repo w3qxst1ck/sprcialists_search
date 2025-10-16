@@ -169,8 +169,8 @@ async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, 
 
         # Проверяем что было отправлено фото
         if not message.photo:
-            prev_mess = await message.answer("Неверный формат данных, необходимо отправить фотографию",
-                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
+            prev_mess = await wait_msg.edit_text("Неверный формат данных, необходимо отправить фотографию",
+                                                 reply_markup=kb.skip_cancel_keyboard().as_markup())
             # Сохраняем предыдущее сообщение
             await state.update_data(prev_mess=prev_mess)
             return
@@ -269,7 +269,8 @@ async def confirm_client(callback: CallbackQuery, state: FSMContext, session: An
 
     # Убираем клавиатуру у предыдущего сообщения
     try:
-        await data["prev_mess"].edit_caption(caption=data["prev_mess"].caption)
+        new_caption = get_client_profile_message(client)
+        await data["prev_mess"].edit_caption(caption=new_caption)
     except:
         pass
 
@@ -277,18 +278,6 @@ async def confirm_client(callback: CallbackQuery, state: FSMContext, session: An
     msg = "✅ Профиль успешно создан\n\nВы можете изменить данные профиля в настройках"
     keyboard = kb.to_main_menu()
     await callback.message.answer(msg, reply_markup=keyboard.as_markup())
-
-    # Отправляем в группу анкету на согласование
-    # admin_group_id = settings.admin_group_id
-    # profile_image = FSInputFile(data["filepath"])
-    # msg = data["questionnaire"]
-    # await bot.send_photo(
-    #     admin_group_id,
-    #     photo=profile_image,
-    #     caption=msg,
-    #     reply_markup=confirm_registration_client_keyboard(client.tg_id).as_markup(),
-    # )
-    # await main_menu(callback, session)
 
 
 @router.callback_query(F.data == "cancel_client_registration", StateFilter("*"))

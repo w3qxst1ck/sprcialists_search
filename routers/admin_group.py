@@ -13,6 +13,7 @@ from routers.states.registration import Reject
 from schemas.executor import RejectReason
 from routers.keyboards import admin as kb
 from settings import settings
+from routers.keyboards.menu import main_menu
 
 # Роутер для использования в группе
 group_router = Router()
@@ -51,7 +52,7 @@ async def confirm_executor_registration(callback: CallbackQuery, session: Any, b
 
     # Оповещаем исполнителя
     user_msg = f"✅ Ваша анкета успешно верифицирована\n\nТеперь вашу анкету будут видеть клиенты/заказчики"
-    await bot.send_message(executor_tg_id, user_msg)
+    await bot.send_message(executor_tg_id, user_msg, reply_markup=main_menu(UserRoles.EXECUTOR.value).as_markup())
 
 
 # Отказ в верификации исполнителя
