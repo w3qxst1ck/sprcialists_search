@@ -21,7 +21,7 @@ from schemas.profession import Job, Profession
 from utils.download_files import load_photo_from_tg, get_photo_path
 from settings import settings
 from routers.keyboards import executor_registration as kb
-from utils.validations import is_valid_age, is_valid_url, is_valid_tag
+from utils.validations import is_valid_age, is_valid_url
 
 router = Router()
 router.message.middleware.register(CheckPrivateMessageMiddleware())

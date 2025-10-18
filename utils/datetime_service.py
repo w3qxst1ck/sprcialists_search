@@ -45,3 +45,17 @@ def convert_str_to_datetime(date_str: str) -> datetime.datetime:
 def convert_date_time_to_str(date: datetime.datetime, with_tz: bool = None) -> (str, str):
     """Перевод даты в формат для вывода (date, time)"""
     return date.date().strftime("%d.%m.%Y")
+
+
+def get_days_left_text(days: int) -> str:
+    """Формулировка дней в зависимости от числа"""
+    days_str = str(days)
+
+    if days_str[-1] in ("5", "6", "7", "8", "9", "0") or 10 < days < 20:
+        return "дней"
+
+    if days_str[-1] in ("2", "3", "4"):
+        return "дня"
+
+    if days_str[-1] == "1":
+        return "день"

@@ -17,6 +17,10 @@ def is_valid_url(url: str) -> bool:
     return validators.url(url)
 
 
-def is_valid_tag(tag: str) -> bool:
-    """Проверка валидности тега"""
-    return tag.isalpha()
+def is_valid_price(price: str) -> bool:
+    """Проверка валидности цены заказа"""
+    try:
+        int(price)
+    except ValueError:
+        return False
+    return True

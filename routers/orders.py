@@ -20,6 +20,7 @@ from schemas.order import OrderAdd, Order
 from schemas.profession import Profession, Job
 from routers.buttons import buttons as btn
 from utils.datetime_service import get_next_and_prev_month_and_year, convert_str_to_datetime, convert_date_time_to_str
+from utils.validations import is_valid_price
 
 router = Router()
 
@@ -238,7 +239,7 @@ async def get_task(message: Message, state: FSMContext) -> None:
     await state.set_state(CreateOrder.price)
 
     # Отправляем сообщение
-    msg = "Отправьте цену заказа (например: 2000 рублей) или нажмите \"Пропустить\""
+    msg = "Отправьте цену заказа в рублях (например: 2000) или нажмите \"Пропустить\""
     prev_mess = await message.answer(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -261,6 +262,14 @@ async def get_price(message: Message | CallbackQuery, state: FSMContext) -> None
         # Если отправлен не текст
         if not message.text:
             prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
+            # Сохраняем предыдущее сообщение
+            await state.update_data(prev_mess=prev_mess)
+            return
+
+        # Если ввели не корректное число
+        if not is_valid_price(message.text):
+            prev_mess = await message.answer("Неверный формат данных, необходимо отправить только число без других симоволов",
                                              reply_markup=kb.skip_cancel_keyboard().as_markup())
             # Сохраняем предыдущее сообщение
             await state.update_data(prev_mess=prev_mess)
