@@ -13,6 +13,21 @@ LANGUAGES = {
     'POL': '🇵🇱',
 }
 
+CALENDAR_MONTHS = {
+        1: "Январь",
+        2: "Февраль",
+        3: "Март",
+        4: "Апрель",
+        5: "Май",
+        6: "Июнь",
+        7: "Июль",
+        8: "Август",
+        9: "Сентябрь",
+        10: "Октябрь",
+        11: "Ноябрь",
+        12: "Декабрь"
+}
+
 
 class Database(BaseSettings):
     postgres_user: str = Field(..., env='POSTGRES_USER')
@@ -47,6 +62,10 @@ class Settings(BaseSettings):
     @property
     def languages(self):
         return LANGUAGES
+
+    @property
+    def calendar_months(self):
+        return CALENDAR_MONTHS
 
 
 settings = Settings()

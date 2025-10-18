@@ -30,7 +30,7 @@ router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
 
 @router.callback_query(F.data == "main_menu")
 @router.message(Command(cmd.MENU[0]))
-async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMContext):
+async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMContext = None):
     """Главное меню"""
     # Скидываем стейт если пришли по кнопке назад
     try:

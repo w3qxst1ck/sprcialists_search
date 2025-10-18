@@ -23,7 +23,6 @@ def profession_keyboard(professions: List[Profession]) -> InlineKeyboardBuilder:
 
 def jobs_keyboard(jobs: List[Job], selected_jobs: List[int]) -> InlineKeyboardBuilder:
     """Клавиатура выбора Jobs с мультиселектом"""
-
     keyboard = InlineKeyboardBuilder()
 
     for job in jobs:
