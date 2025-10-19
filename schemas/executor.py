@@ -29,24 +29,6 @@ class Executor(ExecutorAdd):
     id: int
 
 
-class ExecutorShow(BaseModel):
-    id: int
-    tg_id: str
-    name: str
-    age: int
-    description: str
-    rate: str
-    experience: str
-    links: List[str]
-    tags: List[str]
-    availability: str = Availability.FREE
-    contacts: str | None
-    location: str | None
-    langs: List[str]
-    photo: bool
-    verified: bool = False
-
-
 class RejectReason(BaseModel):
     id: int
     reason: str

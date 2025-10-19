@@ -35,7 +35,10 @@ async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMCo
     """Главное меню"""
     # Убираем клавиатуру, если она была до этого
     try:
-        wait_mess = await message.answer(f"{btn.WAIT_MSG}", reply_markup=ReplyKeyboardRemove())
+        if isinstance(message, Message):
+            wait_mess = await message.answer(f"{btn.WAIT_MSG}", reply_markup=ReplyKeyboardRemove())
+        else:
+            wait_mess = await message.message.answer(f"{btn.WAIT_MSG}", reply_markup=ReplyKeyboardRemove())
         await wait_mess.delete()
     except:
         pass
@@ -75,8 +78,12 @@ async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMCo
             # await message.answer_photo(photo=menu_image, caption=msg, reply_markup=keyboard.as_markup())
             await message.answer(msg, reply_markup=keyboard.as_markup())
         else:
-            # await message.message.answer_photo(photo=menu_image, caption=msg, reply_markup=keyboard.as_markup())
-            await message.message.edit_text(msg, reply_markup=keyboard.as_markup())
+            try:
+                # await message.message.answer_photo(photo=menu_image, caption=msg, reply_markup=keyboard.as_markup())
+                await message.message.edit_text(msg, reply_markup=keyboard.as_markup())
+            # В случаем если не получилось отредактировать callback (например он был с фото), просто отвечаем
+            except:
+                await message.message.answer(msg, reply_markup=keyboard.as_markup())
 
     except Exception as e:
         logger.error(f"Не удалось загрузить картинку главного меню: {e}")

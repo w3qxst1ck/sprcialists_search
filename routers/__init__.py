@@ -8,6 +8,7 @@ from routers.admin_group import group_router as admin_group_router
 from routers.menu import router as main_menu_router
 from routers.find_executor import router as find_executor_router
 from routers.orders import router as orders_router
+from routers.favorites import router as favorites_router
 
 main_router = Router()
 
@@ -20,5 +21,6 @@ main_router.include_routers(
     admin_group_router,
     main_menu_router,
     find_executor_router,
-    orders_router
+    orders_router,
+    favorites_router
 )

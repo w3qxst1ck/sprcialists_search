@@ -9,7 +9,7 @@ from database.tables import Base, UserRoles
 
 from logger import logger
 from schemas.client import ClientAdd, RejectReason, Client
-from schemas.executor import ExecutorAdd, Executor, ExecutorShow
+from schemas.executor import ExecutorAdd, Executor
 from schemas.order import OrderAdd, Order
 from schemas.profession import Profession, Job
 from schemas.user import UserAdd
@@ -246,6 +246,22 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при удалении анкеты исполнителя пользователя {tg_id}: {e}")
+
+    @staticmethod
+    async def get_executor_name(tg_id: str, session: Any) -> str:
+        """Получаем имя исполнителя по tg_id"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT name FROM executors
+                WHERE tg_id = $1
+                """,
+                tg_id
+            )
+            return row["name"]
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении имени исполнителя с tg {tg_id}: {e}")
 
     @staticmethod
     async def create_client(client: ClientAdd, session: Any) -> None:
@@ -498,20 +514,79 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении исполнителей для работ jobs_id {jobs_ids}: {e}")
 
     @staticmethod
-    async def get_executor_name(tg_id: str, session: Any) -> str:
-        """Получаем имя исполнителя по tg_id"""
+    async def get_favorites_executors(client_tg_id: str, session: Any) -> list[Executor]:
+        """Получаем избранным исполнителей для клиента"""
         try:
-            row = await session.fetchrow(
+            ex_rows = await session.fetch(
                 """
-                SELECT name FROM executors
-                WHERE tg_id = $1
+                SELECT DISTINCT ex.id, ex.tg_id, ex.name, ex.age, ex.description, ex.rate, ex.experience, ex.links, 
+                ex.availability, ex.contacts, ex.location, ex.langs, ex.tags, ex.photo, ex.verified  
+                FROM executors as ex
+                LEFT JOIN favorite_executors AS f_ex ON ex.id = f_ex.executor_id
+                LEFT JOIN clients AS c ON f_ex.client_id = c.id 
+                WHERE ex.verified=true AND c.tg_id = $1  
                 """,
-                tg_id
+                client_tg_id
             )
-            return row["name"]
+
+            executors = []
+            for ex_row in ex_rows:
+                jobs_rows = await session.fetch(
+                    """
+                    SELECT j.id, j.title, j.tag, j.profession_id 
+                    FROM jobs AS j
+                    JOIN executors_jobs AS ej ON j.id = ej.job_id
+                    WHERE ej.executor_id = $1
+                    """,
+                    ex_row["id"]
+                )
+
+                jobs: list[Job] = []
+
+                for job_row in jobs_rows:
+                    jobs.append(
+                        Job(
+                            id=job_row["id"],
+                            title=job_row["title"],
+                            tag=job_row["tag"],
+                            profession_id=job_row["profession_id"]
+                        )
+                    )
+
+                prof_row = await session.fetchrow(
+                    """
+                    SELECT * FROM professions
+                    WHERE id = $1
+                    """,
+                    jobs[0].profession_id
+                )
+                profession = Profession.model_validate(prof_row)
+
+                executors.append(
+                    Executor(
+                        id=ex_row["id"],
+                        tg_id=ex_row["tg_id"],
+                        name=ex_row["name"],
+                        age=ex_row["age"],
+                        description=ex_row["description"],
+                        rate=ex_row["rate"],
+                        experience=ex_row["experience"],
+                        links=ex_row["links"].split("|"),
+                        tags=ex_row["tags"].split("|"),
+                        availability=ex_row["availability"],
+                        contacts=ex_row["contacts"],
+                        location=ex_row["location"],
+                        langs=ex_row["langs"].split("|"),
+                        photo=ex_row["photo"],
+                        verified=ex_row["verified"],
+                        profession=profession,
+                        jobs=jobs
+                    )
+                )
+            return executors
 
         except Exception as e:
-            logger.error(f"Ошибка при получении имени исполнителя с tg {tg_id}: {e}")
+            logger.error(f"Ошибка при получении избранных исполнителей для клиента {client_tg_id}: {e}")
 
     @staticmethod
     async def add_executor_to_favorite(client_id: int, executor_id: int, session: Any) -> None:
@@ -527,6 +602,26 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при добавлении исполнителя {executor_id} в список избранных клиента {client_id}")
+            raise
+
+    @staticmethod
+    async def delete_executor_from_favorites(client_tg_id: str, executor_id: int, session: Any) -> None:
+        """Удаляем исполнителя из favorites"""
+        try:
+            await session.execute(
+                """
+                DELETE FROM favorite_executors 
+                WHERE client_id IN (
+                    SELECT id FROM clients
+                    WHERE tg_id = $1
+                ) 
+                AND executor_id = $2;
+                """,
+                client_tg_id, executor_id
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при удалении исполнителя {executor_id} из избранных клиента {client_tg_id}: {e}")
             raise
 
     @staticmethod
