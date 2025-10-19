@@ -20,7 +20,7 @@ from routers.states.find import SelectJobs, ExecutorsFeed
 from routers.buttons import buttons as btn
 from schemas.client import Client
 from schemas.profession import Profession, Job
-from schemas.executor import ExecutorShow
+from schemas.executor import Executor
 from utils.shuffle import shuffle_executors
 
 from settings import settings
@@ -113,12 +113,10 @@ async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: A
     # Получаем все данные
     data = await state.get_data()
     jobs_ids: list[int] = data["selected"]
-    print(jobs_ids)
 
     # Получаем список подходящих исполнителей
-    executors: list[ExecutorShow] = await AsyncOrm.get_executors_by_jobs(jobs_ids, session)
+    executors: list[Executor] = await AsyncOrm.get_executors_by_jobs(jobs_ids, session)
     is_last: bool = len(executors) == 1
-    print(len(executors))
 
     # Если исполнителей нет
     if not executors:
@@ -142,7 +140,7 @@ async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: A
     await state.set_state(ExecutorsFeed.show)
 
     # Сортируем список в случайный порядок
-    shuffled_executors: list[ExecutorShow] = shuffle_executors(executors)
+    shuffled_executors: list[Executor] = shuffle_executors(executors)
 
     # Получаем первого исполнителя
     executor = shuffled_executors.pop()
@@ -189,6 +187,12 @@ async def executors_feed(message: Message, state: FSMContext, session: Any) -> N
     """Лента исполнителей при нажатии кнопки пропуск"""
     data = await state.get_data()
     client_tg_id = str(message.from_user.id)
+
+    # Удаляем функциональные сообщения
+    try:
+        await data["functional_mess"].delete()
+    except:
+        pass
 
     # Получаем исполнителей из памяти
     executors = data["executors"]
@@ -249,28 +253,36 @@ async def add_executor_to_favorites(message: Message, state: FSMContext, session
     """Лента исполнителей при нажатии кнопки пропуск"""
     data = await state.get_data()
     client_tg_id = str(message.from_user.id)
+
+    # Удаляем функциональные сообщения
+    try:
+        await data["functional_mess"].delete()
+    except:
+        pass
+
     # Получаем id клинета
     client_id: int = await AsyncOrm.get_client_id(client_tg_id, session)
 
     # Получаем текущего исполнителя
-    executor: ExecutorShow = data["current_ex"]
+    executor: Executor = data["current_ex"]
     # Получаем всех исполнителей
-    executors: list[ExecutorShow] = data["executors"]
+    executors: list[Executor] = data["executors"]
 
     # Проверяем есть ли он уже в исполнителях
     already_in_fav: bool = await check_is_executor_in_favorites(client_tg_id, executor.id, session)
     if already_in_fav:
         await message.answer(f"{btn.INFO} Этот исполнитель уже есть у вас в списке избранных")
-        return
+        # return
 
-    # Сохраняем исполнителя в избранное у клиента
-    try:
-        await AsyncOrm.add_executor_to_favorite(client_id, executor.id, session)
-    except:
-        await message.answer(f"Ошибка при добавлении исполнителя в избранное, попробуйте позже")
-        return
+    else:
+        # Сохраняем исполнителя в избранное у клиента
+        try:
+            await AsyncOrm.add_executor_to_favorite(client_id, executor.id, session)
+        except:
+            await message.answer(f"Ошибка при добавлении исполнителя в избранное, попробуйте позже")
+            return
 
-    await message.answer("Исполнитель сохранен в ⭐ избранное")
+        await message.answer("Исполнитель сохранен в ⭐ избранное")
 
     is_last: bool = len(executors) == 1
     msg = executor_profile_to_show(executor, in_favorites=True)
@@ -301,18 +313,24 @@ async def add_executor_to_favorites(message: Message, state: FSMContext, session
 
 # НАПИСАТЬ ИСПОЛНИТЕЛЮ
 @router.message(F.text == f"{btn.WRITE}", ExecutorsFeed.show)
-async def connect_with_executor(message: Message, state: FSMContext, session: Any) -> None:
+async def connect_with_executor(message: Message, state: FSMContext) -> None:
     """Связаться с исполнителем"""
     data = await state.get_data()
 
+    # Удаляем функциональные сообщения
+    try:
+        await data["functional_mess"].delete()
+    except:
+        pass
+
     # Получаем текущего исполнителя
-    executor: ExecutorShow = data["current_ex"]
+    executor: Executor = data["current_ex"]
 
     msg = ms.contact_with_executor(executor)
     keyboard = kb.contact_with_executor(executor.tg_id)
 
-    prev_mess = await message.answer(msg, reply_markup=keyboard.as_markup())
-    await state.update_data(prev_mess=prev_mess)
+    functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup())
+    await state.update_data(functional_mess=functional_mess)
 
 
 @router.callback_query(F.data.split("|")[0] == "contact_with_ex", ExecutorsFeed.show)
@@ -322,17 +340,15 @@ async def send_contact_message_to_executor(callback: CallbackQuery, state: FSMCo
     client: Client = await AsyncOrm.get_client(client_tg_id, session)
 
     executor_tg_id: str = callback.data.split("|")[1]
-
-    data = await state.get_data()
-    executor: ExecutorShow = data["current_ex"]
+    executor_name: str = await AsyncOrm.get_executor_name(executor_tg_id, session)
 
     # Отправляем исполнителю сообщение
     msg_to_executor = f"Пользователь <b>{client.name}</b> хочет с вами связаться для обсуждения заказа"
     # await bot.send_message(executor_tg_id, msg_to_executor)
-    await bot.send_message("420551454", msg_to_executor) # TODO DEV VERSION
+    await bot.send_message("420551454", msg_to_executor)    # TODO DEV VERSION
 
     # Оповещает клиента, что сообщение отправлено
-    msg_to_client = f"Оповещение отправлено исполнителю <b>{executor.name}</b>"
+    msg_to_client = f"Оповещение отправлено исполнителю <b>{executor_name}</b>"
     keyboard = kb.back_to_executors_feed()
     await callback.message.edit_text(msg_to_client, reply_markup=keyboard.as_markup())
 
@@ -346,15 +362,15 @@ async def back_to_executor_feed(callback: CallbackQuery, state: FSMContext, sess
 
     # Удаляем предыдущее сообщение
     try:
-        await data["prev_mess"].delete()
+        await data["functional_mess"].delete()
     except:
         pass
 
     # Получаем текущего исполнителя
-    executor: ExecutorShow = data["current_ex"]
+    executor: Executor = data["current_ex"]
 
     # Получаем исполнителей из памяти
-    executors: list[ExecutorShow] = data["executors"]
+    executors: list[Executor] = data["executors"]
     is_last: bool = len(executors) == 1
 
     already_in_fav = await check_is_executor_in_favorites(client_tg_id, executor.id, session)

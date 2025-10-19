@@ -1,10 +1,10 @@
-from schemas.executor import ExecutorShow
+from schemas.executor import Executor
 from routers.buttons import buttons as btn
 from settings import settings
 from utils.age import get_age_text
 
 
-def contact_with_executor(executor: ExecutorShow) -> str:
+def contact_with_executor(executor: Executor) -> str:
     """Сообщение о связи с исполнителем"""
     msg = f"Вы можете перейти в чат с исполнителем <a href='tg://user?id={executor.tg_id}'>{executor.name}</a>\n"
     if executor.contacts:

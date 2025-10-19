@@ -12,7 +12,7 @@ from routers.messages.executor import get_executor_profile_message
 from routers.states.registration import Executor
 
 from routers.buttons import commands as cmd
-from routers.buttons.buttons import WAIT_MSG
+from routers.buttons.buttons import WAIT_MSG, INFO
 from routers.keyboards.admin import confirm_registration_executor_keyboard
 
 from database.orm import AsyncOrm
@@ -605,7 +605,7 @@ async def registration_confirmation(callback: types.CallbackQuery, state: FSMCon
     await callback.message.edit_reply_markup(reply_markup=None)
 
     # Отправка сообщения пользователю
-    msg = "ℹ️ Ожидайте, ваша анкета отправлена администратору для верификации\n"
+    msg = f"{INFO} Ожидайте, ваша анкета отправлена администратору для верификации\n"
     await callback.message.answer(msg)
 
     # Получаем все данные
@@ -616,7 +616,11 @@ async def registration_confirmation(callback: types.CallbackQuery, state: FSMCon
 
     # Предварительная регистрация исполнителя и изменение роли пользователя на исполнителя
     executor: ExecutorAdd = data["executor"]
-    await AsyncOrm.create_executor(executor, session)
+    try:
+        await AsyncOrm.create_executor(executor, session)
+    except:
+        await callback.message.edit_text(f"{INFO} Ошибка при регистрации, попробуйте позже")
+        return
 
     # Отправляем в группу анкету на согласование
     admin_group_id = settings.admin_group_id

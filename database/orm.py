@@ -229,6 +229,7 @@ class AsyncOrm:
 
         except Exception as ex:
             logger.error(f"Ошибка при создании профиля исполнителя пользователем {e.tg_id}: {ex}")
+            raise
 
     @staticmethod
     async def delete_executor(tg_id: str, session: Any) -> None:
@@ -405,12 +406,11 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при получении id пользователя по tg_id {tg_id}: {e}")
 
-    # TODO доделать валидацию
     @staticmethod
-    async def get_executors_by_jobs(jobs_ids: list[int], session: Any) -> list[ExecutorShow]:
+    async def get_executors_by_jobs(jobs_ids: list[int], session: Any) -> list[Executor]:
         """Подбор исполнителей по jobs"""
         try:
-            rows = await session.fetch(
+            ex_rows = await session.fetch(
                 """
                 SELECT DISTINCT ex.id, ex.tg_id, ex.name, ex.age, ex.description, ex.rate, ex.experience, ex.links, 
                 ex.availability, ex.contacts, ex.location, ex.langs, ex.tags, ex.photo, ex.verified  
@@ -420,29 +420,82 @@ class AsyncOrm:
                 """,
                 jobs_ids
             )
-            executors: list[ExecutorShow] = [
-                ExecutorShow(
-                    id=row["id"],
-                    tg_id=row["tg_id"],
-                    name=row["name"],
-                    age=row["age"],
-                    description=row["description"],
-                    rate=row["rate"],
-                    experience=row["experience"],
-                    links=row["links"].split("|"),
-                    tags=row["tags"].split("|"),
-                    availability=row["availability"],
-                    contacts=row["contacts"],
-                    location=row["location"],
-                    langs=row["langs"].split("|"),
-                    photo=row["photo"],
-                    verified=row["verified"]
-                ) for row in rows
-            ]
+            executors = []
+
+            for ex_row in ex_rows:
+                jobs_rows = await session.fetch(
+                    """
+                    SELECT j.id, j.title, j.tag, j.profession_id 
+                    FROM jobs AS j
+                    JOIN executors_jobs AS ej ON j.id = ej.job_id
+                    WHERE ej.executor_id = $1
+                    """,
+                    ex_row["id"]
+                )
+
+                jobs: list[Job] = []
+
+                for job_row in jobs_rows:
+                    jobs.append(
+                        Job(
+                            id=job_row["id"],
+                            title=job_row["title"],
+                            tag=job_row["tag"],
+                            profession_id=job_row["profession_id"]
+                        )
+                    )
+
+                prof_row = await session.fetchrow(
+                    """
+                    SELECT * FROM professions
+                    WHERE id = $1
+                    """,
+                    jobs[0].profession_id
+                )
+                profession = Profession.model_validate(prof_row)
+
+                executors.append(
+                    Executor(
+                        id=ex_row["id"],
+                        tg_id=ex_row["tg_id"],
+                        name=ex_row["name"],
+                        age=ex_row["age"],
+                        description=ex_row["description"],
+                        rate=ex_row["rate"],
+                        experience=ex_row["experience"],
+                        links=ex_row["links"].split("|"),
+                        tags=ex_row["tags"].split("|"),
+                        availability=ex_row["availability"],
+                        contacts=ex_row["contacts"],
+                        location=ex_row["location"],
+                        langs=ex_row["langs"].split("|"),
+                        photo=ex_row["photo"],
+                        verified=ex_row["verified"],
+                        profession=profession,
+                        jobs=jobs
+                    )
+                )
+
             return executors
 
         except Exception as e:
             logger.error(f"Ошибка при получении исполнителей для работ jobs_id {jobs_ids}: {e}")
+
+    @staticmethod
+    async def get_executor_name(tg_id: str, session: Any) -> str:
+        """Получаем имя исполнителя по tg_id"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT name FROM executors
+                WHERE tg_id = $1
+                """,
+                tg_id
+            )
+            return row["name"]
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении имени исполнителя с tg {tg_id}: {e}")
 
     @staticmethod
     async def add_executor_to_favorite(client_id: int, executor_id: int, session: Any) -> None:

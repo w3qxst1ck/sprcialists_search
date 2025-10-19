@@ -72,7 +72,7 @@ def contact_with_executor(executor_tg_id: str) -> InlineKeyboardBuilder:
     return keyboard
 
 
-def back_to_executors_feed() ->InlineKeyboardBuilder:
+def back_to_executors_feed() -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
     keyboard.row(InlineKeyboardButton(text=f"Вернуться к ленте", callback_data="cancel_executors_feed"))
     return keyboard
