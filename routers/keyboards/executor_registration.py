@@ -31,7 +31,7 @@ def jobs_keyboard(jobs: List[Job], selected_jobs: List[int]) -> InlineKeyboardBu
 
         # Помечаем выбранные работы
         if job.id in selected_jobs:
-            title = "[ ✓ ]" + title
+            title = "[ ✓ ] " + title
 
         keyboard.row(InlineKeyboardButton(text=f"{title}", callback_data=f"choose_jobs|{job.id}"))
 

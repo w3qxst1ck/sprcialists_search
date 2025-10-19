@@ -121,6 +121,7 @@ class AsyncOrm:
                 """
                 SELECT *
                 FROM professions
+                ORDER BY title
                 """
             )
             professions = [Profession.model_validate(row) for row in rows]
@@ -155,6 +156,7 @@ class AsyncOrm:
                 SELECT *
                 FROM jobs
                 WHERE profession_id=$1
+                ORDER BY title
                 """,
                 profession_id
             )
@@ -387,6 +389,21 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при получении профиля клиента у пользователя {tg_id}: {e}")
 
+    @staticmethod
+    async def get_client_id(tg_id: str, session) -> int:
+        """Получение id пользователя по tg_id"""
+        try:
+            value = await session.fetchval(
+                """
+                SELECT id from clients 
+                WHERE tg_id = $1
+                """,
+                tg_id
+            )
+            return value
+        except Exception as e:
+            logger.error(f"Ошибка при получении id пользователя по tg_id {tg_id}: {e}")
+
     # TODO доделать валидацию
     @staticmethod
     async def get_executors_by_jobs(jobs_ids: list[int], session: Any) -> list[ExecutorShow]:
@@ -426,3 +443,34 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при получении исполнителей для работ jobs_id {jobs_ids}: {e}")
 
+    @staticmethod
+    async def add_executor_to_favorite(client_id: int, executor_id: int, session: Any) -> None:
+        """Добавляем исполнителя в список избранных для клиента"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO favorite_executors (client_id, executor_id)
+                VALUES ($1, $2)
+                """,
+                client_id, executor_id
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении исполнителя {executor_id} в список избранных клиента {client_id}")
+            raise
+
+    @staticmethod
+    async def executor_in_favorites(client_id: int, executor_id: int, session: Any) -> bool:
+        """Получаем true если исполнитель уже в списке избранных, иначе false"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT * FROM favorite_executors
+                WHERE client_id = $1 AND executor_id = $2
+                """,
+                client_id, executor_id
+            )
+            return True if row else False
+
+        except Exception as e:
+            logger.error(f"Ошибка при проверке исполнителя {executor_id} в списке избранных клиента {client_id}: {e}")

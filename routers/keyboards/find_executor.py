@@ -29,7 +29,7 @@ def jobs_keyboard(jobs: list[Job], selected: list[int] = None) -> InlineKeyboard
         text = job.title
 
         if job.id in selected:
-            text = "[ ✓ ]" + job.title
+            text = "[ ✓ ] " + job.title
 
         keyboard.row(InlineKeyboardButton(
             text=f"{text}",
@@ -42,7 +42,7 @@ def jobs_keyboard(jobs: list[Job], selected: list[int] = None) -> InlineKeyboard
     return keyboard
 
 
-def executor_show_keyboard() -> ReplyKeyboardMarkup:
+def executor_show_keyboard(is_last: bool) -> ReplyKeyboardMarkup:
     """Клавиатура для свайпов в демонстрации исполнителей"""
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
@@ -56,4 +56,23 @@ def executor_show_keyboard() -> ReplyKeyboardMarkup:
         resize_keyboard=True,  # Автоматическое изменение размера
     )
 
+    # Для последнего профиля
+    if is_last:
+        keyboard.one_time_keyboard = True   # Скрывает клавиатуру после использования
+
+    return keyboard
+
+
+def contact_with_executor(executor_tg_id: str) -> InlineKeyboardBuilder:
+    """Клавиатура для связи с исполнителем"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CONTACT_WITH}", callback_data=f"contact_with_ex|{executor_tg_id}"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_executors_feed"))
+    return keyboard
+
+
+def back_to_executors_feed() ->InlineKeyboardBuilder:
+    keyboard = InlineKeyboardBuilder()
+    keyboard.row(InlineKeyboardButton(text=f"Вернуться к ленте", callback_data="cancel_executors_feed"))
     return keyboard

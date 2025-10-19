@@ -26,7 +26,7 @@ def get_executor_profile_message(executor: ExecutorAdd) -> str:
     return msg
 
 
-def executor_profile_to_show(executor: ExecutorShow) -> str:
+def executor_profile_to_show(executor: ExecutorShow, in_favorites: bool = False) -> str:
     """Карточка исполнителя для показа в ленте"""
     age = get_age_text(executor.age)
     langs = "/".join([settings.languages[lang] for lang in executor.langs])
@@ -36,7 +36,8 @@ def executor_profile_to_show(executor: ExecutorShow) -> str:
     location = executor.location if executor.location else "не указан"
     verified = "✔️ Подтверждена" if executor.verified else "🚫 Не подтверждена"
 
-    msg = f"👤 {executor.name}, {age}\n" \
+    msg = f"{'[⭐ в избранном]' if in_favorites else ''}" + "\n" \
+          f"👤 {executor.name}, {age}\n" \
           f"💼 {executor.experience} | 💲 {executor.rate} | {langs}\n" \
           f"🏷️ {tags}\n" \
           f"📎 {links}\n" \

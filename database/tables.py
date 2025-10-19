@@ -69,8 +69,8 @@ class Clients(Base):
     verified: Mapped[bool] = mapped_column(default=False)
 
     user: Mapped["User"] = relationship(back_populates="client_profile")
-
     orders: Mapped[list["Orders"]] = relationship(back_populates="client")
+    favorites: Mapped[list["Executors"]] = relationship(back_populates="clients", secondary="favorite_executors")
 
 
 class Executors(Base):
@@ -89,12 +89,14 @@ class Executors(Base):
     contacts: Mapped[str] = mapped_column(nullable=True, default=None)
     location: Mapped[str] = mapped_column(nullable=True, default=None)
     langs: Mapped[str] = mapped_column(nullable=False, default="RUS")   # RUS|KZ|POL
-    tags: Mapped[str] = mapped_column(nullable=True) # tag1|tag2|tag3|...
+    tags: Mapped[str] = mapped_column(nullable=True)    # tag1|tag2|tag3|...
     photo: Mapped[bool] = mapped_column(nullable=False, default=False)
     verified: Mapped[bool] = mapped_column(default=False)
 
     user: Mapped["User"] = relationship(back_populates="executor_profile")
+
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="executors", secondary="executors_jobs")
+    favorites: Mapped[list["Clients"]] = relationship(back_populates="executors", secondary="favorite_executors")
 
 
 class Professions(Base):
@@ -155,5 +157,9 @@ class Orders(Base):
     client_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
 
 
+class FavoriteExecutors(Base):
+    """Many-to-many таблица для хранения избранных исполнителей для коиентов"""
+    __tablename__ = "favorite_executors"
 
-
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), primary_key=True)
+    executor_id: Mapped[int] = mapped_column(ForeignKey("executors.id", ondelete="CASCADE"), primary_key=True)

@@ -1,9 +1,9 @@
 from typing import Any
 
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, FSInputFile
+from aiogram.types import CallbackQuery, Message, FSInputFile, ReplyKeyboardRemove
 
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
@@ -11,7 +11,7 @@ from middlewares.private import CheckPrivateMessageMiddleware
 
 from database.orm import AsyncOrm
 
-from routers.buttons import commands as cmd
+from routers.buttons import commands as cmd, buttons as btn
 from routers.keyboards import menu as kb
 from routers.messages import menu as ms
 from logger import logger
@@ -30,13 +30,21 @@ router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
 
 @router.callback_query(F.data == "main_menu")
 @router.message(Command(cmd.MENU[0]))
-async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMContext):
+async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMContext = None):
     """Главное меню"""
-    # Скидываем стейт если пришли по кнопке назад
+    # Убираем клавиатуру, если она была до этого
     try:
-        await state.clear()
-    except Exception:
+        wait_mess = await message.answer(f"{btn.WAIT_MSG}", reply_markup=ReplyKeyboardRemove())
+        await wait_mess.delete()
+    except:
         pass
+
+    # Скидываем стейт если пришли по кнопке назад
+    if state:
+        try:
+            await state.clear()
+        except Exception:
+            pass
 
     tg_id = str(message.from_user.id)
 
