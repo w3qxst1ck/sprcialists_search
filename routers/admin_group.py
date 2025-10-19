@@ -146,13 +146,14 @@ async def send_reject_to_user(callback: CallbackQuery, state: FSMContext, sessio
     # Сообщение в группу об отмене верификации
     admin_name = str(callback.from_user.first_name)
     caption_text = data["caption_text"] + f"\n\n❌ <i>Анкета отклонена администратором \"{admin_name}\"\nПричины:\n</i>"
-    reasons_text = "\n".join([f"\t• {reason.reason}" for reason in selected_reasons])
+    reasons_text_for_admin = "\n".join([f"\t• {reason.reason}" for reason in selected_reasons])
 
-    await callback.message.edit_caption(caption=caption_text+reasons_text)
+    await callback.message.edit_caption(caption=caption_text+reasons_text_for_admin)
 
     # Сообщение пользователю об отмене верификации
+    reasons_text_for_user = "\n".join([f"\t• {reason.reason}\n" + f"<i>{reason.text}</i>" for reason in selected_reasons])
     user_msg = f"❌ Верификация вашей анкеты отклонена администратором\n\n" \
-               f"<b>Причины:\n</b>{reasons_text}\n\n" \
+               f"<b>Причины:\n</b>{reasons_text_for_user}\n\n" \
                f"Для получения получения более подробной информации обратитесь к администратору @{settings.admin_tg_username}"
     await bot.send_message(user_tg_id, user_msg)
 

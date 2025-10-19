@@ -5,6 +5,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, FSInputFile, ReplyKeyboardRemove
 
+from database.tables import UserRoles
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
 from middlewares.private import CheckPrivateMessageMiddleware
@@ -50,6 +51,18 @@ async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMCo
 
     # Получаем роль пользователя
     user_role: str = await AsyncOrm.get_user_role(tg_id, session)
+
+    # Проверяем верификацию (только для исполнителей)
+    if user_role == UserRoles.EXECUTOR.value:
+        is_verified = await AsyncOrm.is_verified(tg_id, session)
+        # Если исполнитель не верифицирован
+        if not is_verified:
+            msg = "Данные функционал доступен только верифицированным пользователям"
+            if isinstance(message, Message):
+                await message.answer(msg)
+            else:
+                await message.message.edit_text(msg)
+            return
 
     # Формируем сообщение
     msg = ms.get_menu_message(user_role)

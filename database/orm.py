@@ -311,6 +311,22 @@ class AsyncOrm:
             logger.error(f"Ошибка при верификации исполнителя: {e}")
 
     @staticmethod
+    async def is_verified(tg_id: str, session: Any):
+        """true если анкета верифицирована, иначе false"""
+        try:
+            value = await session.fetchval(
+                """
+                SELECT verified FROM executors
+                WHERE tg_id=$1
+                """,
+                tg_id
+            )
+            return value
+
+        except Exception as e:
+            logger.error(f"Ошибка при проверке верификации исполнителя {tg_id}: {e}")
+
+    @staticmethod
     async def verify_client(tg_id: str, admin_tg_id: str, session: Any) -> None:
         """Верификация клиента"""
         try:

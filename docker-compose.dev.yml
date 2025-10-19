@@ -9,6 +9,7 @@ services:
     volumes:
       - ./logs:/app/logs/
       - ./media:/app/media/
+      - ./database/migrations/versions:/app/database/migrations/versions
     depends_on:
       postgresdb:
         condition: service_healthy
