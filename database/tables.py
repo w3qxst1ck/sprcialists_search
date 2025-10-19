@@ -120,6 +120,7 @@ class Jobs(Base):
 
     profession_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
     executors: Mapped[list["Executors"]] = relationship(back_populates="jobs", secondary="executors_jobs")
+    orders: Mapped[list["Orders"]] = relationship(back_populates="jobs", secondary="orders_jobs")
 
 
 class ExecutorsJobs(Base):
@@ -147,19 +148,33 @@ class Orders(Base):
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    tg_id: Mapped[str] = mapped_column(nullable=False, index=True)
     title: Mapped[str] = mapped_column(nullable=False)
     task: Mapped[str] = mapped_column(String(1000), nullable=False)
-    price: Mapped[str] = mapped_column(nullable=False)
+    price: Mapped[str] = mapped_column(nullable=True)
+    requirements: Mapped[str] = mapped_column(nullable=True)
     deadline: Mapped[datetime.datetime]
     created_at: Mapped[datetime.datetime]
+    is_active: Mapped[bool] = mapped_column(nullable=False)
 
-    profession_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
     client_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
+    jobs: Mapped[list["Jobs"]] = relationship(back_populates="orders", secondary="orders_jobs")
 
 
 class FavoriteExecutors(Base):
-    """Many-to-many таблица для хранения избранных исполнителей для коиентов"""
+    """Many-to-many таблица для хранения избранных исполнителей для клиентов"""
     __tablename__ = "favorite_executors"
 
     client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), primary_key=True)
     executor_id: Mapped[int] = mapped_column(ForeignKey("executors.id", ondelete="CASCADE"), primary_key=True)
+
+
+class OrdersJobs(Base):
+    """
+        Связь заказа с профессией и выполняемыми работами
+        Many-to-many relationship
+    """
+    __tablename__ = "orders_jobs"
+
+    job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"), primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), primary_key=True)

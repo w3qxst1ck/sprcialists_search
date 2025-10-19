@@ -21,7 +21,7 @@ from schemas.profession import Job, Profession
 from utils.download_files import load_photo_from_tg, get_photo_path
 from settings import settings
 from routers.keyboards import executor_registration as kb
-from utils.validations import is_valid_age, is_valid_url, is_valid_tag
+from utils.validations import is_valid_age, is_valid_url
 
 router = Router()
 router.message.middleware.register(CheckPrivateMessageMiddleware())
@@ -194,7 +194,7 @@ async def get_profession(callback: types.CallbackQuery, session: Any, state: FSM
 
 
 @router.callback_query(F.data.split("|")[0] == "choose_jobs", Executor.jobs)
-async def get_jobs_multiselect(callback: types.CallbackQuery, session: Any, state: FSMContext) -> None:
+async def get_jobs_multiselect(callback: types.CallbackQuery, state: FSMContext) -> None:
     """Вспомогательный хендлер для мультиселекта"""
     job_id = int(callback.data.split("|")[1])
 
@@ -209,9 +209,9 @@ async def get_jobs_multiselect(callback: types.CallbackQuery, session: Any, stat
     else:
         # Убираем одну если больше 5
         if len(selected_jobs) == 5:
-            selected_jobs.pop()
-
-        selected_jobs.append(job_id)
+            selected_jobs[0] = job_id
+        else:
+            selected_jobs.append(job_id)
 
     # Обновляем выбранные работы в стейте
     await state.update_data(selected_jobs=selected_jobs)

@@ -1,3 +1,5 @@
+import datetime
+import types
 from typing import Any, List
 
 from aiogram import Router, F, Bot
@@ -9,9 +11,16 @@ from database.orm import AsyncOrm
 from middlewares.private import CheckPrivateMessageMiddleware
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
+from routers.buttons.buttons import WAIT_MSG
+from routers.messages.orders import get_order_card_message, get_my_orders_list
 from routers.states.orders import CreateOrder
 from routers.keyboards import orders as kb
-from schemas.profession import Profession
+from schemas.client import Client
+from schemas.order import OrderAdd, Order
+from schemas.profession import Profession, Job
+from routers.buttons import buttons as btn
+from utils.datetime_service import get_next_and_prev_month_and_year, convert_str_to_datetime, convert_date_time_to_str
+from utils.validations import is_valid_price
 
 router = Router()
 
@@ -23,6 +32,57 @@ router.callback_query.middleware.register(RegisteredMiddleware())
 
 router.message.middleware.register(CheckPrivateMessageMiddleware())
 router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
+
+
+# МЕНЮ МОИ ЗАКАЗЫ
+@router.callback_query(F.data.split("|")[1] == "my_orders")
+async def my_orders_menu(callback: CallbackQuery, session: Any, state: FSMContext = None) -> None:
+    """Меню мои заказы"""
+    # Скидываем на всякий случай стейт
+    try:
+        await state.clear()
+    except Exception:
+        pass
+
+    # Сообщение об ожидании
+    wait_msg = await callback.message.edit_text(btn.WAIT_MSG)
+
+    # Получаем заказы клиента
+    tg_id = str(callback.from_user.id)
+    orders: List[Order] = await AsyncOrm.get_orders_by_client(tg_id, session)
+
+    # Сообщение
+    msg = f"{btn.MY_ORDERS}"
+    await wait_msg.edit_text(msg, reply_markup=kb.orders_menu(bool(len(orders))).as_markup())
+
+
+# РАЗМЕЩЕННЫЕ ЗАКАЗЫ
+@router.callback_query(F.data == "my_orders_list")
+async def my_orders_list(callback: CallbackQuery, session: Any) -> None:
+    """Список размещенных заказов"""
+    # Сообщение об ожидании
+    wait_msg = await callback.message.edit_text(btn.WAIT_MSG)
+
+    # Получаем заказы клиента
+    tg_id = str(callback.from_user.id)
+    orders: List[Order] = await AsyncOrm.get_orders_by_client(tg_id, session)
+
+    msg = get_my_orders_list(orders)
+    keyboard = kb.my_orders_list_keyboard(orders)
+    await wait_msg.edit_text(msg, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "my_order")
+async def my_order(callback: CallbackQuery, session: Any) -> None:
+    """Карточка заказа в размещенных заказах"""
+    # Получаем заказ
+    order_id = int(callback.data.split("|")[1])
+    order: Order = await AsyncOrm.get_order_by_id(order_id, session)
+
+    # Отправляем сообщение
+    msg = get_order_card_message(order)
+    keyboard = kb.my_order_keyboard(order_id)
+    await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
 # СОЗДАНИЕ ЗАКАЗА
@@ -45,12 +105,63 @@ async def create_order_start(callback: CallbackQuery, state: FSMContext, session
 
 
 @router.callback_query(F.data.split("|")[0] == "choose_profession", CreateOrder.profession)
-async def get_profession(callback: CallbackQuery, state: FSMContext) -> None:
-    """Получение профессии, запрос названия"""
+async def get_profession(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Получение профессии, запрос jobs"""
     # Записываем профессию
     profession_id = int(callback.data.split("|")[1])
     await state.update_data(profession_id=profession_id)
 
+    # Меняем стейт
+    await state.set_state(CreateOrder.jobs)
+
+    # Получаем все jobs по профессии
+    jobs: List[Job] = await AsyncOrm.get_jobs_by_profession(profession_id, session)
+
+    # Вспомогательные данные для мультиселекта
+    await state.update_data(selected_jobs=[])
+    await state.update_data(all_jobs=jobs)
+
+    # Запрашиваем jobs
+    msg = "Выберите подкатегории для создания заказа (до 3 штук)"
+    keyboard = kb.select_jobs_keyboard(jobs, [])
+    prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+
+    # Сохраняем сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data.split("|")[0] == "select_jobs", CreateOrder.jobs)
+async def get_jobs_multiselect(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
+    """Вспомогательный хендлер для мультиселекта"""
+    job_id = int(callback.data.split("|")[1])
+
+    # Получаем данные из стейта
+    data = await state.get_data()
+    selected_jobs = data["selected_jobs"]
+    all_jobs = data["all_jobs"]
+
+    # Добавляем или удаляем Job из списка выбранных
+    if job_id in selected_jobs:
+        selected_jobs.remove(job_id)
+    else:
+        # Убираем одну если больше 3
+        if len(selected_jobs) == 3:
+            selected_jobs[0] = job_id
+        else:
+            selected_jobs.append(job_id)
+
+    # Обновляем выбранные работы в стейте
+    await state.update_data(selected_jobs=selected_jobs)
+
+    # Отправляем сообщение
+    msg = callback.message.text
+    keyboard = kb.select_jobs_keyboard(all_jobs, selected_jobs)
+    await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data == "select_jobs_done", CreateOrder.jobs)
+async def get_jobs(callback: CallbackQuery, state: FSMContext) -> None:
+    """Получение jobs, запрос названия"""
     # Меняем стейт
     await state.set_state(CreateOrder.title)
 
@@ -121,58 +232,227 @@ async def get_task(message: Message, state: FSMContext) -> None:
     # Записываем ТЗ
     await state.update_data(task=message.text)
 
+    # Заготовка на пропуск ценв
+    await state.update_data(price=None)
+
     # Меняем стейт
     await state.set_state(CreateOrder.price)
 
     # Отправляем сообщение
-    msg = "Отправьте цену заказа (например: 2000 рублей)"
-    prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
+    msg = "Отправьте цену заказа в рублях (например: 2000) или нажмите \"Пропустить\""
+    prev_mess = await message.answer(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
     await state.update_data(prev_mess=prev_mess)
 
 
 @router.message(CreateOrder.price)
-async def get_price(message: Message, state: FSMContext) -> None:
+@router.callback_query(F.data == "skip", CreateOrder.price)
+async def get_price(message: Message | CallbackQuery, state: FSMContext) -> None:
     """Получаем цену, запрашиваем дедлайн"""
-    # Меняем предыдущее сообщение
-    data = await state.get_data()
-    try:
-        await data["prev_mess"].edit_text(data["prev_mess"].text)
-    except Exception:
-        pass
+    # Если ввели цену
+    if type(message) == Message:
+        # Меняем предыдущее сообщение
+        data = await state.get_data()
+        try:
+            await data["prev_mess"].edit_text(data["prev_mess"].text)
+        except Exception:
+            pass
 
-    # Если отправлен не текст
-    if not message.text:
-        prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
-                                         reply_markup=kb.cancel_keyboard().as_markup())
-        # Сохраняем предыдущее сообщение
-        await state.update_data(prev_mess=prev_mess)
+        # Если отправлен не текст
+        if not message.text:
+            prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
+            # Сохраняем предыдущее сообщение
+            await state.update_data(prev_mess=prev_mess)
+            return
 
-    # Записываем ТЗ
-    await state.update_data(price=message.text)
+        # Если ввели не корректное число
+        if not is_valid_price(message.text):
+            prev_mess = await message.answer("Неверный формат данных, необходимо отправить только число без других симоволов",
+                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
+            # Сохраняем предыдущее сообщение
+            await state.update_data(prev_mess=prev_mess)
+            return
+
+        # Записываем цену
+        await state.update_data(price=message.text)
 
     # Меняем стейт
     await state.set_state(CreateOrder.deadline)
 
+    # Готовим клавиатуру-календарь
+    now_year = datetime.datetime.now().year
+    now_month = datetime.datetime.now().month
+    dates_data = get_next_and_prev_month_and_year(now_month, now_year)
+    calendar = kb.calendar_keyboard(now_year, now_month, dates_data, need_prev_month=False)
+
     # Отправляем сообщение
-    msg = "Отправьте срок вашего заказа датой формата"
-    prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
+    msg = "Укажите срок выполнения заказа с помощью клавиатуры ниже"
+
+    # Без пропуска цены
+    if type(message) == Message:
+        prev_mess = await message.answer(msg, reply_markup=calendar.as_markup())
+    # С пропуском цены
+    else:
+        prev_mess = await message.message.edit_text(msg, reply_markup=calendar.as_markup())
 
     # Сохраняем предыдущее сообщение
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.callback_query(F.data == "cancel_create_order", StateFilter("*"))
-async def cancel_registration(callback: CallbackQuery, state: FSMContext) -> None:
-    """Отмена создания заказа"""
-    await state.clear()
-    # TODO возвращать в мои заказы
-    msg = "Отменено"
+@router.callback_query(F.data.split("|")[0] == "action", CreateOrder.deadline)
+async def action_calendar(callback: CallbackQuery, state: FSMContext) -> None:
+    """Вспомогательный хендлер для перелистывания календаря"""
+    # Получаем текущий месяц
+    now_month = datetime.datetime.now().month
 
-    try:
-        await callback.message.edit_text(msg)
-    except Exception:
-        await callback.message.delete()
-        await callback.message.answer(msg)
+    # Получаем месяц и год для отрисовки календаря
+    month = int(callback.data.split("|")[1])
+    year = int(callback.data.split("|")[2])
+
+    # Данные для отрисовки календаря
+    dates_data = get_next_and_prev_month_and_year(month, year)
+
+    # Нужен ли предыдущий месяц
+    need_prev_month = month > now_month
+
+    # Меняем клавиатуру
+    text = callback.message.text
+    calendar = kb.calendar_keyboard(year, month, dates_data, need_prev_month=need_prev_month)
+    prev_mess = await callback.message.edit_text(text, reply_markup=calendar.as_markup())
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data.split("|")[0] == "select_deadline", CreateOrder.deadline)
+async def get_deadline(callback: CallbackQuery, state: FSMContext) -> None:
+    """Запись дедлайна, запрос требований"""
+    # Получаем дату и переводим в формат datetime
+    deadline_str = callback.data.split("|")[1]
+    deadline = convert_str_to_datetime(deadline_str)
+
+    # Проверяем чтобы дата была не раньше сегодня
+    if deadline.date() <= datetime.datetime.now().date():
+        # Удаляем сообщение
+        data = await state.get_data()
+        try:
+            await data["prev_mess"].delete()
+        except Exception:
+            pass
+
+        # Готовим клавиатуру
+        now_year = datetime.datetime.now().year
+        now_month = datetime.datetime.now().month
+        dates_data = get_next_and_prev_month_and_year(now_month, now_year)
+        calendar = kb.calendar_keyboard(now_year, now_month, dates_data, need_prev_month=False)
+
+        date = convert_date_time_to_str(datetime.datetime.now())
+        msg = f"❗ Выбрана неверная дата, необходимо выбрать дату не ранее чем {date}"
+        prev_mess = await callback.message.answer(msg, reply_markup=calendar.as_markup())
+
+        # Сохраняем сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Сохраняем дату
+    await state.update_data(deadline=deadline)
+
+    # Меняем стейт
+    await state.set_state(CreateOrder.requirements)
+
+    # Заготовка под пропуск требований
+    await state.update_data(requirements=None)
+
+    # Отправляем сообщение
+    msg = "Отправьте сообщение особые требования к задаче или нажмите \"Пропустить\""
+    prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
+
+    # Сохраняем сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data == "skip", CreateOrder.requirements)
+@router.message(CreateOrder.requirements)
+async def get_requirements(message: Message | CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Получение требований, предпросмотр"""
+    # Если ввели требования
+    if type(message) == Message:
+        # Меняем предыдущее сообщение
+        data = await state.get_data()
+        try:
+            await data["prev_mess"].edit_text(data["prev_mess"].text)
+        except Exception:
+            pass
+
+        # Если отправлен не текст
+        if not message.text:
+            prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
+            # Сохраняем предыдущее сообщение
+            await state.update_data(prev_mess=prev_mess)
+            return
+
+        # Записываем требования
+        await state.update_data(requirements=message.text)
+
+    # Меняем стейт
+    await state.set_state(CreateOrder.confirmation)
+
+    # Сообщение об ожидании
+    if type(message) == Message:
+        wait_msg = await message.answer(WAIT_MSG)
+    else:
+        wait_msg = await message.message.edit_text(WAIT_MSG)
+
+    # Получаем дату
+    data = await state.get_data()
+
+    # Формируем заказ для предпросмотра
+    profession: Profession = await AsyncOrm.get_profession(data["profession_id"], session)
+    jobs: List[Job] = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
+    tg_id = str(message.from_user.id)
+    client: Client = await AsyncOrm.get_client(tg_id, session)
+
+    order = OrderAdd(
+        client_id=client.id,
+        tg_id=tg_id,
+        profession=profession,
+        jobs=jobs,
+        title=data["title"],
+        task=data["task"],
+        price=data["price"],
+        deadline=data["deadline"],
+        requirements=data["requirements"],
+        created_at=datetime.datetime.now(),
+        is_active=True,
+    )
+
+    # Сохраняем заказ в стейте
+    await state.update_data(order=order)
+
+    # Отправляем сообщение
+    order_card = get_order_card_message(order)
+    msg = f"Проверьте введенные данные\n\n" \
+          f"{order_card}\n\n" \
+          f"Публикуем?"
+    keyboard = kb.confirm_create_order_keyboard()
+    await wait_msg.edit_text(msg, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data == "confirm_create_order")
+async def confirm_create_order(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Создание заказа"""
+    # Получаем данные
+    data = await state.get_data()
+
+    # Очищаем стейт
+    await state.clear()
+
+    # Сохраняем заказ в БД
+    await AsyncOrm.create_order(data["order"], session)
+
+    # Отправляем сообщение пользователю
+    msg = "✅ Ваш заказ успешно размещен. Теперь его будут видеть исполнители"
+    await callback.message.edit_text(msg, reply_markup=kb.confirmed_create_order_keyboard().as_markup())
+
 

@@ -13,4 +13,5 @@ class Job(BaseModel):
     id: int
     title: str
     tag: str
+    profession_id: int
 

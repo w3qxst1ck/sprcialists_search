@@ -10,6 +10,7 @@ from database.tables import Base, UserRoles
 from logger import logger
 from schemas.client import ClientAdd, RejectReason, Client
 from schemas.executor import ExecutorAdd, Executor, ExecutorShow
+from schemas.order import OrderAdd, Order
 from schemas.profession import Profession, Job
 from schemas.user import UserAdd
 
@@ -474,3 +475,153 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при проверке исполнителя {executor_id} в списке избранных клиента {client_id}: {e}")
+
+    @staticmethod
+    async def create_order(order: OrderAdd, session: Any) -> None:
+        """Создание заказа"""
+        try:
+            async with session.transaction():
+                # Создание записи в таблице orders
+                order_id = await session.fetchval(
+                    """
+                    INSERT INTO orders (title, task, price, requirements, deadline, created_at, client_id, tg_id, is_active)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    RETURNING id
+                    """,
+                    order.title, order.task, order.price, order.requirements, order.deadline, order.created_at,
+                    order.client_id, order.tg_id, order.is_active
+                )
+
+                # Создаем записи в таблице orders_jobs
+                for job in order.jobs:
+                    await session.execute(
+                        """
+                        INSERT INTO orders_jobs (order_id, job_id)
+                        VALUES ($1, $2)
+                        """,
+                        order_id, job.id
+                    )
+
+                logger.info(f"Создан заказ id {order_id} пользователем {order.tg_id}, client_id {order.client_id}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при создании заказа пользователем {order.tg_id}, client_id: {order.client_id}: {e}")
+
+    @staticmethod
+    async def get_orders_by_client(tg_id: str, session: Any) -> List[Order]:
+        """Получение заказов клиента"""
+        try:
+            orders = []
+
+            order_rows = await session.fetch(
+                """
+                SELECT o.id, o.title, o.task, o.price, o.requirements, o.deadline, o.created_at, o.client_id, o.tg_id, o.is_active 
+                FROM orders AS o
+                WHERE o.tg_id = $1
+                ORDER BY created_at
+                """,
+                tg_id
+            )
+
+            for order_row in order_rows:
+                # получаем jobs для заказа
+                jobs_rows = await session.fetch(
+                    """
+                    SELECT j.id, j.title, j.tag, j.profession_id
+                    FROM jobs AS j
+                    JOIN orders_jobs AS oj ON j.id = oj.job_id
+                    WHERE oj.order_id = $1
+                    """,
+                    order_row["id"]
+                )
+                jobs: List[Job] = [Job.model_validate(job_row) for job_row in jobs_rows]
+
+                # Получаем profession для заказа
+                profession_row = await session.fetchrow(
+                    """
+                    SELECT * 
+                    FROM professions
+                    WHERE id = $1 
+                    """,
+                    jobs[0].profession_id
+                )
+                profession: Profession = Profession.model_validate(profession_row)
+
+                # Модель заказа
+                order = Order(
+                    id=order_row["id"],
+                    client_id=order_row["client_id"],
+                    tg_id=order_row["tg_id"],
+                    profession=profession,
+                    jobs=jobs,
+                    title=order_row["title"],
+                    task=order_row["task"],
+                    price=order_row["price"],
+                    deadline=order_row["deadline"],
+                    requirements=order_row["requirements"],
+                    created_at=order_row["created_at"],
+                    is_active=order_row["is_active"],
+                )
+                orders.append(order)
+
+            return orders
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении заказов клиента {tg_id}: {e}")
+
+    @staticmethod
+    async def get_order_by_id(order_id: int, session: Any) -> Order:
+        """Получение заказа по id"""
+        try:
+            # Получаем заказ
+            order_row = await session.fetchrow(
+                """
+                SELECT o.id, o.title, o.task, o.price, o.requirements, o.deadline, o.created_at, o.client_id, o.tg_id, o.is_active 
+                FROM orders AS o
+                WHERE o.id = $1
+                """,
+                order_id
+            )
+
+            # Получаем jobs для заказа
+            jobs_rows = await session.fetch(
+                """
+                SELECT j.id, j.title, j.tag, j.profession_id
+                FROM jobs AS j
+                JOIN orders_jobs AS oj ON j.id = oj.job_id
+                WHERE oj.order_id = $1
+                """,
+                order_id
+            )
+            jobs: List[Job] = [Job.model_validate(job_row) for job_row in jobs_rows]
+
+            # Получаем profession для заказа
+            profession_row = await session.fetchrow(
+                """
+                SELECT * 
+                FROM professions
+                WHERE id = $1 
+                """,
+                jobs[0].profession_id
+            )
+            profession: Profession = Profession.model_validate(profession_row)
+
+            # Модель заказа
+            order = Order(
+                id=order_id,
+                client_id=order_row["client_id"],
+                tg_id=order_row["tg_id"],
+                profession=profession,
+                jobs=jobs,
+                title=order_row["title"],
+                task=order_row["task"],
+                price=order_row["price"],
+                deadline=order_row["deadline"],
+                requirements=order_row["requirements"],
+                created_at=order_row["created_at"],
+                is_active=order_row["is_active"],
+            )
+            return order
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении заказа id {order_id}: {e}")
