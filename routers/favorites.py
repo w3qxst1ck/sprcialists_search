@@ -1,26 +1,23 @@
 from typing import Any
 
-from aiogram import Router, F, Bot
-from aiogram.filters import Command, or_f
+from aiogram import Router, F
+from aiogram.filters import or_f
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, FSInputFile, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery, Message, FSInputFile
 
-from database.tables import UserRoles
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
 from middlewares.private import CheckPrivateMessageMiddleware
 
 from database.orm import AsyncOrm
 
-from routers.buttons import commands as cmd, buttons as btn
+from routers.buttons import buttons as btn
 from routers.keyboards import favorites as kb
 from routers.keyboards.client_reg import to_main_menu
 from routers.menu import main_menu
-from routers.messages import menu as ms
 from routers.messages.executor import executor_profile_to_show
 from routers.states.favorites import FavoriteExecutors
 
-from schemas.client import Client
 from schemas.executor import Executor
 
 from logger import logger
@@ -65,6 +62,7 @@ async def favorites_executors(callback: CallbackQuery, session: Any, state: FSMC
     except:
         pass
 
+    # Отправляем сообщение с профилем
     await send_executor_profile(executors, current_index, callback, state, is_first=True)
 
 
@@ -123,6 +121,7 @@ async def delete_from_favorite(callback: CallbackQuery, state: FSMContext, sessi
     except:
         pass
 
+    # Удаляем исполнителя из избранных в БД
     try:
         await AsyncOrm.delete_executor_from_favorites(client_tg_id, executor_id, session)
     except:
@@ -134,6 +133,7 @@ async def delete_from_favorite(callback: CallbackQuery, state: FSMContext, sessi
     # Формируем данные для новой ленты исполнителей
     executors = data["executors"]
 
+    # Удаляем из стейта этого исполнителя
     for executor in executors:
         if executor.id == executor_id:
             executors.remove(executor)
