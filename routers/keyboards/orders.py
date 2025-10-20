@@ -44,7 +44,7 @@ def my_order_keyboard(order_id: int) -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     # Удалить заказ
-    keyboard.row(InlineKeyboardButton(text=f"Редактировать заказ", callback_data=f"edit_order|{order_id}"))
+    # keyboard.row(InlineKeyboardButton(text=f"Редактировать заказ", callback_data=f"edit_order|{order_id}"))
     keyboard.row(InlineKeyboardButton(text=f"Удалить заказ", callback_data=f"delete_order|{order_id}"))
 
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="my_orders_list"))

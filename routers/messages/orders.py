@@ -11,15 +11,20 @@ def get_order_card_message(order: OrderAdd) -> str:
     price = f"{order.price} ₽" if order.price else "жду предложений"
 
     # Количество дней цифрой
-    days_left = order.deadline.day - datetime.datetime.now().day
+    days_left = (order.deadline - datetime.datetime.now()).days
+
     # Склонение числа дни
-    days_str = get_days_left_text(days_left)
+    if days_left == 0:
+        deadline_text = get_days_left_text(days_left)
+    else:
+        days_str = get_days_left_text(days_left)
+        deadline_text = f"{days_left} {days_str}"
 
     msg = f"<b>{order.title}</b>\n\n" \
           f"{order.profession.title} ({jobs})\n" \
           f"Описание задачи: <i>{order.task}</i>\n" \
           f"💵 Бюджет: {price}\n" \
-          f"⏳ Срок: {days_left} {days_str}"
+          f"⏳ Срок: {deadline_text}"
 
     # Прикрепленные файлы
     if order.files:
@@ -39,9 +44,14 @@ def get_my_orders_list(orders: List[Order]) -> str:
 
     for idx, order in enumerate(orders, start=1):
         # Количество дней цифрой
-        days_left = order.deadline.day - datetime.datetime.now().day
+        days_left = (order.deadline - datetime.datetime.now()).days
+
         # Склонение числа дни
-        days_str = get_days_left_text(days_left)
+        if days_left == 0:
+            deadline_text = get_days_left_text(days_left)
+        else:
+            days_str = get_days_left_text(days_left)
+            deadline_text = f"{days_left} {days_str}"
 
         # Бюджет
         price = f"{order.price} ₽" if order.price else "не указана"
@@ -54,7 +64,7 @@ def get_my_orders_list(orders: List[Order]) -> str:
             filenames_text = ""
 
         msg += f"<b>{idx}</b>. {order.title} \n" \
-               f"⏳ {days_left} {days_str} | 💵 {price} {filenames_text}\n\n"
+               f"⏳ {deadline_text} | 💵 {price} {filenames_text}\n\n"
 
     msg += "\nЧтобы перейти в заказ выберите соответствующий номер с помощью клавиатуры ниже"
 

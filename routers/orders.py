@@ -417,7 +417,8 @@ async def get_file(message: Message, state: FSMContext) -> None:
         else:
             keyboard = kb.cancel_keyboard()
 
-        prev_mess = await message.answer("Неверный формат данных. Необходимо отправить файл расширения .pdf, .docx, .xlsx, .txt",
+        prev_mess = await message.answer("Неверный формат данных. Необходимо отправить файл расширения "
+                                         ".pdf, .docx, .xlsx, .txt, либо jpeg/jpg/png (отправленные файлом)",
                                          reply_markup=keyboard.as_markup())
         # Сохраняем предыдущее сообщение
         await state.update_data(prev_mess=prev_mess)
@@ -431,7 +432,7 @@ async def get_file(message: Message, state: FSMContext) -> None:
         else:
             keyboard = kb.cancel_keyboard()
 
-        prev_mess = await message.answer("Размер файла не должен быть более 20МБ. Отправьте файл или нажмите \"Продолжить\"",
+        prev_mess = await message.answer("Размер файла не должен быть более 10МБ. Отправьте файл или нажмите \"Продолжить\"",
                                          reply_markup=keyboard.as_markup())
         # Сохраняем предыдущее сообщение
         await state.update_data(prev_mess=prev_mess)
