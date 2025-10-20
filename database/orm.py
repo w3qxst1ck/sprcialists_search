@@ -10,7 +10,7 @@ from database.tables import Base, UserRoles
 from logger import logger
 from schemas.client import ClientAdd, RejectReason, Client
 from schemas.executor import ExecutorAdd, Executor
-from schemas.order import OrderAdd, Order
+from schemas.order import OrderAdd, Order, TaskFile
 from schemas.profession import Profession, Job
 from schemas.user import UserAdd
 
@@ -50,13 +50,14 @@ class AsyncOrm:
         """Создание пользователя"""
         try:
             created_at = datetime.datetime.now()
+            updated_at = datetime.datetime.now()
             await session.execute(
                 """
-                INSERT INTO users (tg_id, username, firstname, lastname, role, created_at, is_banned, is_admin)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                INSERT INTO users (tg_id, username, firstname, lastname, role, created_at, updated_at, is_banned, is_admin)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 ON CONFLICT (tg_id) DO NOTHING
                 """,
-                user.tg_id, user.username, user.firstname, user.lastname, user.role, created_at, False, False
+                user.tg_id, user.username, user.firstname, user.lastname, user.role, created_at, updated_at, False, False
             )
             logger.info(f"Пользователь tg_id {user.tg_id} зарегистрировался")
 
@@ -190,19 +191,19 @@ class AsyncOrm:
         """Создание профиля исполнителя"""
         links = "|".join(e.links)
         langs = "|".join(e.langs)
-        tags = "|".join(e.tags)
+        updated_at = datetime.datetime.now()
         try:
             async with session.transaction():
                 # Создание профиля исполнителя
                 executor_id = await session.fetchval(
                     """
                     INSERT INTO executors (tg_id, name, age, description, rate, experience, links, availability, contacts, 
-                    location, langs, photo, verified, tags) 
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                    location, langs, photo, verified) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                     RETURNING id
                     """,
                     e.tg_id, e.name, e.age, e.description, e.rate, e.experience, links, e.availability, e.contacts,
-                    e.location, langs, e.photo, e.verified, tags
+                    e.location, langs, e.photo, e.verified
                 )
 
                 # Создание связи ExecutorsJobs
@@ -219,10 +220,10 @@ class AsyncOrm:
                 await session.execute(
                     """
                     UPDATE users
-                    SET role = $1
-                    WHERE tg_id = $2
+                    SET role = $1, updated_at = $2
+                    WHERE tg_id = $3
                     """,
-                    UserRoles.EXECUTOR.value, e.tg_id
+                    UserRoles.EXECUTOR.value, updated_at, e.tg_id
                 )
 
                 logger.info(f"Создан профиль Исполнителя пользователем {e.tg_id}, id: {executor_id}")
@@ -266,6 +267,7 @@ class AsyncOrm:
     @staticmethod
     async def create_client(client: ClientAdd, session: Any) -> None:
         """Запись в таблицу клиентов"""
+        updated_at = datetime.datetime.now()
         try:
             async with session.transaction():
                 # Создаем профиль клиента
@@ -282,10 +284,10 @@ class AsyncOrm:
                 await session.execute(
                     """
                     UPDATE users
-                    SET role = $1
-                    WHERE tg_id = $2
+                    SET role = $1, updated_at = $2
+                    WHERE tg_id = $3
                     """,
-                    UserRoles.CLIENT.value, client.tg_id
+                    UserRoles.CLIENT.value, updated_at, client.tg_id
                 )
 
             logger.info(f"Создан профиль клиента пользователя {client.tg_id}, id: {client_id}")
@@ -445,7 +447,7 @@ class AsyncOrm:
             ex_rows = await session.fetch(
                 """
                 SELECT DISTINCT ex.id, ex.tg_id, ex.name, ex.age, ex.description, ex.rate, ex.experience, ex.links, 
-                ex.availability, ex.contacts, ex.location, ex.langs, ex.tags, ex.photo, ex.verified  
+                ex.availability, ex.contacts, ex.location, ex.langs, ex.photo, ex.verified  
                 FROM executors as ex
                 LEFT JOIN executors_jobs as ex_j ON ex.id = ex_j.executor_id 
                 WHERE ex.verified=true AND ex_j.job_id = ANY($1::int[])
@@ -457,7 +459,7 @@ class AsyncOrm:
             for ex_row in ex_rows:
                 jobs_rows = await session.fetch(
                     """
-                    SELECT j.id, j.title, j.tag, j.profession_id 
+                    SELECT j.id, j.title, j.profession_id 
                     FROM jobs AS j
                     JOIN executors_jobs AS ej ON j.id = ej.job_id
                     WHERE ej.executor_id = $1
@@ -472,7 +474,6 @@ class AsyncOrm:
                         Job(
                             id=job_row["id"],
                             title=job_row["title"],
-                            tag=job_row["tag"],
                             profession_id=job_row["profession_id"]
                         )
                     )
@@ -496,7 +497,6 @@ class AsyncOrm:
                         rate=ex_row["rate"],
                         experience=ex_row["experience"],
                         links=ex_row["links"].split("|"),
-                        tags=ex_row["tags"].split("|"),
                         availability=ex_row["availability"],
                         contacts=ex_row["contacts"],
                         location=ex_row["location"],
@@ -520,7 +520,7 @@ class AsyncOrm:
             ex_rows = await session.fetch(
                 """
                 SELECT DISTINCT ex.id, ex.tg_id, ex.name, ex.age, ex.description, ex.rate, ex.experience, ex.links, 
-                ex.availability, ex.contacts, ex.location, ex.langs, ex.tags, ex.photo, ex.verified  
+                ex.availability, ex.contacts, ex.location, ex.langs, ex.photo, ex.verified  
                 FROM executors as ex
                 LEFT JOIN favorite_executors AS f_ex ON ex.id = f_ex.executor_id
                 LEFT JOIN clients AS c ON f_ex.client_id = c.id 
@@ -533,7 +533,7 @@ class AsyncOrm:
             for ex_row in ex_rows:
                 jobs_rows = await session.fetch(
                     """
-                    SELECT j.id, j.title, j.tag, j.profession_id 
+                    SELECT j.id, j.title, j.profession_id 
                     FROM jobs AS j
                     JOIN executors_jobs AS ej ON j.id = ej.job_id
                     WHERE ej.executor_id = $1
@@ -548,7 +548,6 @@ class AsyncOrm:
                         Job(
                             id=job_row["id"],
                             title=job_row["title"],
-                            tag=job_row["tag"],
                             profession_id=job_row["profession_id"]
                         )
                     )
@@ -572,7 +571,6 @@ class AsyncOrm:
                         rate=ex_row["rate"],
                         experience=ex_row["experience"],
                         links=ex_row["links"].split("|"),
-                        tags=ex_row["tags"].split("|"),
                         availability=ex_row["availability"],
                         contacts=ex_row["contacts"],
                         location=ex_row["location"],
@@ -666,10 +664,21 @@ class AsyncOrm:
                         order_id, job.id
                     )
 
+                # Создаем записи в таблице taskfiles
+                for file in order.files:
+                    await session.execute(
+                        """
+                        INSERT INTO taskfiles (filename, file_id, order_id)
+                        VALUES ($1, $2, $3)
+                        """,
+                        file.filename, file.file_id, order_id
+                    )
+
                 logger.info(f"Создан заказ id {order_id} пользователем {order.tg_id}, client_id {order.client_id}")
 
         except Exception as e:
             logger.error(f"Ошибка при создании заказа пользователем {order.tg_id}, client_id: {order.client_id}: {e}")
+            raise
 
     @staticmethod
     async def get_orders_by_client(tg_id: str, session: Any) -> List[Order]:
@@ -691,7 +700,7 @@ class AsyncOrm:
                 # получаем jobs для заказа
                 jobs_rows = await session.fetch(
                     """
-                    SELECT j.id, j.title, j.tag, j.profession_id
+                    SELECT j.id, j.title, j.profession_id
                     FROM jobs AS j
                     JOIN orders_jobs AS oj ON j.id = oj.job_id
                     WHERE oj.order_id = $1
@@ -711,6 +720,17 @@ class AsyncOrm:
                 )
                 profession: Profession = Profession.model_validate(profession_row)
 
+                # Получаем файлы для заказа
+                files_rows = await session.fetch(
+                    """
+                        SELECT *
+                        FROM taskfiles
+                        WHERE order_id=$1
+                    """,
+                    order_row["id"]
+                )
+                files: List[TaskFile] = [TaskFile.model_validate(file_row) for file_row in files_rows]
+
                 # Модель заказа
                 order = Order(
                     id=order_row["id"],
@@ -725,6 +745,7 @@ class AsyncOrm:
                     requirements=order_row["requirements"],
                     created_at=order_row["created_at"],
                     is_active=order_row["is_active"],
+                    files=files
                 )
                 orders.append(order)
 
@@ -750,7 +771,7 @@ class AsyncOrm:
             # Получаем jobs для заказа
             jobs_rows = await session.fetch(
                 """
-                SELECT j.id, j.title, j.tag, j.profession_id
+                SELECT j.id, j.title, j.profession_id
                 FROM jobs AS j
                 JOIN orders_jobs AS oj ON j.id = oj.job_id
                 WHERE oj.order_id = $1
@@ -770,6 +791,17 @@ class AsyncOrm:
             )
             profession: Profession = Profession.model_validate(profession_row)
 
+            # Получаем файлы для заказа
+            files_rows = await session.fetch(
+                """
+                SELECT *
+                FROM taskfiles
+                WHERE order_id=$1
+                """,
+                order_id
+            )
+            files: List[TaskFile] = [TaskFile.model_validate(file_row) for file_row in files_rows]
+
             # Модель заказа
             order = Order(
                 id=order_id,
@@ -784,8 +816,25 @@ class AsyncOrm:
                 requirements=order_row["requirements"],
                 created_at=order_row["created_at"],
                 is_active=order_row["is_active"],
+                files=files,
             )
             return order
 
         except Exception as e:
             logger.error(f"Ошибка при получении заказа id {order_id}: {e}")
+
+    @staticmethod
+    async def delete_order(order_id: int, session: Any) -> None:
+        """Удаление заказа"""
+        try:
+            await session.execute(
+                """
+                DELETE FROM orders
+                WHERE id=$1
+                """,
+                order_id
+            )
+            logger.info(f"Заказ id {order_id} удален")
+
+        except Exception as e:
+            logger.error(f"Ошибка при удалении заказа id {order_id}: {e}")

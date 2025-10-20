@@ -22,5 +22,5 @@ main_router.include_routers(
     main_menu_router,
     find_executor_router,
     orders_router,
-    favorites_router
+    favorites_router,
 )

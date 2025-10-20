@@ -38,8 +38,8 @@ async def start_registration(callback: CallbackQuery, session: Any, state: FSMCo
     tg_id = str(callback.from_user.id)
     role: str | None = await AsyncOrm.get_user_role(tg_id, session)
     if role:
-        role_text = settings.roles[role]
-        msg = f"У вас уже выбрана роль {role_text}"
+        role_text = role.capitalize()
+        msg = f"У вас уже выбрана роль \"{role_text}\""
         await callback.message.edit_text(msg)
         return
 

@@ -8,7 +8,6 @@ def get_executor_profile_message(executor: ExecutorAdd | Executor) -> str:
     age = get_age_text(executor.age)
     jobs = ", ".join([job.title for job in executor.jobs])
     # langs = "/".join([settings.languages[lang] for lang in executor.langs])
-    # tags = " ".join([f"#{tag}" for tag in executor.tags])
     links = "\n".join(executor.links)
     # contacts = executor.contacts if executor.contacts else "не указаны"
     location = f"📍 {executor.location}\n" if executor.location else ""

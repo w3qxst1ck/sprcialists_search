@@ -9,4 +9,5 @@ class CreateOrder(StatesGroup):
     price = State()
     deadline = State()
     requirements = State()
+    files = State()
     confirmation = State()

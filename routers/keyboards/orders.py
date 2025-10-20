@@ -44,10 +44,23 @@ def my_order_keyboard(order_id: int) -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     # Удалить заказ
-    keyboard.row(InlineKeyboardButton(text=f"Удалить заказ", callback_data=f"delete_order|{order_id}"))
     keyboard.row(InlineKeyboardButton(text=f"Редактировать заказ", callback_data=f"edit_order|{order_id}"))
+    keyboard.row(InlineKeyboardButton(text=f"Удалить заказ", callback_data=f"delete_order|{order_id}"))
 
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="my_orders_list"))
+
+    return keyboard
+
+
+def delete_order_confirm_keyboard(order_id: int) -> InlineKeyboardBuilder:
+    """Клавиатура подтверждения удаления заказа"""
+    keyboard = InlineKeyboardBuilder()
+
+    # Удалить заказ
+    keyboard.row(
+        InlineKeyboardButton(text=f"Да", callback_data=f"delete_order_confirmed|{order_id}"),
+        InlineKeyboardButton(text=f"Нет", callback_data=f"my_order|{order_id}"),
+    )
 
     return keyboard
 
@@ -73,7 +86,7 @@ def select_jobs_keyboard(jobs: List[Job], selected_jobs: List[int]) -> InlineKey
 
         # Помечаем выбранные работы
         if job.id in selected_jobs:
-            title = "[ ✓ ]" + title
+            title = "[ ✓ ] " + title
 
         keyboard.row(InlineKeyboardButton(text=f"{title}", callback_data=f"select_jobs|{job.id}"))
 
@@ -174,6 +187,16 @@ def skip_cancel_keyboard() -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(InlineKeyboardButton(text=f"Пропустить", callback_data="skip"))
+    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="main_menu|my_orders"))
+
+    return keyboard
+
+
+def continue_cancel_keyboard() -> InlineKeyboardBuilder:
+    """Клавиатура Продолжить/Отменить"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text=f"Продолжить", callback_data="continue"))
     keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="main_menu|my_orders"))
 
     return keyboard

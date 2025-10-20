@@ -18,7 +18,18 @@ class OrderAdd(BaseModel):
     requirements: str | None
     created_at: datetime
     is_active: bool
+    files: List["TaskFileAdd"] | List["TaskFile"] = []
 
 
 class Order(OrderAdd):
     id: int
+
+
+class TaskFileAdd(BaseModel):
+    file_id: str
+    filename: str
+
+
+class TaskFile(TaskFileAdd):
+    id: int
+    order_id: int

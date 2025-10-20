@@ -355,8 +355,14 @@ async def get_link(message: types.Message, state: FSMContext) -> None:
 
     # Если отправлен не текст
     if not message.text:
+        # Проверяем может ли пользователь продолжить (если есть хотя бы одна валидная ссылка)
+        if len(data["links"]) != 0:
+            keyboard = kb.continue_cancel_keyboard()
+        else:
+            keyboard = kb.cancel_keyboard()
+
         prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
-                                         reply_markup=kb.cancel_keyboard().as_markup())
+                                         reply_markup=keyboard.as_markup())
         # Сохраняем предыдущее сообщение
         await state.update_data(prev_mess=prev_mess)
         return
@@ -480,9 +486,6 @@ async def get_location(message: types.Message | types.CallbackQuery, state: FSMC
         # Записываем город
         await state.update_data(location=message.text)
 
-    # Заготовка под теги
-    await state.update_data(tags=[])
-
     # Меняем стейт
     await state.set_state(Executor.langs)
 
@@ -548,7 +551,6 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
     # Формируем анкету
     profession: Profession = await AsyncOrm.get_profession(data["profession_id"], session)
     jobs: List[Job] = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
-    tags: List[str] = [profession.tag] + [job.tag for job in jobs]
     executor = ExecutorAdd(
         tg_id=str(callback.from_user.id),
         name=data["name"],
@@ -557,7 +559,6 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
         rate=data["rate"],
         experience=data["experience"],
         links=data["links"],
-        tags=tags,
         availability=Availability.FREE,
         contacts=data["contacts"],
         location=data["location"],
@@ -604,10 +605,6 @@ async def registration_confirmation(callback: types.CallbackQuery, state: FSMCon
     # Убираем клавиатуру
     await callback.message.edit_reply_markup(reply_markup=None)
 
-    # Отправка сообщения пользователю
-    msg = f"{INFO} Ожидайте, ваша анкета отправлена администратору для верификации\n"
-    await callback.message.answer(msg)
-
     # Получаем все данные
     data = await state.get_data()
 
@@ -618,8 +615,11 @@ async def registration_confirmation(callback: types.CallbackQuery, state: FSMCon
     executor: ExecutorAdd = data["executor"]
     try:
         await AsyncOrm.create_executor(executor, session)
+        # Отправка сообщения пользователю
+        msg = f"{INFO} Ожидайте, ваша анкета отправлена администратору для верификации\n"
+        await callback.message.answer(msg)
     except:
-        await callback.message.edit_text(f"{INFO} Ошибка при регистрации, попробуйте позже")
+        await callback.message.answer(f"{INFO} Ошибка при регистрации, попробуйте позже")
         return
 
     # Отправляем в группу анкету на согласование

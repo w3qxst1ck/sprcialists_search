@@ -14,7 +14,6 @@ class ExecutorAdd(BaseModel):
     rate: str
     experience: str
     links: List[str]
-    tags: List[str]
     availability: str = Availability.FREE
     contacts: str | None
     location: str | None

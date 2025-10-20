@@ -21,6 +21,12 @@ def get_order_card_message(order: OrderAdd) -> str:
           f"💵 Бюджет: {price}\n" \
           f"⏳ Срок: {days_left} {days_str}"
 
+    # Прикрепленные файлы
+    if order.files:
+        filenames_text = ", ".join([file.filename for file in order.files])
+        msg += f"\n📎 Файлы: {filenames_text}"
+
+    # Особые требования
     if order.requirements:
         msg += f"\n⚠️ Требования: {order.requirements}"
 
@@ -40,8 +46,15 @@ def get_my_orders_list(orders: List[Order]) -> str:
         # Бюджет
         price = f"{order.price} ₽" if order.price else "не указана"
 
+        # Прикрепленные файлы
+        if order.files:
+            filenames = ", ".join([file.filename for file in order.files])
+            filenames_text = f"| 📎 {filenames}"
+        else:
+            filenames_text = ""
+
         msg += f"<b>{idx}</b>. {order.title} \n" \
-               f"⏳ {days_left} {days_str} | 💵 {price} \n\n"
+               f"⏳ {days_left} {days_str} | 💵 {price} {filenames_text}\n\n"
 
     msg += "\nЧтобы перейти в заказ выберите соответствующий номер с помощью клавиатуры ниже"
 

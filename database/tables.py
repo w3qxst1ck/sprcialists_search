@@ -45,6 +45,7 @@ class User(Base):
     firstname: Mapped[str] = mapped_column(nullable=True)
     lastname: Mapped[str] = mapped_column(nullable=True)
     created_at: Mapped[datetime.datetime]
+    updated_at: Mapped[datetime.datetime]
     is_banned: Mapped[bool] = mapped_column(default=False)
     is_admin: Mapped[bool] = mapped_column(default=False)
     role: Mapped[UserRoles] = mapped_column(String, index=True, nullable=True)
@@ -89,7 +90,6 @@ class Executors(Base):
     contacts: Mapped[str] = mapped_column(nullable=True, default=None)
     location: Mapped[str] = mapped_column(nullable=True, default=None)
     langs: Mapped[str] = mapped_column(nullable=False, default="RUS")   # RUS|KZ|POL
-    tags: Mapped[str] = mapped_column(nullable=True)    # tag1|tag2|tag3|...
     photo: Mapped[bool] = mapped_column(nullable=False, default=False)
     verified: Mapped[bool] = mapped_column(default=False)
 
@@ -105,7 +105,6 @@ class Professions(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(nullable=False, index=True, unique=True)
-    tag: Mapped[str] = mapped_column(nullable=False, unique=True)
 
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="profession")
 
@@ -116,7 +115,6 @@ class Jobs(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(nullable=False, index=True, unique=True)
-    tag: Mapped[str] = mapped_column(nullable=False, unique=True)
 
     profession_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
     executors: Mapped[list["Executors"]] = relationship(back_populates="jobs", secondary="executors_jobs")
@@ -159,6 +157,7 @@ class Orders(Base):
 
     client_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="orders", secondary="orders_jobs")
+    files: Mapped[list["TaskFiles"]] = relationship(back_populates="order")
 
 
 class FavoriteExecutors(Base):
@@ -178,3 +177,14 @@ class OrdersJobs(Base):
 
     job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"), primary_key=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), primary_key=True)
+
+
+class TaskFiles(Base):
+    """Файлы прикрепленные к заказам"""
+    __tablename__ = "taskfiles"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    filename: Mapped[str] = mapped_column(nullable=False, index=True)
+    file_id: Mapped[str] = mapped_column(nullable=False)
+
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"))

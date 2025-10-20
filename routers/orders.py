@@ -3,9 +3,9 @@ import types
 from typing import Any, List
 
 from aiogram import Router, F, Bot
-from aiogram.filters import StateFilter
+from aiogram.filters import StateFilter, or_f
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaDocument
 
 from database.orm import AsyncOrm
 from middlewares.private import CheckPrivateMessageMiddleware
@@ -16,7 +16,7 @@ from routers.messages.orders import get_order_card_message, get_my_orders_list
 from routers.states.orders import CreateOrder
 from routers.keyboards import orders as kb
 from schemas.client import Client
-from schemas.order import OrderAdd, Order
+from schemas.order import OrderAdd, Order, TaskFileAdd
 from schemas.profession import Profession, Job
 from routers.buttons import buttons as btn
 from utils.datetime_service import get_next_and_prev_month_and_year, convert_str_to_datetime, convert_date_time_to_str
@@ -83,6 +83,33 @@ async def my_order(callback: CallbackQuery, session: Any) -> None:
     msg = get_order_card_message(order)
     keyboard = kb.my_order_keyboard(order_id)
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+
+
+# УДАЛЕНИЕ ЗАКАЗА
+@router.callback_query(F.data.split("|")[0] == "delete_order")
+async def delete_order(callback: CallbackQuery, session: Any) -> None:
+    """Запрос подтверждения удаления заказа"""
+    # Получаем заказ
+    order_id = int(callback.data.split("|")[1])
+    order: Order = await AsyncOrm.get_order_by_id(order_id, session)
+
+    # Отправляем сообщение
+    msg = f"Удалить заказ <b>\"{order.title}\"</b>?"
+    await callback.message.edit_text(msg, reply_markup=kb.delete_order_confirm_keyboard(order_id).as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "delete_order_confirmed")
+async def delete_order_confirmed(callback: CallbackQuery, session: Any) -> None:
+    """Удаление заказа"""
+    # Получаем order_id
+    order_id = int(callback.data.split("|")[1])
+
+    # Удаляем заказ
+    await AsyncOrm.delete_order(order_id, session)
+
+    # Отправляем сообщение
+    msg = f"✅ Заказ удален"
+    await callback.message.edit_text(msg, reply_markup=kb.confirmed_create_order_keyboard().as_markup())
 
 
 # СОЗДАНИЕ ЗАКАЗА
@@ -358,6 +385,82 @@ async def get_deadline(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(deadline=deadline)
 
     # Меняем стейт
+    await state.set_state(CreateOrder.files)
+
+    # Заготовка для файлов
+    await state.update_data(file_ids=[])
+    await state.update_data(filenames=[])
+
+    # Отправляем сообщение
+    msg = "При необходимости отправьте <b>отдельными сообщениями</b> файлы (например с более подробным описанием ТЗ к задаче) или нажмите \"Пропустить\""
+    prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
+
+    # Сохраняем сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.message(CreateOrder.files)
+async def get_file(message: Message, state: FSMContext) -> None:
+    """Вспомогательный хендлер для получения файлов"""
+    # Меняем предыдущее сообщение
+    data = await state.get_data()
+    try:
+        await data["prev_mess"].edit_text(data["prev_mess"].html_text)
+    except Exception:
+        pass
+
+    # Если отправлен не файл
+    if not message.document:
+        # Проверяем может ли пользователь продолжить (если есть хотя бы один файл)
+        if len(data["file_ids"]) != 0:
+            keyboard = kb.continue_cancel_keyboard()
+        else:
+            keyboard = kb.cancel_keyboard()
+
+        prev_mess = await message.answer("Неверный формат данных. Необходимо отправить файл расширения .pdf, .docx, .xlsx, .txt",
+                                         reply_markup=keyboard.as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Если фал больше 10МБ
+    if message.document.file_size > 10_000_000:
+        # Проверяем может ли пользователь продолжить (если есть хотя бы один файл)
+        if len(data["file_ids"]) != 0:
+            keyboard = kb.continue_cancel_keyboard()
+        else:
+            keyboard = kb.cancel_keyboard()
+
+        prev_mess = await message.answer("Размер файла не должен быть более 20МБ. Отправьте файл или нажмите \"Продолжить\"",
+                                         reply_markup=keyboard.as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Сохраняем ids файл в стейт
+    file_ids = data["file_ids"]
+    file_ids.append(message.document.file_id)
+    await state.update_data(file_ids=file_ids)
+
+    # Сохраняем names файл в стейт
+    filenames = data["filenames"]
+    filenames.append(message.document.file_name)
+    await state.update_data(filenames=filenames)
+    filenames_text = ", ".join(filenames)
+
+    # Отправляем сообщение
+    msg = f"Отправьте следующий файл или нажмите кнопку \"Продолжить\"\n\n" \
+          f"Отправлено файлов {len(file_ids)} шт.:\n{filenames_text}"
+    prev_mess = await message.answer(msg, reply_markup=kb.continue_cancel_keyboard().as_markup())
+
+    # Сохраняем сообщение
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(or_f(F.data == "continue", F.data == "skip"), CreateOrder.files)
+async def get_files(callback: CallbackQuery, state: FSMContext) -> None:
+    """Запрос требований"""
+    # Меняем стейт
     await state.set_state(CreateOrder.requirements)
 
     # Заготовка под пропуск требований
@@ -413,6 +516,15 @@ async def get_requirements(message: Message | CallbackQuery, state: FSMContext, 
     tg_id = str(message.from_user.id)
     client: Client = await AsyncOrm.get_client(tg_id, session)
 
+    # Создаем схемы файлов
+    files: List[TaskFileAdd] = []
+    for idx in range(len(data["filenames"])):
+        file = TaskFileAdd(
+            file_id=data["file_ids"][idx],
+            filename=data["filenames"][idx]
+        )
+        files.append(file)
+
     order = OrderAdd(
         client_id=client.id,
         tg_id=tg_id,
@@ -425,6 +537,7 @@ async def get_requirements(message: Message | CallbackQuery, state: FSMContext, 
         requirements=data["requirements"],
         created_at=datetime.datetime.now(),
         is_active=True,
+        files=files,
     )
 
     # Сохраняем заказ в стейте
@@ -449,7 +562,12 @@ async def confirm_create_order(callback: CallbackQuery, state: FSMContext, sessi
     await state.clear()
 
     # Сохраняем заказ в БД
-    await AsyncOrm.create_order(data["order"], session)
+    try:
+        await AsyncOrm.create_order(data["order"], session)
+    except Exception:
+        msg = f"{btn.INFO} Ошибка при размещении заказа. Повторите попытку позже"
+        await callback.message.edit_text(msg, reply_markup=kb.confirmed_create_order_keyboard().as_markup())
+        return
 
     # Отправляем сообщение пользователю
     msg = "✅ Ваш заказ успешно размещен. Теперь его будут видеть исполнители"
