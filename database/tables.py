@@ -82,7 +82,6 @@ class Executors(Base):
     availability: Mapped[Availability] = mapped_column(String, default=Availability.FREE, nullable=False)
     contacts: Mapped[str] = mapped_column(nullable=True, default=None)
     location: Mapped[str] = mapped_column(nullable=True, default=None)
-    langs: Mapped[str] = mapped_column(nullable=False, default="RUS")   # RUS|KZ|POL
     photo: Mapped[bool] = mapped_column(nullable=False, default=False)
     verified: Mapped[bool] = mapped_column(default=False)
 
@@ -98,6 +97,7 @@ class Professions(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(nullable=False, index=True, unique=True)
+    emoji: Mapped[str] = mapped_column(nullable=True)
 
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="profession")
 
@@ -144,7 +144,7 @@ class Orders(Base):
     task: Mapped[str] = mapped_column(String(1000), nullable=False)
     price: Mapped[str] = mapped_column(nullable=True)
     requirements: Mapped[str] = mapped_column(nullable=True)
-    deadline: Mapped[datetime.datetime]
+    period: Mapped[int] = mapped_column(nullable=False)
     created_at: Mapped[datetime.datetime]
     is_active: Mapped[bool] = mapped_column(nullable=False)
 

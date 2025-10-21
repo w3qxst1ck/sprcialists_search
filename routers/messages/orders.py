@@ -2,7 +2,7 @@ import datetime
 from typing import List
 
 from schemas.order import OrderAdd, Order
-from utils.datetime_service import convert_date_time_to_str, get_days_left_text
+from utils.datetime_service import get_days_left_text
 
 
 def get_order_card_message(order: OrderAdd) -> str:
@@ -10,21 +10,16 @@ def get_order_card_message(order: OrderAdd) -> str:
     jobs = ", ".join([job.title for job in order.jobs])
     price = f"{order.price} ₽" if order.price else "жду предложений"
 
-    # Количество дней цифрой
-    days_left = (order.deadline - datetime.datetime.now()).days
-
     # Склонение числа дни
-    if days_left == 0:
-        deadline_text = get_days_left_text(days_left)
-    else:
-        days_str = get_days_left_text(days_left)
-        deadline_text = f"{days_left} {days_str}"
+    days_text = get_days_left_text(order.period)
+
+    emoji = f"{order.profession.emoji} " if order.profession.emoji else ""
 
     msg = f"<b>{order.title}</b>\n\n" \
-          f"{order.profession.title} ({jobs})\n" \
+          f"{emoji}{order.profession.title} ({jobs})\n" \
           f"Описание задачи: <i>{order.task}</i>\n" \
           f"💵 Бюджет: {price}\n" \
-          f"⏳ Срок: {deadline_text}"
+          f"⏳ Срок: {order.period} {days_text}"
 
     # Прикрепленные файлы
     if order.files:
@@ -43,15 +38,8 @@ def get_my_orders_list(orders: List[Order]) -> str:
     msg = f"📋 <b>Размещенные заказы</b>\n\n"
 
     for idx, order in enumerate(orders, start=1):
-        # Количество дней цифрой
-        days_left = (order.deadline - datetime.datetime.now()).days
-
         # Склонение числа дни
-        if days_left == 0:
-            deadline_text = get_days_left_text(days_left)
-        else:
-            days_str = get_days_left_text(days_left)
-            deadline_text = f"{days_left} {days_str}"
+        days_text = get_days_left_text(order.period)
 
         # Бюджет
         price = f"{order.price} ₽" if order.price else "не указана"
@@ -64,7 +52,7 @@ def get_my_orders_list(orders: List[Order]) -> str:
             filenames_text = ""
 
         msg += f"<b>{idx}</b>. {order.title} \n" \
-               f"⏳ {deadline_text} | 💵 {price} {filenames_text}\n\n"
+               f"⏳ {order.period} {days_text} | 💵 {price} {filenames_text}\n\n"
 
     msg += "\nЧтобы перейти в заказ выберите соответствующий номер с помощью клавиатуры ниже"
 

@@ -7,19 +7,31 @@ def get_executor_profile_message(executor: ExecutorAdd | Executor) -> str:
     """Анкета исполнителя для показа при регистрации"""
     age = get_age_text(executor.age)
     jobs = ", ".join([job.title for job in executor.jobs])
-    # langs = "/".join([settings.languages[lang] for lang in executor.langs])
     links = "\n".join(executor.links)
-    # contacts = executor.contacts if executor.contacts else "не указаны"
+    contacts = f"📞 {executor.contacts}\n" if executor.contacts else ""
     location = f"📍 {executor.location}\n" if executor.location else ""
-    verified = "✔️ Подтверждена" if executor.verified else "🚫 Не подтверждена"
+    emoji = f"{executor.profession.emoji}" if executor.profession.emoji else ""
+
+    # Поле верификация только по необходимости
 
     msg = f"👤 {executor.name}, {age}\n" \
-          f"🎨 {executor.profession.title} ({jobs}). {executor.experience}\n" \
+          f"{emoji} {executor.profession.title} ({jobs}). {executor.experience}\n" \
           f"💵 {executor.rate}\n" \
-          f"{location}\n" \
+          f"{location}" \
+          f"{contacts}" \
           f"📎 Портфолио:\n\n{links}\n\n" \
-          f"О себе: {executor.description}\n\n" \
-          f"Верификация: {verified}"
+          f"О себе: {executor.description}"
+
+    return msg
+
+
+def executor_card_for_admin_verification(executor: ExecutorAdd) -> str:
+    """Анкета исполнителя для верификации админами в группе"""
+    msg = get_executor_profile_message(executor)
+
+    verified = "✔️ Подтверждена" if executor.verified else "🚫 Не подтверждена"
+
+    msg += f"\n\n{verified}"
 
     return msg
 

@@ -425,15 +425,25 @@ async def get_file(message: Message, state: FSMContext) -> None:
         return
 
     # Если фал больше 10МБ
-    if message.document.file_size > 10_000_000:
+    if message.document.file_size > 100_000_000:
         # Проверяем может ли пользователь продолжить (если есть хотя бы один файл)
         if len(data["file_ids"]) != 0:
             keyboard = kb.continue_cancel_keyboard()
         else:
             keyboard = kb.cancel_keyboard()
 
-        prev_mess = await message.answer("Размер файла не должен быть более 10МБ. Отправьте файл или нажмите \"Продолжить\"",
+        prev_mess = await message.answer("Размер файла не должен быть более 100МБ. Отправьте файл или нажмите \"Продолжить\"",
                                          reply_markup=keyboard.as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Проверяем если уже есть три файла
+    if len(data["file_ids"]) == 3:
+        prev_mess = await message.answer(
+            "Вы уже отправили 3 файла, нажмите \"Продолжить\"",
+            reply_markup=kb.continue_cancel_keyboard().as_markup()
+        )
         # Сохраняем предыдущее сообщение
         await state.update_data(prev_mess=prev_mess)
         return
@@ -451,7 +461,7 @@ async def get_file(message: Message, state: FSMContext) -> None:
 
     # Отправляем сообщение
     msg = f"Отправьте следующий файл или нажмите кнопку \"Продолжить\"\n\n" \
-          f"Отправлено файлов {len(file_ids)} шт.:\n{filenames_text}"
+          f"Отправлено файлов {len(file_ids)}/3:\n{filenames_text}"
     prev_mess = await message.answer(msg, reply_markup=kb.continue_cancel_keyboard().as_markup())
 
     # Сохраняем сообщение
@@ -526,6 +536,9 @@ async def get_requirements(message: Message | CallbackQuery, state: FSMContext, 
         )
         files.append(file)
 
+    # вычисляем дедлайн (берем только даты без времени)
+    period = (data["deadline"].date() - datetime.datetime.now().date()).days
+
     order = OrderAdd(
         client_id=client.id,
         tg_id=tg_id,
@@ -534,7 +547,7 @@ async def get_requirements(message: Message | CallbackQuery, state: FSMContext, 
         title=data["title"],
         task=data["task"],
         price=data["price"],
-        deadline=data["deadline"],
+        period=period,
         requirements=data["requirements"],
         created_at=datetime.datetime.now(),
         is_active=True,

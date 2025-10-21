@@ -190,7 +190,6 @@ class AsyncOrm:
     async def create_executor(e: ExecutorAdd, session: Any) -> None:
         """Создание профиля исполнителя"""
         links = "|".join(e.links)
-        langs = "|".join(e.langs)
         updated_at = datetime.datetime.now()
         try:
             async with session.transaction():
@@ -198,12 +197,12 @@ class AsyncOrm:
                 executor_id = await session.fetchval(
                     """
                     INSERT INTO executors (tg_id, name, age, description, rate, experience, links, availability, contacts, 
-                    location, langs, photo, verified) 
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    location, photo, verified) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                     RETURNING id
                     """,
                     e.tg_id, e.name, e.age, e.description, e.rate, e.experience, links, e.availability, e.contacts,
-                    e.location, langs, e.photo, e.verified
+                    e.location, e.photo, e.verified
                 )
 
                 # Создание связи ExecutorsJobs
@@ -294,6 +293,7 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при создании профиля клиента для пользователя {client.tg_id}: {e}")
+            raise
 
     @staticmethod
     async def delete_client(tg_id: str, session: Any) -> None:
@@ -447,7 +447,7 @@ class AsyncOrm:
             ex_rows = await session.fetch(
                 """
                 SELECT DISTINCT ex.id, ex.tg_id, ex.name, ex.age, ex.description, ex.rate, ex.experience, ex.links, 
-                ex.availability, ex.contacts, ex.location, ex.langs, ex.photo, ex.verified  
+                ex.availability, ex.contacts, ex.location, ex.photo, ex.verified  
                 FROM executors as ex
                 LEFT JOIN executors_jobs as ex_j ON ex.id = ex_j.executor_id 
                 WHERE ex.verified=true AND ex_j.job_id = ANY($1::int[])
@@ -500,7 +500,6 @@ class AsyncOrm:
                         availability=ex_row["availability"],
                         contacts=ex_row["contacts"],
                         location=ex_row["location"],
-                        langs=ex_row["langs"].split("|"),
                         photo=ex_row["photo"],
                         verified=ex_row["verified"],
                         profession=profession,
@@ -520,7 +519,7 @@ class AsyncOrm:
             ex_rows = await session.fetch(
                 """
                 SELECT DISTINCT ex.id, ex.tg_id, ex.name, ex.age, ex.description, ex.rate, ex.experience, ex.links, 
-                ex.availability, ex.contacts, ex.location, ex.langs, ex.photo, ex.verified  
+                ex.availability, ex.contacts, ex.location, ex.photo, ex.verified  
                 FROM executors as ex
                 LEFT JOIN favorite_executors AS f_ex ON ex.id = f_ex.executor_id
                 LEFT JOIN clients AS c ON f_ex.client_id = c.id 
@@ -574,7 +573,6 @@ class AsyncOrm:
                         availability=ex_row["availability"],
                         contacts=ex_row["contacts"],
                         location=ex_row["location"],
-                        langs=ex_row["langs"].split("|"),
                         photo=ex_row["photo"],
                         verified=ex_row["verified"],
                         profession=profession,
@@ -646,11 +644,11 @@ class AsyncOrm:
                 # Создание записи в таблице orders
                 order_id = await session.fetchval(
                     """
-                    INSERT INTO orders (title, task, price, requirements, deadline, created_at, client_id, tg_id, is_active)
+                    INSERT INTO orders (title, task, price, requirements, period, created_at, client_id, tg_id, is_active)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                     RETURNING id
                     """,
-                    order.title, order.task, order.price, order.requirements, order.deadline, order.created_at,
+                    order.title, order.task, order.price, order.requirements, order.period, order.created_at,
                     order.client_id, order.tg_id, order.is_active
                 )
 
@@ -688,7 +686,7 @@ class AsyncOrm:
 
             order_rows = await session.fetch(
                 """
-                SELECT o.id, o.title, o.task, o.price, o.requirements, o.deadline, o.created_at, o.client_id, o.tg_id, o.is_active 
+                SELECT o.id, o.title, o.task, o.price, o.requirements, o.period, o.created_at, o.client_id, o.tg_id, o.is_active 
                 FROM orders AS o
                 WHERE o.tg_id = $1
                 ORDER BY created_at
@@ -741,7 +739,7 @@ class AsyncOrm:
                     title=order_row["title"],
                     task=order_row["task"],
                     price=order_row["price"],
-                    deadline=order_row["deadline"],
+                    period=order_row["period"],
                     requirements=order_row["requirements"],
                     created_at=order_row["created_at"],
                     is_active=order_row["is_active"],
@@ -761,7 +759,7 @@ class AsyncOrm:
             # Получаем заказ
             order_row = await session.fetchrow(
                 """
-                SELECT o.id, o.title, o.task, o.price, o.requirements, o.deadline, o.created_at, o.client_id, o.tg_id, o.is_active 
+                SELECT o.id, o.title, o.task, o.price, o.requirements, o.period, o.created_at, o.client_id, o.tg_id, o.is_active 
                 FROM orders AS o
                 WHERE o.id = $1
                 """,
@@ -812,7 +810,7 @@ class AsyncOrm:
                 title=order_row["title"],
                 task=order_row["task"],
                 price=order_row["price"],
-                deadline=order_row["deadline"],
+                period=order_row["period"],
                 requirements=order_row["requirements"],
                 created_at=order_row["created_at"],
                 is_active=order_row["is_active"],

@@ -8,7 +8,7 @@ from aiogram.types import FSInputFile
 from database.tables import Availability
 from middlewares.database import DatabaseMiddleware
 from middlewares.private import CheckPrivateMessageMiddleware
-from routers.messages.executor import get_executor_profile_message
+from routers.messages.executor import executor_card_for_admin_verification
 from routers.states.registration import Executor
 
 from routers.buttons import commands as cmd
@@ -408,7 +408,8 @@ async def get_links(callback: types.CallbackQuery, state: FSMContext) -> None:
     await state.update_data(contacts=None)
 
     # Отправляем сообщение
-    msg = "Отправьте контакт для связи (например телефон: 8-999-888-77-66)"
+    msg = "Отправьте контакт для связи (например телефон: 8-999-888-77-66)\n\n" \
+          "❗<b>Важно</b>: указанные контакты будут видны другим пользователям сервиса"
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
     # Сохраняем последнее сообщение
@@ -464,8 +465,8 @@ async def get_contacts(message: types.Message | types.CallbackQuery, state: FSMC
 @router.message(Executor.location)
 # Если пропускают город
 @router.callback_query(F.data == "skip", Executor.location)
-async def get_location(message: types.Message | types.CallbackQuery, state: FSMContext) -> None:
-    """Получаем город, запрашиваем теги"""
+async def get_location(message: types.Message | types.CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Получаем город, предпросмотр"""
     # Если город был отправлен
     if type(message) == types.Message:
         # Меняем предыдущее сообщение
@@ -486,61 +487,12 @@ async def get_location(message: types.Message | types.CallbackQuery, state: FSMC
         # Записываем город
         await state.update_data(location=message.text)
 
-    # Меняем стейт
-    await state.set_state(Executor.langs)
-
-    # Заготовка для мультиселекта
-    await state.update_data(selected_langs=[])
-
-    # Отправляем сообщение
-    msg = "Выберите языки, с которыми вы работаете"
-
-    # Если город был отправлен
-    if type(message) == types.Message:
-        prev_mess = await message.answer(msg, reply_markup=kb.choose_langs_keyboard([]).as_markup())
+        # Wait message
+        wait_msg = await message.answer(WAIT_MSG)
 
     # Если город пропущен
     else:
-        prev_mess = await message.message.edit_text(msg, reply_markup=kb.choose_langs_keyboard([]).as_markup())
-
-    # Сохраняем сообщение
-    await state.update_data(prev_mess=prev_mess)
-
-
-@router.callback_query(F.data.split("|")[0] == "choose_langs", Executor.langs)
-async def get_langs_multiselect(callback: types.CallbackQuery, state: FSMContext) -> None:
-    """Вспомогательный хендлер для мультиселекта языков"""
-    lang = callback.data.split("|")[1]
-
-    # Получаем дату
-    data = await state.get_data()
-    selected_langs = data["selected_langs"]
-
-    # Добавляем или убираем язык из списка выбранных
-    if lang in selected_langs:
-        # Убираем из выбранных язык
-        selected_langs.remove(lang)
-    else:
-        # Добавляем язык в выбраные
-        selected_langs.append(lang)
-
-    # Сохраняем обновленный список
-    await state.update_data(selected_langs=selected_langs)
-
-    # Отправляем сообщение
-    msg = "Выберите языки, с которыми вы работаете"
-    keyboard = kb.choose_langs_keyboard(selected_langs)
-    prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
-
-    # Сохраняем последнее сообщение
-    await state.update_data(prev_mess=prev_mess)
-
-
-@router.callback_query(F.data == "choose_langs_done", Executor.langs)
-async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: Any) -> None:
-    """Записываем языки, показываем демо анкеты"""
-    # Сообщение об ожидании
-    wait_msg = await callback.message.edit_text(WAIT_MSG)
+        wait_msg = await message.message.edit_text(WAIT_MSG)
 
     # Меняем стейт
     await state.set_state(Executor.verification)
@@ -552,7 +504,7 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
     profession: Profession = await AsyncOrm.get_profession(data["profession_id"], session)
     jobs: List[Job] = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
     executor = ExecutorAdd(
-        tg_id=str(callback.from_user.id),
+        tg_id=str(message.from_user.id),
         name=data["name"],
         age=data["age"],
         description=data["description"],
@@ -562,13 +514,12 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
         availability=Availability.FREE,
         contacts=data["contacts"],
         location=data["location"],
-        langs=data["selected_langs"],
         photo=data["photo"],
         profession=profession,
         jobs=jobs,
         verified=False
     )
-    questionnaire = get_executor_profile_message(executor)
+    questionnaire = executor_card_for_admin_verification(executor)
 
     # Сохраняем для дальнейшего использования
     await state.update_data(executor=executor)
@@ -589,17 +540,26 @@ async def get_langs(callback: types.CallbackQuery, state: FSMContext, session: A
     msg = f"Ваша анкета готова. Проверьте введенные данные\n\n" \
           f"{questionnaire}\n\n" \
           f"Публикуем?"
-    prev_mess = await callback.message.answer_photo(
-        profile_image,
-        caption=msg,
-        reply_markup=kb.confirm_registration_keyboard().as_markup()
-    )
+
+    # Если был отправлен город
+    if isinstance(message, types.Message):
+        prev_mess = await message.answer_photo(
+            profile_image,
+            caption=msg,
+            reply_markup=kb.confirm_registration_keyboard().as_markup()
+        )
+    else:
+        prev_mess = await message.message.answer_photo(
+            profile_image,
+            caption=msg,
+            reply_markup=kb.confirm_registration_keyboard().as_markup()
+        )
 
     # Сохраняем сообщение
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.callback_query(F.data == "confirm_registration")
+@router.callback_query(F.data == "confirm_registration", Executor.verification)
 async def registration_confirmation(callback: types.CallbackQuery, state: FSMContext, session: Any, bot: Bot) -> None:
     """Подтверждение регистрации"""
     # Убираем клавиатуру
@@ -616,8 +576,8 @@ async def registration_confirmation(callback: types.CallbackQuery, state: FSMCon
     try:
         await AsyncOrm.create_executor(executor, session)
         # Отправка сообщения пользователю
-        msg = f"{INFO} Ожидайте, ваша анкета отправлена администратору для верификации\n"
-        await callback.message.answer(msg)
+        user_msg = f"{INFO} Ожидайте, ваша анкета отправлена администратору для верификации\n"
+        await callback.message.answer(user_msg)
     except:
         await callback.message.answer(f"{INFO} Ошибка при регистрации, попробуйте позже")
         return
@@ -625,11 +585,11 @@ async def registration_confirmation(callback: types.CallbackQuery, state: FSMCon
     # Отправляем в группу анкету на согласование
     admin_group_id = settings.admin_group_id
     profile_image = FSInputFile(data["filepath"])
-    msg = data["questionnaire"]
+    admin_msg = data["questionnaire"]
     await bot.send_photo(
         admin_group_id,
         photo=profile_image,
-        caption=msg,
+        caption=admin_msg,
         reply_markup=confirm_registration_executor_keyboard(executor.tg_id).as_markup(),
     )
 

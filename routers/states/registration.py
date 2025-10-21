@@ -13,7 +13,6 @@ class Executor(StatesGroup):
     links = State()
     contacts = State() # опционально
     location = State() # опционально
-    langs = State() # опционально
     verification = State()
 
 

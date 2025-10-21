@@ -17,7 +17,6 @@ class ExecutorAdd(BaseModel):
     availability: str = Availability.FREE
     contacts: str | None
     location: str | None
-    langs: List[str]
     photo: bool
     profession: Profession
     jobs: List[Job]
