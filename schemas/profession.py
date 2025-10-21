@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class Profession(BaseModel):
     id: int
     title: str
+    emoji: str | None = None
 
 
 class Job(BaseModel):

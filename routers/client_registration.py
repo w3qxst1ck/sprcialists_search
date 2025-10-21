@@ -262,9 +262,8 @@ async def confirm_client(callback: CallbackQuery, state: FSMContext, session: An
     client: ClientAdd = data["client"]
     try:
         await AsyncOrm.create_client(client, session)
-    except Exception as e:
+    except Exception:
         await callback.message.answer(f"Не удалось создать профиль, попробуйте позже или обратитесь к администратору")
-        logger.error(f"Error: {e}")
         return
 
     # Убираем клавиатуру у предыдущего сообщения

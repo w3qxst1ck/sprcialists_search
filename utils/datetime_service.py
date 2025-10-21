@@ -51,9 +51,6 @@ def get_days_left_text(days: int) -> str:
     """Формулировка дней в зависимости от числа"""
     days_str = str(days)
 
-    if days_str == "0":
-        return "≤ 1 дня"
-
     if days_str[-1] in ("5", "6", "7", "8", "9", "0") or 10 < days < 20:
         return "дней"
 

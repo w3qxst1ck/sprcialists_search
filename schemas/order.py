@@ -14,7 +14,7 @@ class OrderAdd(BaseModel):
     title: str
     task: str
     price: str | None
-    deadline: datetime
+    period: int
     requirements: str | None
     created_at: datetime
     is_active: bool

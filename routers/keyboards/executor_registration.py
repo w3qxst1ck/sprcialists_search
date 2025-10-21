@@ -13,6 +13,7 @@ def profession_keyboard(professions: List[Profession]) -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     for p in professions:
+        emoji = f"{p.emoji} " if p.emoji else ""
         keyboard.row(InlineKeyboardButton(text=f"{p.title}", callback_data=f"choose_profession|{p.id}"))
 
     # Кнопка отмены
