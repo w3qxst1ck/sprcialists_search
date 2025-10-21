@@ -2,6 +2,7 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from routers.buttons.commands import MENU
+from routers.buttons import buttons as btn
 from database.tables import ClientType
 from settings import settings
 
@@ -78,6 +79,6 @@ def cancel_keyboard() -> InlineKeyboardBuilder:
     """Клавиатура отмены"""
     keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_client_registration"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_client_registration"))
 
     return keyboard

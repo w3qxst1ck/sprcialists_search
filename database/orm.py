@@ -268,17 +268,17 @@ class AsyncOrm:
     async def create_client(client: ClientAdd, session: Any) -> None:
         """Запись в таблицу клиентов"""
         updated_at = datetime.datetime.now()
+
         try:
             async with session.transaction():
                 # Создаем профиль клиента
                 client_id = await session.fetchval(
                     """
-                    INSERT INTO clients (tg_id, name, description, type, links, langs, location, photo, verified)
-                    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    INSERT INTO clients (tg_id, name)
+                    VALUES($1, $2)
                     RETURNING id
                     """,
-                    client.tg_id, client.name, client.description, client.type.value, client.links, client.langs, client.location,
-                    client.photo, client.verified
+                    client.tg_id, client.name
                 )
                 # Указываем роль у пользователя
                 await session.execute(

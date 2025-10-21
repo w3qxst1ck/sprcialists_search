@@ -327,30 +327,30 @@ async def connect_with_executor(message: Message, state: FSMContext) -> None:
     executor: Executor = data["current_ex"]
 
     msg = ms.contact_with_executor(executor)
-    keyboard = kb.contact_with_executor(executor.tg_id)
+    keyboard = kb.contact_with_executor()
 
     functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup())
     await state.update_data(functional_mess=functional_mess)
 
 
-@router.callback_query(F.data.split("|")[0] == "contact_with_ex", ExecutorsFeed.show)
-async def send_contact_message_to_executor(callback: CallbackQuery, state: FSMContext, session: Any, bot: Bot) -> None:
-    """Отправка оповещения исполнителю о связи"""
-    client_tg_id: str = str(callback.from_user.id)
-    client: Client = await AsyncOrm.get_client(client_tg_id, session)
-
-    executor_tg_id: str = callback.data.split("|")[1]
-    executor_name: str = await AsyncOrm.get_executor_name(executor_tg_id, session)
-
-    # Отправляем исполнителю сообщение
-    msg_to_executor = f"Пользователь <b>{client.name}</b> хочет с вами связаться для обсуждения заказа"
-    # await bot.send_message(executor_tg_id, msg_to_executor)
-    await bot.send_message("420551454", msg_to_executor)    # TODO DEV VERSION
-
-    # Оповещает клиента, что сообщение отправлено
-    msg_to_client = f"Оповещение отправлено исполнителю <b>{executor_name}</b>"
-    keyboard = kb.back_to_executors_feed()
-    await callback.message.edit_text(msg_to_client, reply_markup=keyboard.as_markup())
+# @router.callback_query(F.data.split("|")[0] == "contact_with_ex", ExecutorsFeed.show)
+# async def send_contact_message_to_executor(callback: CallbackQuery, state: FSMContext, session: Any, bot: Bot) -> None:
+#     """Отправка оповещения исполнителю о связи"""
+#     client_tg_id: str = str(callback.from_user.id)
+#     client: Client = await AsyncOrm.get_client(client_tg_id, session)
+#
+#     executor_tg_id: str = callback.data.split("|")[1]
+#     executor_name: str = await AsyncOrm.get_executor_name(executor_tg_id, session)
+#
+#     # Отправляем исполнителю сообщение
+#     msg_to_executor = f"Пользователь <b>{client.name}</b> хочет с вами связаться для обсуждения заказа"
+#     # await bot.send_message(executor_tg_id, msg_to_executor)
+#     await bot.send_message("420551454", msg_to_executor)    # TODO DEV VERSION
+#
+#     # Оповещает клиента, что сообщение отправлено
+#     msg_to_client = f"Оповещение отправлено исполнителю <b>{executor_name}</b>"
+#     keyboard = kb.back_to_executors_feed()
+#     await callback.message.edit_text(msg_to_client, reply_markup=keyboard.as_markup())
 
 
 # ОТМЕНА И ВОЗВРАЩЕНИЕ ИЗ РАЗНЫХ ТОЧЕК В ЛЕНТУ ИСПОЛНИТЕЛЕЙ

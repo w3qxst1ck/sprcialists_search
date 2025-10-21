@@ -14,28 +14,17 @@ def favorites_executor_keyboard(executors: list[Executor], current_index: int) -
     # Получаем текущего исполнителя
     executor = executors[current_index]
 
-    # Устанавливаем условия для отображения кнопок
-    can_go_left = current_index > 0
-    can_go_right = current_index < len(executors) - 1
-
-    # Формируем кнопки вправо и влево
-    text = f"{btn.LEFT if can_go_left else btn.DISABLED}"
-    left_button = InlineKeyboardButton(
-        text=text,
-        callback_data=f"{'prev_ex' if can_go_left else None}"
-    )
-    text = f"{btn.RIGHT if can_go_right else btn.DISABLED}"
-    right_button = InlineKeyboardButton(
-        text=text,
-        callback_data=f"{'next_ex' if can_go_right else None}"
+    keyboard.row(
+        InlineKeyboardButton(text="<", callback_data="prev_ex"),
+        InlineKeyboardButton(text=f"{current_index + 1}/{len(executors)}", callback_data="None"),
+        InlineKeyboardButton(text=">", callback_data=f"next_ex")
     )
 
-    keyboard.row(left_button)
-    keyboard.row(InlineKeyboardButton(text=f"Удалить ⭐", callback_data=f"delete_fav|{executor.id}"))
-    keyboard.row(right_button)
+    keyboard.row()
     keyboard.adjust(3)
 
     # Добавляем кнопку назад
+    keyboard.row(InlineKeyboardButton(text=f"Удалить ⭐", callback_data=f"delete_fav|{executor.id}"))
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="back_from_favorites_feed"))
 
     return keyboard

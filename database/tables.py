@@ -61,13 +61,6 @@ class Clients(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     tg_id: Mapped[str] = mapped_column(ForeignKey("users.tg_id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(50), nullable=False, comment="Имя пользователя должно содержать не более 50 символов")
-    description: Mapped[str] = mapped_column(String(500), nullable=True, default=None)
-    type: Mapped[ClientType] = mapped_column(String, nullable=False)
-    links: Mapped[str] = mapped_column(nullable=True, default=None)
-    langs: Mapped[str] = mapped_column(nullable=True, default=None)   # RUS|KZ|POL
-    location: Mapped[str] = mapped_column(nullable=True, default=None)
-    photo: Mapped[bool] = mapped_column(nullable=True, default=None)
-    verified: Mapped[bool] = mapped_column(default=False)
 
     user: Mapped["User"] = relationship(back_populates="client_profile")
     orders: Mapped[list["Orders"]] = relationship(back_populates="client")

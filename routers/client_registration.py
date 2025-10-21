@@ -46,7 +46,7 @@ async def start_registration(callback: CallbackQuery, session: Any, state: FSMCo
     # Ставим стейт
     await state.set_state(Client.name)
 
-    msg = "Отправьте Имя/ник, который будут видеть другие пользователи"
+    msg = "Отправьте имя/псевдоним, который будут видеть другие пользователи"
     keyboard = kb.cancel_keyboard()
 
     prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
@@ -54,7 +54,7 @@ async def start_registration(callback: CallbackQuery, session: Any, state: FSMCo
 
 
 @router.message(Client.name)
-async def get_client_name(message: Message, state: FSMContext) -> None:
+async def get_client_name(message: Message, state: FSMContext, session: Any) -> None:
     """Получаем имя клиента"""
     data = await state.get_data()
 
@@ -72,212 +72,29 @@ async def get_client_name(message: Message, state: FSMContext) -> None:
         await state.update_data(prev_mess=prev_mess)
         return
 
-    # Сохраняем имя
-    await state.update_data(name=message.text)
-
-    # Меняем стейт
-    await state.set_state(Client.client_type)
-
-    # Отправляем сообщение
-    msg = "Выберите один из вариантов"
-
-    # Без пропуска описания
-    if isinstance(message, Message):
-        await message.answer(msg, reply_markup=kb.pick_client_type_keyboard().as_markup())
-
-    # С пропуском описания
-    else:
-        await message.message.edit_text(msg, reply_markup=kb.pick_client_type_keyboard().as_markup())
-
-
-@router.callback_query(Client.client_type)
-async def get_client_type(callback: CallbackQuery, state: FSMContext) -> None:
-    """Получаем тип клиента"""
-    client_type = callback.data.split("|")[1]
-
-    # Записываем тип клиента
-    await state.update_data(client_type=client_type)
-
-    # Меняем стейт
-    await state.set_state(Client.description)
-
-    msg = "Отправьте дополнительную информацию о себе/компании/организации"
-
-    prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
-    await state.update_data(prev_mess=prev_mess)
-
-
-@router.message(Client.description)
-@router.callback_query(Client.description, F.data == "skip")
-async def get_client_description(message: CallbackQuery | Message, state: FSMContext) -> None:
-    """Получение описание или пропуск для регитсраиции клиента"""
-    data = await state.get_data()
-
-    # Если пользователь отправил описание
-    if isinstance(message, Message):
-        # Меняем предыдущее сообщение
-        try:
-            await data["prev_mess"].edit_text(data["prev_mess"].text)
-        except Exception:
-            pass
-
-        # Если отправлен не текст
-        if not message.text:
-            prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
-                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
-            # Сохраняем предыдущее сообщение
-            await state.update_data(prev_mess=prev_mess)
-            return
-
-        # Записываем описание клиента
-        await state.update_data(description=message.text)
-
-    elif isinstance(message, CallbackQuery):
-        # Записываем пустое описание клиента в случае пропуска
-        await state.update_data(description=None)
-
-    # Меняем стейт
-    await state.set_state(Client.photo)
-
-    # Отправляем сообщение
-    msg = "Отправьте фото для вашего профиля"
-    keyboard = kb.skip_cancel_keyboard()
-
-    if type(message) == Message:
-        prev_mess = await message.answer(msg, reply_markup=keyboard.as_markup())
-    else:
-        prev_mess = await message.message.edit_text(msg, reply_markup=keyboard.as_markup())
-
-    await state.update_data(prev_mess=prev_mess)
-
-
-@router.message(Client.photo)
-@router.callback_query(F.data == "skip", Client.photo)
-async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, bot: Bot) -> None:
-    """Получаем фото клиента"""
-    data = await state.get_data()
-
-    if isinstance(message, Message):
-        # Убираем клавиатуру у предыдущего сообщения
-        try:
-            await data["prev_mess"].edit_text(data["prev_mess"].text)
-        except Exception:
-            pass
-
-        # Отправляем сообщение об ожидании
-        wait_msg = await message.answer(btn.WAIT_MSG)
-
-        # Проверяем что было отправлено фото
-        if not message.photo:
-            prev_mess = await wait_msg.edit_text("Неверный формат данных, необходимо отправить фотографию",
-                                                 reply_markup=kb.skip_cancel_keyboard().as_markup())
-            # Сохраняем предыдущее сообщение
-            await state.update_data(prev_mess=prev_mess)
-            return
-
-        # Сохраняем фото локально
-        await load_photo_from_tg(message, bot, settings.clients_profile_path)
-
-        # Сохраняем информацию фото в стейт
-        await state.update_data(photo=True)
-
-    # Если был пропуск выбора фото
-    else:
-        # Отправляем сообщение об ожидании
-        wait_msg = await message.message.edit_text(btn.WAIT_MSG)
-        # Сохраняем информацию фото в стейт
-        await state.update_data(photo=False)
-
-    # Меняем стейт
-    await state.set_state(Client.confirm)
-
-    # Формируем анкету из обязательных полей
-    data = await state.get_data()
+    # Формируем модель клиента
     client = ClientAdd(
-        tg_id=str(message.from_user.id),
-        name=data["name"],
-        type=data["client_type"],
-        description=data["description"],
-        photo=data["photo"],
-        verified=False,  # без доп верификации
-    )
-    questionnaire: str = get_client_profile_message(client)
+                tg_id=str(message.from_user.id),
+                name=message.text
+            )
 
-    # Получаем фотографию
-    if client.photo:
-        filepath = get_photo_path(settings.clients_profile_path, client.tg_id)
-    else:
-        # Ставим дефолтную если пользователь не загрузил
-        filepath = settings.local_media_path + "client.jpg"
-
-    profile_image = FSInputFile(filepath)
-
-    # Сохраняем для дальнейшего использования
-    await state.update_data(filepath=filepath)
-    await state.update_data(client=client)
-    await state.update_data(questionnaire=questionnaire)
-
-    # Отправляем сообщение с фотографией (если она есть)
-    msg = f"Ваша анкета готова. Проверьте введенные данные\n\n" \
-          f"{questionnaire}\n\n" \
-          f"Публикуем? (дополнительную информацию вы можете указать позже в настройках профиля)"
-
-    # Удаляем сообщение об ожидании
+    # Сохраняем клиента в базу данных
     try:
-        await wait_msg.delete()
+        await AsyncOrm.create_client(client, session)
     except Exception:
-        pass
-
-    if isinstance(message, Message):
-        prev_mess = await message.answer_photo(
-            profile_image,
-            caption=msg,
-            reply_markup=kb.confirm_registration_keyboard().as_markup()
-        )
-    else:
-        prev_mess = await message.message.answer_photo(
-            profile_image,
-            caption=msg,
-            reply_markup=kb.confirm_registration_keyboard().as_markup()
-        )
-
-    # Сохраняем сообщение
-    await state.update_data(prev_mess=prev_mess)
-
-    # Сохраняем фото в s3 хранилище
-    if client.photo:
-        await save_file_to_s3_storage(filepath, settings.clients_profile_path)
-
-
-@router.callback_query(Client.confirm, F.data == "confirm_client_registration")
-async def confirm_client(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
-    """Подтверждение правильности анкеты клиента"""
-    # Получаем все данные
-    data = await state.get_data()
+        await message.answer(f"Ошибка при регистрации, попробуйте зарегистрироваться проще")
+        # Очищаем стейт
+        await state.clear()
+        return
 
     # Очищаем стейт
     await state.clear()
 
-    # Предварительная регистрация исполнителя
-    client: ClientAdd = data["client"]
-    try:
-        await AsyncOrm.create_client(client, session)
-    except Exception as e:
-        await callback.message.answer(f"Не удалось создать профиль, попробуйте позже или обратитесь к администратору")
-        logger.error(f"Error: {e}")
-        return
+    # Оповещаем пользователя об успешной регистрации
+    await message.answer("✅ Вы успешно зарегистрированы")
 
-    # Убираем клавиатуру у предыдущего сообщения
-    try:
-        new_caption = get_client_profile_message(client)
-        await data["prev_mess"].edit_caption(caption=new_caption)
-    except:
-        pass
-
-    # Отправка сообщения пользователю
-    msg = "✅ Профиль успешно создан\n\nВы можете изменить данные профиля в настройках"
-    keyboard = kb.to_main_menu()
-    await callback.message.answer(msg, reply_markup=keyboard.as_markup())
+    # Переводим клиента в главное меню
+    await main_menu(message, session)
 
 
 @router.callback_query(F.data == "cancel_client_registration", StateFilter("*"))
@@ -288,22 +105,229 @@ async def cancel_registration(callback: CallbackQuery, state: FSMContext) -> Non
     await callback.message.edit_text(msg)
 
 
-@router.callback_query(F.data == "cancel_verification_client", Client.confirm)
-async def cancel_verification(callback: CallbackQuery, state: FSMContext) -> None:
-    """Отмена регистрации клиента на последнем шаге"""
-    data = await state.get_data()
+    # # Меняем стейт
+    # await state.set_state(Client.client_type)
+    #
+    # # Отправляем сообщение
+    # msg = "Выберите один из вариантов"
+    #
+    # # Без пропуска описания
+    # if isinstance(message, Message):
+    #     await message.answer(msg, reply_markup=kb.pick_client_type_keyboard().as_markup())
+    #
+    # # С пропуском описания
+    # else:
+    #     await message.message.edit_text(msg, reply_markup=kb.pick_client_type_keyboard().as_markup())
 
-    # Удаляем сообщение с анкетой
-    try:
-        await data["prev_mess"].delete()
-    except:
-        pass
-
-    # Очищаем стейт
-    await state.clear()
-
-    msg = f"Нажмите /{cmd.START[0]}, чтобы начать регистрацию заново"
-    await callback.message.answer(msg)
+#
+# @router.callback_query(Client.client_type)
+# async def get_client_type(callback: CallbackQuery, state: FSMContext) -> None:
+#     """Получаем тип клиента"""
+#     client_type = callback.data.split("|")[1]
+#
+#     # Записываем тип клиента
+#     await state.update_data(client_type=client_type)
+#
+#     # Меняем стейт
+#     await state.set_state(Client.description)
+#
+#     msg = "Отправьте дополнительную информацию о себе/компании/организации"
+#
+#     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
+#     await state.update_data(prev_mess=prev_mess)
+#
+#
+# @router.message(Client.description)
+# @router.callback_query(Client.description, F.data == "skip")
+# async def get_client_description(message: CallbackQuery | Message, state: FSMContext) -> None:
+#     """Получение описание или пропуск для регитсраиции клиента"""
+#     data = await state.get_data()
+#
+#     # Если пользователь отправил описание
+#     if isinstance(message, Message):
+#         # Меняем предыдущее сообщение
+#         try:
+#             await data["prev_mess"].edit_text(data["prev_mess"].text)
+#         except Exception:
+#             pass
+#
+#         # Если отправлен не текст
+#         if not message.text:
+#             prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+#                                              reply_markup=kb.skip_cancel_keyboard().as_markup())
+#             # Сохраняем предыдущее сообщение
+#             await state.update_data(prev_mess=prev_mess)
+#             return
+#
+#         # Записываем описание клиента
+#         await state.update_data(description=message.text)
+#
+#     elif isinstance(message, CallbackQuery):
+#         # Записываем пустое описание клиента в случае пропуска
+#         await state.update_data(description=None)
+#
+#     # Меняем стейт
+#     await state.set_state(Client.photo)
+#
+#     # Отправляем сообщение
+#     msg = "Отправьте фото для вашего профиля"
+#     keyboard = kb.skip_cancel_keyboard()
+#
+#     if type(message) == Message:
+#         prev_mess = await message.answer(msg, reply_markup=keyboard.as_markup())
+#     else:
+#         prev_mess = await message.message.edit_text(msg, reply_markup=keyboard.as_markup())
+#
+#     await state.update_data(prev_mess=prev_mess)
+#
+#
+# @router.message(Client.photo)
+# @router.callback_query(F.data == "skip", Client.photo)
+# async def get_client_photo(message: CallbackQuery | Message, state: FSMContext, bot: Bot) -> None:
+#     """Получаем фото клиента"""
+#     data = await state.get_data()
+#
+#     if isinstance(message, Message):
+#         # Убираем клавиатуру у предыдущего сообщения
+#         try:
+#             await data["prev_mess"].edit_text(data["prev_mess"].text)
+#         except Exception:
+#             pass
+#
+#         # Отправляем сообщение об ожидании
+#         wait_msg = await message.answer(btn.WAIT_MSG)
+#
+#         # Проверяем что было отправлено фото
+#         if not message.photo:
+#             prev_mess = await wait_msg.edit_text("Неверный формат данных, необходимо отправить фотографию",
+#                                                  reply_markup=kb.skip_cancel_keyboard().as_markup())
+#             # Сохраняем предыдущее сообщение
+#             await state.update_data(prev_mess=prev_mess)
+#             return
+#
+#         # Сохраняем фото локально
+#         await load_photo_from_tg(message, bot, settings.clients_profile_path)
+#
+#         # Сохраняем информацию фото в стейт
+#         await state.update_data(photo=True)
+#
+#     # Если был пропуск выбора фото
+#     else:
+#         # Отправляем сообщение об ожидании
+#         wait_msg = await message.message.edit_text(btn.WAIT_MSG)
+#         # Сохраняем информацию фото в стейт
+#         await state.update_data(photo=False)
+#
+#     # Меняем стейт
+#     await state.set_state(Client.confirm)
+#
+#     # Формируем анкету из обязательных полей
+#     data = await state.get_data()
+#     client = ClientAdd(
+#         tg_id=str(message.from_user.id),
+#         name=data["name"],
+#         type=data["client_type"],
+#         description=data["description"],
+#         photo=data["photo"],
+#         verified=False,  # без доп верификации
+#     )
+#     questionnaire: str = get_client_profile_message(client)
+#
+#     # Получаем фотографию
+#     if client.photo:
+#         filepath = get_photo_path(settings.clients_profile_path, client.tg_id)
+#     else:
+#         # Ставим дефолтную если пользователь не загрузил
+#         filepath = settings.local_media_path + "client.jpg"
+#
+#     profile_image = FSInputFile(filepath)
+#
+#     # Сохраняем для дальнейшего использования
+#     await state.update_data(filepath=filepath)
+#     await state.update_data(client=client)
+#     await state.update_data(questionnaire=questionnaire)
+#
+#     # Отправляем сообщение с фотографией (если она есть)
+#     msg = f"Ваша анкета готова. Проверьте введенные данные\n\n" \
+#           f"{questionnaire}\n\n" \
+#           f"Публикуем? (дополнительную информацию вы можете указать позже в настройках профиля)"
+#
+#     # Удаляем сообщение об ожидании
+#     try:
+#         await wait_msg.delete()
+#     except Exception:
+#         pass
+#
+#     if isinstance(message, Message):
+#         prev_mess = await message.answer_photo(
+#             profile_image,
+#             caption=msg,
+#             reply_markup=kb.confirm_registration_keyboard().as_markup()
+#         )
+#     else:
+#         prev_mess = await message.message.answer_photo(
+#             profile_image,
+#             caption=msg,
+#             reply_markup=kb.confirm_registration_keyboard().as_markup()
+#         )
+#
+#     # Сохраняем сообщение
+#     await state.update_data(prev_mess=prev_mess)
+#
+#     # Сохраняем фото в s3 хранилище
+#     if client.photo:
+#         await save_file_to_s3_storage(filepath, settings.clients_profile_path)
+#
+#
+# @router.callback_query(Client.confirm, F.data == "confirm_client_registration")
+# async def confirm_client(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
+#     """Подтверждение правильности анкеты клиента"""
+#     # Получаем все данные
+#     data = await state.get_data()
+#
+#     # Очищаем стейт
+#     await state.clear()
+#
+#     # Предварительная регистрация исполнителя
+#     client: ClientAdd = data["client"]
+#     try:
+#         await AsyncOrm.create_client(client, session)
+#     except Exception as e:
+#         await callback.message.answer(f"Не удалось создать профиль, попробуйте позже или обратитесь к администратору")
+#         logger.error(f"Error: {e}")
+#         return
+#
+#     # Убираем клавиатуру у предыдущего сообщения
+#     try:
+#         new_caption = get_client_profile_message(client)
+#         await data["prev_mess"].edit_caption(caption=new_caption)
+#     except:
+#         pass
+#
+#     # Отправка сообщения пользователю
+#     msg = "✅ Профиль успешно создан\n\nВы можете изменить данные профиля в настройках"
+#     keyboard = kb.to_main_menu()
+#     await callback.message.answer(msg, reply_markup=keyboard.as_markup())
+#
+#
+#
+#
+# @router.callback_query(F.data == "cancel_verification_client", Client.confirm)
+# async def cancel_verification(callback: CallbackQuery, state: FSMContext) -> None:
+#     """Отмена регистрации клиента на последнем шаге"""
+#     data = await state.get_data()
+#
+#     # Удаляем сообщение с анкетой
+#     try:
+#         await data["prev_mess"].delete()
+#     except:
+#         pass
+#
+#     # Очищаем стейт
+#     await state.clear()
+#
+#     msg = f"Нажмите /{cmd.START[0]}, чтобы начать регистрацию заново"
+#     await callback.message.answer(msg)
 
 
 # @router.message(Client.links)

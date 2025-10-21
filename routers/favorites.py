@@ -74,15 +74,21 @@ async def show_executor(callback: CallbackQuery, state: FSMContext) -> None:
     executors = data["executors"]
     prev_mess = data["prev_mess"]
 
+    # При нажатии влево
     if callback.data == "prev_ex":
         # Меняем текущий индекс
-        current_index -= 1
-        await state.update_data(current_index=current_index)
+        if current_index == 0:
+            current_index = len(executors) - 1
+        else:
+            current_index -= 1
 
     # При нажатии вправо
     elif callback.data == "next_ex":
         # Меняем текущий индекс
-        current_index += 1
+        if current_index == len(executors) - 1:
+            current_index = 0
+        else:
+            current_index += 1
 
     # Сохраняем текущий индекс
     await state.update_data(current_index=current_index)
@@ -213,4 +219,3 @@ async def send_executor_profile(executors: list[Executor], current_index: int, p
               f"к администратору @{settings.admin_tg_username}"
         keyboard = to_main_menu()
         await prev_mess.answer(msg, reply_markup=keyboard.as_markup())
-
