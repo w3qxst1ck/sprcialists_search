@@ -12,7 +12,7 @@ from schemas.client import ClientAdd, RejectReason, Client
 from schemas.executor import ExecutorAdd, Executor
 from schemas.order import OrderAdd, Order, TaskFile
 from schemas.profession import Profession, Job
-from schemas.user import UserAdd
+from schemas.user import UserAdd, User
 
 # для model_validate регистрируем возвращаемый из asyncpg.fetchrow класс Record
 Mapping.register(asyncpg.Record)
@@ -50,20 +50,38 @@ class AsyncOrm:
         """Создание пользователя"""
         try:
             created_at = datetime.datetime.now()
-            updated_at = datetime.datetime.now()
             await session.execute(
                 """
-                INSERT INTO users (tg_id, username, firstname, lastname, role, created_at, updated_at, is_banned, is_admin)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                INSERT INTO users (tg_id, username, firstname, lastname, role, created_at, is_banned, is_admin)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 ON CONFLICT (tg_id) DO NOTHING
                 """,
-                user.tg_id, user.username, user.firstname, user.lastname, user.role, created_at, updated_at, False, False
+                user.tg_id, user.username, user.firstname, user.lastname, user.role, created_at, False, False
             )
             logger.info(f"Пользователь tg_id {user.tg_id} зарегистрировался")
 
         except Exception as e:
             logger.error(f"Ошибка при создании пользователя {user.tg_id} "
                          f"{'@' + user.username if user.username else ''}: {e}")
+
+    @staticmethod
+    async def get_user(tg_id: str, session: Any) -> User | None:
+        """Получение пользователя"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT *
+                FROM users
+                WHERE tg_id=$1
+                """,
+                tg_id
+            )
+            if not row:
+                return None
+            return User.model_validate(row)
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении пользователя tg_id {tg_id}: {e}")
 
     @staticmethod
     async def user_has_role(tg_id: str, session: Any) -> bool:
@@ -246,6 +264,70 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при удалении анкеты исполнителя пользователя {tg_id}: {e}")
+
+    @staticmethod
+    async def get_executor_by_tg_id(tg_id: str, session: Any) -> Executor | None:
+        """Получение исполнителя по tg_id"""
+        try:
+            ex_row = await session.fetchrow(
+                """
+                SELECT id, tg_id, name, age, description, rate, experience, links, availability, contacts, location, 
+                photo, verified
+                FROM executors 
+                WHERE tg_id = $1  
+                """,
+                tg_id
+            )
+            # Если не нашли исполнителя
+            if not ex_row:
+                return None
+
+            jobs_rows = await session.fetch(
+                """
+                SELECT j.id, j.title, j.profession_id 
+                FROM jobs AS j
+                JOIN executors_jobs AS ej ON j.id = ej.job_id
+                WHERE ej.executor_id = $1
+                """,
+                ex_row["id"]
+            )
+
+            jobs: list[Job] = []
+
+            for job_row in jobs_rows:
+                jobs.append(Job(id=job_row["id"], title=job_row["title"], profession_id=job_row["profession_id"]))
+
+            prof_row = await session.fetchrow(
+                """
+                SELECT * FROM professions
+                WHERE id = $1
+                """,
+                jobs[0].profession_id
+            )
+            profession = Profession.model_validate(prof_row)
+
+            executor = Executor(
+                id=ex_row["id"],
+                tg_id=ex_row["tg_id"],
+                name=ex_row["name"],
+                age=ex_row["age"],
+                description=ex_row["description"],
+                rate=ex_row["rate"],
+                experience=ex_row["experience"],
+                links=ex_row["links"].split("|"),
+                availability=ex_row["availability"],
+                contacts=ex_row["contacts"],
+                location=ex_row["location"],
+                photo=ex_row["photo"],
+                verified=ex_row["verified"],
+                profession=profession,
+                jobs=jobs
+            )
+
+            return executor
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении профиля исполнителя пользователя tg_id {tg_id}: {e}")
 
     @staticmethod
     async def get_executor_name(tg_id: str, session: Any) -> str:

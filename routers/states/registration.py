@@ -33,3 +33,7 @@ class Reject(StatesGroup):
     reason = State()
 
 
+class UploadCV(StatesGroup):
+    cv = State()
+
+

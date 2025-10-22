@@ -12,8 +12,6 @@ def get_executor_profile_message(executor: ExecutorAdd | Executor) -> str:
     location = f"📍 {executor.location}\n" if executor.location else ""
     emoji = f"{executor.profession.emoji}" if executor.profession.emoji else ""
 
-    # Поле верификация только по необходимости
-
     msg = f"👤 {executor.name}, {age}\n" \
           f"{emoji} {executor.profession.title} ({jobs}). {executor.experience}\n" \
           f"💵 {executor.rate}\n" \

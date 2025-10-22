@@ -33,6 +33,18 @@ router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
 @router.message(Command(cmd.MENU[0]))
 async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMContext = None):
     """Главное меню"""
+    # Если вернулись с сообщения с фото
+    try:
+        if isinstance(message, Message):
+            if message.caption:
+                await message.delete()
+
+        else:
+            if message.message.caption:
+                await message.message.delete()
+    except:
+        pass
+
     # Убираем клавиатуру, если она была до этого
     try:
         if isinstance(message, Message):

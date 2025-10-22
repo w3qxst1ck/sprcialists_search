@@ -1,6 +1,10 @@
 import datetime
 import calendar
 
+import pytz
+
+from settings import settings
+
 
 def get_days_in_month(year: int, month: int) -> list[datetime.date]:
     """Возвращает список всех дней в заданном месяце датами"""
@@ -45,6 +49,15 @@ def convert_str_to_datetime(date_str: str) -> datetime.datetime:
 def convert_date_time_to_str(date: datetime.datetime, with_tz: bool = None) -> (str, str):
     """Перевод даты в формат для вывода (date, time)"""
     return date.date().strftime("%d.%m.%Y")
+
+
+def convert_date_and_time_to_str(date: datetime.datetime, with_tz: bool = None) -> (str, str):
+    """Перевод даты в формат для вывода (date, time)"""
+    if with_tz:
+        date = date.astimezone(tz=pytz.timezone(settings.timezone))
+        return date.date().strftime("%d.%m.%Y"), date.time().strftime("%H:%M")
+
+    return date.date().strftime("%d.%m.%Y"), date.time().strftime("%H:%M")
 
 
 def get_days_left_text(days: int) -> str:

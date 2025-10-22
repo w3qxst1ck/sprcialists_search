@@ -55,7 +55,10 @@ class Settings(BaseSettings):
 
     executors_profile_path: str = "profiles/executors/"
     clients_profile_path: str = "profiles/clients/"
-    executors_cv_path: str = "cv/executors/"
+    executors_cv_path: str = "cv/"
+
+    registration_ban_days: int = 7
+    timezone: str = "Europe/Moscow"
 
     db: Database = Database()
 

@@ -1,3 +1,4 @@
+import datetime
 from typing import Any, List
 
 from aiogram import Router, types, F, Bot
@@ -18,6 +19,8 @@ from routers.keyboards.admin import confirm_registration_executor_keyboard
 from database.orm import AsyncOrm
 from schemas.executor import ExecutorAdd
 from schemas.profession import Job, Profession
+from schemas.user import User
+from utils.datetime_service import convert_date_and_time_to_str
 from utils.download_files import load_photo_from_tg, get_photo_path
 from settings import settings
 from routers.keyboards import executor_registration as kb
@@ -41,6 +44,22 @@ async def start_registration(callback: types.CallbackQuery, session: Any, state:
         msg = f"У вас уже выбрана роль {role_text}"
         await callback.message.edit_text(msg)
         return
+
+    # Проверка на антиспам, можно регистрироваться через 7 дней после последней попытки
+    # updated_at = None при регистрации в таблице user
+    user: User = await AsyncOrm.get_user(tg_id, session)
+
+    # Если пользователь существует и он хотя бы раз пытался зарегистрироваться
+    if user and user.updated_at:
+        ban_expired = (user.updated_at + datetime.timedelta(days=settings.registration_ban_days)) < datetime.datetime.now()
+        if not ban_expired:
+            # Высчитываем разрешенную дату
+            allowed_date = user.updated_at + datetime.timedelta(days=settings.registration_ban_days)
+            # Переводим в str
+            allowed_date_text, allowed_time_text = convert_date_and_time_to_str(allowed_date, with_tz=True)
+            msg = f"Повторная регистрация будет доступна после {allowed_date_text} {allowed_time_text} (МСК)"
+            await callback.message.edit_text(msg)
+            return
 
     # Записываем роль
     await state.update_data(role="исполнитель")

@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from database.orm import AsyncOrm
 from database.tables import UserRoles
+from logger import logger
 
 from middlewares.database import DatabaseMiddleware
 from middlewares.admin import AdminMiddleware
@@ -166,3 +167,5 @@ async def send_reject_to_user(callback: CallbackQuery, state: FSMContext, sessio
         await AsyncOrm.delete_executor(user_tg_id, session)
     elif user_role == UserRoles.CLIENT.value:
         await AsyncOrm.delete_client(user_tg_id, session)
+
+    logger.info(f"Анкета исполнителя пользователя {user_tg_id} отклонена администратором {admin_name}")

@@ -45,7 +45,7 @@ class User(Base):
     firstname: Mapped[str] = mapped_column(nullable=True)
     lastname: Mapped[str] = mapped_column(nullable=True)
     created_at: Mapped[datetime.datetime]
-    updated_at: Mapped[datetime.datetime]
+    updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
     is_banned: Mapped[bool] = mapped_column(default=False)
     is_admin: Mapped[bool] = mapped_column(default=False)
     role: Mapped[UserRoles] = mapped_column(String, index=True, nullable=True)

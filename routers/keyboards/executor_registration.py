@@ -5,6 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from settings import settings
 from schemas.profession import Profession, Job
+from routers.buttons import buttons as btn
 
 
 def profession_keyboard(professions: List[Profession]) -> InlineKeyboardBuilder:
@@ -17,7 +18,7 @@ def profession_keyboard(professions: List[Profession]) -> InlineKeyboardBuilder:
         keyboard.row(InlineKeyboardButton(text=f"{p.title}", callback_data=f"choose_profession|{p.id}"))
 
     # Кнопка отмены
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_executor_registration"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_executor_registration"))
 
     return keyboard
 
@@ -42,7 +43,7 @@ def jobs_keyboard(jobs: List[Job], selected_jobs: List[int]) -> InlineKeyboardBu
         keyboard.row(InlineKeyboardButton(text=f"Подтвердить", callback_data="choose_jobs_done"))
 
     # Кнопка отмены
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_executor_registration"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_executor_registration"))
 
     return keyboard
 
@@ -67,7 +68,7 @@ def choose_langs_keyboard(selected_langs: List[str]) -> InlineKeyboardBuilder:
         keyboard.row(InlineKeyboardButton(text=f"Подтвердить", callback_data="choose_langs_done"))
 
     # Кнопка отмены
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_executor_registration"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_executor_registration"))
 
     return keyboard
 
@@ -79,7 +80,7 @@ def confirm_registration_keyboard() -> InlineKeyboardBuilder:
     # Кнопка подтвердить
     keyboard.row(InlineKeyboardButton(text=f"Подтвердить", callback_data="confirm_registration"))
     # Кнопка отмены
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_executor_registration"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_executor_registration"))
 
     return keyboard
 
@@ -89,7 +90,7 @@ def continue_cancel_keyboard() -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(InlineKeyboardButton(text=f"Продолжить", callback_data="continue"))
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_executor_registration"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_executor_registration"))
 
     return keyboard
 
@@ -99,7 +100,7 @@ def skip_cancel_keyboard() -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(InlineKeyboardButton(text=f"Пропустить", callback_data="skip"))
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_executor_registration"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_executor_registration"))
 
     return keyboard
 
@@ -108,6 +109,6 @@ def cancel_keyboard() -> InlineKeyboardBuilder:
     """Клавиатура отмены"""
     keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="cancel_executor_registration"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_executor_registration"))
 
     return keyboard
