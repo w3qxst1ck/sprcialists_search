@@ -163,7 +163,7 @@ async def download_cv(callback: CallbackQuery) -> None:
     cv = FSInputFile(filepath)
 
     # Отправляем файл
-    await callback.message.answer_document(cv, reply_markup=kb.to_executor_profile_keyboard().as_markup())
+    await callback.message.answer_document(cv, reply_markup=kb.back_from_cv_file_keyboard().as_markup())
 
 
 # УДАЛЕНИЕ РЕЗЮМЕ
@@ -183,12 +183,12 @@ async def delete_cv(callback: CallbackQuery) -> None:
         os.remove(filepath)
     except:
         msg = f"{btn.INFO} Ошибка при удалении файла. Повторите запрос позже"
-        await callback.message.answer(msg, reply_markup=kb.to_executor_profile_keyboard().as_markup())
+        await callback.message.answer(msg, reply_markup=kb.back_from_cv_file_keyboard().as_markup())
         return
 
     # Отправляем сообщение
     msg = f"✅ Файл резюме успешно удален"
-    await callback.message.answer(msg, reply_markup=kb.to_executor_profile_keyboard().as_markup())
+    await callback.message.answer(msg, reply_markup=kb.back_from_cv_file_keyboard().as_markup())
 
 
 # ОТМЕНА ЗАГРУЗКИ РЕЗЮМЕ

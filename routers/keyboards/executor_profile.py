@@ -35,6 +35,16 @@ def to_executor_profile_keyboard() -> InlineKeyboardBuilder:
     return keyboard
 
 
+def back_from_cv_file_keyboard() -> InlineKeyboardBuilder:
+    """Клавиатура в меню исполнителя"""
+
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data=f"main_menu|executor_profile"))
+
+    return keyboard
+
+
 def cancel_upload_cv_keyboard() -> InlineKeyboardBuilder:
     """Клавиатура отмены загрузки резюме"""
     keyboard = InlineKeyboardBuilder()
