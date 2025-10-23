@@ -62,7 +62,7 @@ def get_my_orders_list(orders: List[Order]) -> str:
             filenames_text = ""
 
         msg += f"<b>{idx}</b>. {order.title} \n" \
-               f"⏳ {order.period} {days_text} | 💵 {price} {filenames_text}\n\n"
+               f"🗓️ {order.period} {days_text} | 💵 {price} {filenames_text}\n\n"
 
     msg += "\nЧтобы перейти в заказ выберите соответствующий номер с помощью клавиатуры ниже"
 
