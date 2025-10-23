@@ -68,7 +68,7 @@ async def start_registration(callback: types.CallbackQuery, session: Any, state:
     await state.set_state(Executor.name)
 
     # Отправляем сообщение
-    msg = "Отправьте Имя/ник, который будут видеть клиенты"
+    msg = "Отправьте Имя/псевдоним, который будут видеть клиенты"
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение

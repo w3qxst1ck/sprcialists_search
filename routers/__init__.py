@@ -1,6 +1,6 @@
 from aiogram import Router
 from routers.start import router as start_router
-from routers.profile import router as profile_router
+from routers.client_profile import router as client_profile_router
 from routers.executor_registration import router as ex_reg_router
 from routers.client_registration import router as client_reg_router
 from routers.admin import private_router as admin_private_router
@@ -15,7 +15,7 @@ main_router = Router()
 
 main_router.include_routers(
     start_router,
-    profile_router,
+    client_profile_router,
     ex_reg_router,
     client_reg_router,
     admin_private_router,
