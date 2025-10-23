@@ -100,5 +100,14 @@ async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMCo
     except Exception as e:
         logger.error(f"Не удалось загрузить картинку главного меню: {e}")
 
+    # Получаем username из сообщения и БД
+    username_from_message = message.from_user.username
+    username_from_db: str = await AsyncOrm.get_username(tg_id, session)
+
+    # Обновляем если username изменился
+    if username_from_db != username_from_message:
+        await AsyncOrm.update_username(tg_id, username_from_message, session)
+
+
 
 

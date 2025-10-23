@@ -81,7 +81,8 @@ async def my_order(callback: CallbackQuery, session: Any) -> None:
 
     # Отправляем сообщение
     msg = get_order_card_message(order)
-    keyboard = kb.my_order_keyboard(order_id)
+    has_files = bool(len(order.files))
+    keyboard = kb.my_order_keyboard(order_id, has_files=has_files)
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
@@ -110,6 +111,34 @@ async def delete_order_confirmed(callback: CallbackQuery, session: Any) -> None:
     # Отправляем сообщение
     msg = f"✅ Заказ удален"
     await callback.message.edit_text(msg, reply_markup=kb.confirmed_create_order_keyboard().as_markup())
+
+
+# СКАЧИВАНИЕ ФАЙЛОВ ЗАКАЗА
+@router.callback_query(F.data.split("|")[0] == "download_files")
+async def download_files(callback: CallbackQuery, session: Any) -> None:
+    """Отправка пользователю файлов заказа"""
+    # Удаляем предыдущее сообщение
+    try:
+        await callback.message.delete()
+    except:
+        pass
+
+    # Получаем заказ
+    order_id = int(callback.data.split("|")[1])
+    order: Order = await AsyncOrm.get_order_by_id(order_id, session)
+
+    # Отправляем файлы
+    files = [InputMediaDocument(media=file.file_id) for file in order.files]
+    try:
+        await callback.message.answer_media_group(media=files)
+    except Exception:
+        await callback.message.answer(f"{btn.INFO} Ошибка при отправке файлов. Повторите запрос позже")
+    finally:
+        # Отправляем сообщение карточки заказа
+        msg = get_order_card_message(order)
+        has_files = bool(len(order.files))
+        keyboard = kb.my_order_keyboard(order_id, has_files=has_files)
+        await callback.message.answer(msg, reply_markup=keyboard.as_markup())
 
 
 # СОЗДАНИЕ ЗАКАЗА

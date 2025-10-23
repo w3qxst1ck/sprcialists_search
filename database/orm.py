@@ -117,6 +117,38 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении роли пользователя {tg_id}: {e}")
 
     @staticmethod
+    async def get_username(tg_id: str, session: Any) -> str | None:
+        """Получение username"""
+        try:
+            username = await session.fetchval(
+                """
+                SELECT username
+                FROM users
+                WHERE tg_id = $1
+                """,
+                tg_id
+            )
+            return username
+        except Exception as e:
+            logger.error(f"Ошибка при получении username пользователя {tg_id}: {e}")
+
+    @staticmethod
+    async def update_username(tg_id: str, username: str, session: Any) -> None:
+        """Обновление username пользователя"""
+        try:
+            await session.execute(
+                """
+                UPDATE users
+                SET username = $1
+                WHERE tg_id = $2
+                """,
+                username, tg_id
+            )
+            logger.info(f"Обновлено имя пользователя tg_id {tg_id} на {username}")
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении username пользователя {tg_id}: {e}")
+
+    @staticmethod
     async def delete_user_role(tg_id: str, session: Any) -> None:
         """Удаление роли пользователя"""
         try:

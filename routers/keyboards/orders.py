@@ -39,13 +39,15 @@ def my_orders_list_keyboard(orders: List[Order]) -> InlineKeyboardBuilder:
     return keyboard
 
 
-def my_order_keyboard(order_id: int) -> InlineKeyboardBuilder:
+def my_order_keyboard(order_id: int, has_files: bool = False) -> InlineKeyboardBuilder:
     """Клавиатура для манипуляций с заказом"""
     keyboard = InlineKeyboardBuilder()
 
     # Удалить заказ
     # keyboard.row(InlineKeyboardButton(text=f"Редактировать заказ", callback_data=f"edit_order|{order_id}"))
-    keyboard.row(InlineKeyboardButton(text=f"Удалить заказ", callback_data=f"delete_order|{order_id}"))
+    keyboard.row(InlineKeyboardButton(text=f"🗑️ Удалить заказ", callback_data=f"delete_order|{order_id}"))
+    if has_files:
+        keyboard.row(InlineKeyboardButton(text=f"📎 Скачать файлы", callback_data=f"download_files|{order_id}"))
 
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="my_orders_list"))
 
