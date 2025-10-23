@@ -134,6 +134,23 @@ class AsyncOrm:
             logger.error(f"Ошибка при удалении роли пользователя {tg_id}: {e}")
 
     @staticmethod
+    async def get_username(tg_id: str, session: Any) -> str:
+        """Получение username по tg_id"""
+        try:
+            value = await session.fetchval(
+                """
+                SELECT username 
+                FROM users
+                WHERE tg_id = $1
+                """,
+                tg_id
+            )
+            return value
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении username у user {tg_id}: {e}")
+
+    @staticmethod
     async def get_professions(session: Any) -> List[Profession]:
         """Получение всех профессий"""
         try:
@@ -918,3 +935,77 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при удалении заказа id {order_id}: {e}")
+
+    @staticmethod
+    async def get_orders_by_jobs(jobs_ids: list[int], session: Any) -> list[Order]:
+        """Получение списка заказов по jobs_id"""
+        try:
+            orders = []
+
+            order_rows = await session.fetch(
+                """
+                SELECT o.id, o.title, o.task, o.price, o.requirements, o.period, o.created_at, o.client_id, o.tg_id, o.is_active 
+                FROM orders AS o
+                JOIN orders_jobs AS oj ON o.id = oj.order_id
+                WHERE oj.job_id = ANY($1::int[])
+                """,
+                jobs_ids
+            )
+
+            for order_row in order_rows:
+                # получаем jobs для заказа
+                jobs_rows = await session.fetch(
+                    """
+                    SELECT j.id, j.title, j.profession_id
+                    FROM jobs AS j
+                    JOIN orders_jobs AS oj ON j.id = oj.job_id
+                    WHERE oj.order_id = $1
+                    """,
+                    order_row["id"]
+                )
+                jobs: List[Job] = [Job.model_validate(job_row) for job_row in jobs_rows]
+
+                # Получаем profession для заказа
+                profession_row = await session.fetchrow(
+                    """
+                    SELECT * 
+                    FROM professions
+                    WHERE id = $1 
+                    """,
+                    jobs[0].profession_id
+                )
+                profession: Profession = Profession.model_validate(profession_row)
+
+                # Получаем файлы для заказа
+                files_rows = await session.fetch(
+                    """
+                        SELECT *
+                        FROM taskfiles
+                        WHERE order_id=$1
+                    """,
+                    order_row["id"]
+                )
+                files: List[TaskFile] = [TaskFile.model_validate(file_row) for file_row in files_rows]
+
+                # Модель заказа
+                order = Order(
+                    id=order_row["id"],
+                    client_id=order_row["client_id"],
+                    tg_id=order_row["tg_id"],
+                    profession=profession,
+                    jobs=jobs,
+                    title=order_row["title"],
+                    task=order_row["task"],
+                    price=order_row["price"],
+                    period=order_row["period"],
+                    requirements=order_row["requirements"],
+                    created_at=order_row["created_at"],
+                    is_active=order_row["is_active"],
+                    files=files
+                )
+                orders.append(order)
+
+            return orders
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении заказов для jobs id {jobs_ids}: {e}")

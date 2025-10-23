@@ -33,6 +33,16 @@ def get_order_card_message(order: OrderAdd) -> str:
     return msg
 
 
+def order_card_to_show(order: Order, in_favorites: bool = False) -> str:
+    """Карточка заказа для показа в ленте"""
+    msg = get_order_card_message(order)
+
+    if in_favorites:
+        msg = "<i>⭐ В избранном</i>\n\n" + msg
+
+    return msg
+
+
 def get_my_orders_list(orders: List[Order]) -> str:
     """Список размещенных заказов"""
     msg = f"📋 <b>Размещенные заказы</b>\n\n"

@@ -313,7 +313,7 @@ async def add_executor_to_favorites(message: Message, state: FSMContext, session
 
 # НАПИСАТЬ ИСПОЛНИТЕЛЮ
 @router.message(F.text == f"{btn.WRITE}", ExecutorsFeed.show)
-async def connect_with_executor(message: Message, state: FSMContext) -> None:
+async def connect_with_executor(message: Message, state: FSMContext, session: Any) -> None:
     """Связаться с исполнителем"""
     data = await state.get_data()
 
@@ -325,8 +325,10 @@ async def connect_with_executor(message: Message, state: FSMContext) -> None:
 
     # Получаем текущего исполнителя
     executor: Executor = data["current_ex"]
+    # Получаем username исполнителя для формирования ссылки
+    username: str = await AsyncOrm.get_username(executor.tg_id, session)
 
-    msg = ms.contact_with_executor(executor)
+    msg = ms.contact_with_executor(executor, username)
     keyboard = kb.contact_with_executor()
 
     functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup())

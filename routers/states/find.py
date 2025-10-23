@@ -7,3 +7,7 @@ class SelectJobs(StatesGroup):
 
 class ExecutorsFeed(StatesGroup):
     show = State()
+
+
+class OrdersFeed(StatesGroup):
+    show = State()

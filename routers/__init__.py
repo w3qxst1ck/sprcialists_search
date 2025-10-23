@@ -10,6 +10,7 @@ from routers.find_executor import router as find_executor_router
 from routers.orders import router as orders_router
 from routers.favorites import router as favorites_router
 from routers.executor_profile import router as executor_profile_router
+from routers.find_order import router as find_order_router
 
 main_router = Router()
 
@@ -22,6 +23,7 @@ main_router.include_routers(
     admin_group_router,
     main_menu_router,
     find_executor_router,
+    find_order_router,
     orders_router,
     favorites_router,
     executor_profile_router,
