@@ -15,7 +15,7 @@ async def load_photo_from_tg(message: types.Message, bot: Bot, local_file_dir: s
     filename = f"{str(message.from_user.id)}.jpg"
 
     # Определяем директорию сохранения в зависимости от роли пользователя
-    filepath = f"{settings.local_media_path}/{local_file_dir}/{filename}"
+    filepath = f"{settings.local_media_path}{local_file_dir}{filename}"
 
     try:
         # Получаем фото
