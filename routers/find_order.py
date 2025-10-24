@@ -2,7 +2,7 @@ from typing import Any
 
 from aiogram import Router, F, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, FSInputFile
+from aiogram.types import CallbackQuery, Message, FSInputFile, ReplyKeyboardRemove
 
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
@@ -12,6 +12,7 @@ from database.orm import AsyncOrm
 
 from routers.keyboards import find_order as kb
 from routers.keyboards.client_reg import to_main_menu
+from routers.menu import main_menu
 from routers.messages.orders import order_card_to_show
 from routers.states.find import SelectJobs, OrdersFeed
 from routers.buttons import buttons as btn
@@ -52,7 +53,7 @@ async def select_profession(callback: CallbackQuery, session: Any, state: FSMCon
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
-@router.callback_query(F.data.split("|")[0] == "find_cl_prof")
+@router.callback_query(F.data.split("|")[0] == "find_order_prof")
 async def select_jobs_in_profession(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
     """Выбор jobs в выбранной профессии"""
     profession_id = int(callback.data.split("|")[1])
@@ -114,6 +115,8 @@ async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: A
     orders: list[Order] = await AsyncOrm.get_orders_by_jobs(jobs_ids, session)
     is_last: bool = len(orders) == 1
 
+    print(len(orders))
+
     # Если исполнителей нет
     if not orders:
         # Очищаем стейт
@@ -152,8 +155,100 @@ async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: A
     msg = order_card_to_show(order, already_in_fav)
     keyboard = kb.order_show_keyboard(is_last)
 
-    # Получаем фото
+    # Отправляем первый стартовый заказ
     await callback.message.answer(msg, reply_markup=keyboard)
+
+
+# ПРОПУСТИТЬ
+@router.message(F.text == f"{btn.SKIP}", OrdersFeed.show)
+async def orders_feed(message: Message, state: FSMContext, session: Any) -> None:
+    """Лента заказов при нажатии кнопки пропуск"""
+    data = await state.get_data()
+    executor_tg_id = str(message.from_user.id)
+
+    # Удаляем функциональные сообщения
+    try:
+        await data["functional_mess"].delete()
+    except:
+        pass
+
+    # Получаем заказы из памяти
+    orders = data["orders"]
+    is_last: bool = len(orders) == 1
+
+    # Берем крайний
+    try:
+        order = orders.pop()
+
+    # Если больше нет заказов
+    except IndexError:
+        # Очищаем стейт
+        await state.clear()
+
+        # Отправляем сообщение с главным меню
+        await message.answer(f"{btn.INFO} Это все заказы по вашему запросу",
+                             reply_markup=ReplyKeyboardRemove())    # убираем клавиатуру ReplyKeyboard
+        await main_menu(message, session)
+        return
+
+    # Проверяем есть ли исполнитель уже в избранном
+    already_in_fav: bool = await check_is_order_in_favorites(executor_tg_id, order.id, session)
+
+    # Записываем оставшихся исполнителей обратно
+    await state.update_data(orders=orders)
+    # Записываем текущего исполнителя
+    await state.update_data(current_or=order)
+
+    msg = order_card_to_show(order, already_in_fav)
+    keyboard = kb.order_show_keyboard(is_last)
+
+    # Отправляем сообщение с заказом
+    await message.answer(msg, reply_markup=keyboard)
+
+
+# ДОБАВИТЬ В ИЗБРАННОЕ
+@router.message(F.text == f"{btn.TO_FAV}", OrdersFeed.show)
+async def add_order_to_favorites(message: Message, state: FSMContext, session: Any) -> None:
+    """Лента заказов при нажатии кнопки избранное"""
+    data = await state.get_data()
+    executor_tg_id = str(message.from_user.id)
+
+    # Удаляем функциональные сообщения
+    try:
+        await data["functional_mess"].delete()
+    except:
+        pass
+
+    # Получаем id исполнителя
+    executor_id: int = await AsyncOrm.get_executor_id(executor_tg_id, session)
+
+    # Получаем текущий заказ
+    order: Order = data["current_or"]
+    # Получаем все заказы
+    orders: list[Order] = data["orders"]
+
+    # Проверяем есть ли он уже в исполнителях
+    already_in_fav: bool = await check_is_order_in_favorites(executor_tg_id, order.id, session)
+    if already_in_fav:
+        await message.answer(f"{btn.INFO} Этот заказ уже есть у вас в списке избранных")
+        # return
+
+    else:
+        # Сохраняем заказ в избранное у исполнителя
+        try:
+            await AsyncOrm.add_order_to_favorites(executor_id, order.id, session)
+        except:
+            await message.answer(f"Ошибка при добавлении заказа в избранное, попробуйте позже")
+            return
+
+        await message.answer("Заказ сохранен в ⭐ избранное")
+
+    is_last: bool = len(orders) == 1
+    msg = order_card_to_show(order, in_favorites=True)
+    keyboard = kb.order_show_keyboard(is_last)
+
+    # Отправляем сообщение с заказом
+    await message.answer(msg, reply_markup=keyboard)
 
 
 async def check_is_order_in_favorites(executor_tg_id: str, order_id: int, session: Any) -> bool:

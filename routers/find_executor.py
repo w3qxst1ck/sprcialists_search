@@ -250,7 +250,7 @@ async def executors_feed(message: Message, state: FSMContext, session: Any) -> N
 # ДОБАВИТЬ В ИЗБРАННОЕ
 @router.message(F.text == f"{btn.TO_FAV}", ExecutorsFeed.show)
 async def add_executor_to_favorites(message: Message, state: FSMContext, session: Any) -> None:
-    """Лента исполнителей при нажатии кнопки пропуск"""
+    """Лента исполнителей при нажатии кнопки избранное"""
     data = await state.get_data()
     client_tg_id = str(message.from_user.id)
 

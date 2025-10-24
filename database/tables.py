@@ -89,6 +89,7 @@ class Executors(Base):
 
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="executors", secondary="executors_jobs")
     favorites: Mapped[list["Clients"]] = relationship(back_populates="executors", secondary="favorite_executors")
+    favorites_orders: Mapped[list["Orders"]] = relationship(back_populates="executors", secondary="favorite_orders")
 
 
 class Professions(Base):
@@ -151,6 +152,7 @@ class Orders(Base):
     client_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="orders", secondary="orders_jobs")
     files: Mapped[list["TaskFiles"]] = relationship(back_populates="order")
+    executors_fav: Mapped[list["Executors"]] = relationship(back_populates="favorite_orders", secondary="favorite_orders")
 
 
 class FavoriteExecutors(Base):
@@ -159,6 +161,14 @@ class FavoriteExecutors(Base):
 
     client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), primary_key=True)
     executor_id: Mapped[int] = mapped_column(ForeignKey("executors.id", ondelete="CASCADE"), primary_key=True)
+
+
+class FavoriteOrders(Base):
+    """Many-to-many таблица для хранения избранных заказов для исполнителей"""
+    __tablename__ = "favorite_orders"
+
+    executor_id: Mapped[int] = mapped_column(ForeignKey("executors.id", ondelete="CASCADE"), primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), primary_key=True)
 
 
 class OrdersJobs(Base):

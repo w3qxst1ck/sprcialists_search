@@ -562,14 +562,31 @@ class AsyncOrm:
         try:
             value = await session.fetchval(
                 """
-                SELECT id from clients 
+                SELECT id FROM clients 
                 WHERE tg_id = $1
                 """,
                 tg_id
             )
             return value
+
         except Exception as e:
-            logger.error(f"Ошибка при получении id пользователя по tg_id {tg_id}: {e}")
+            logger.error(f"Ошибка при получении id клиента по tg_id {tg_id}: {e}")
+
+    @staticmethod
+    async def get_executor_id(tg_id: str, session: Any) -> int:
+        """Получение id исполнителя по tg_id"""
+        try:
+            value = await session.fetchval(
+                """
+                SELECT id FROM executors 
+                WHERE tg_id = $1
+                """,
+                tg_id
+            )
+            return value
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении id исполнителя по tg_id {tg_id}: {e}")
 
     @staticmethod
     async def get_executors_by_jobs(jobs_ids: list[int], session: Any) -> list[Executor]:
@@ -1041,3 +1058,19 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении заказов для jobs id {jobs_ids}: {e}")
+
+    @staticmethod
+    async def add_order_to_favorites(executor_id: int, order_id: int, session: Any):
+        """Добавление заказа в избранное"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO favorite_orders(executor_id, order_id)
+                VALUES($1, $2)
+                """,
+                executor_id, order_id
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении заказа {order_id} для исполнителя {executor_id}: {e}")
+            raise

@@ -13,7 +13,7 @@ def professions_keyboard(professions: list[Profession]) -> InlineKeyboardBuilder
     for prof in professions:
         keyboard.row(InlineKeyboardButton(
             text=f"{prof.title}",
-            callback_data=f"find_ex_prof|{prof.id}")
+            callback_data=f"find_order_prof|{prof.id}")
         )
 
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="main_menu"))
