@@ -4,6 +4,7 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from schemas.client import RejectReason
+from routers.buttons import buttons as btn
 
 
 def confirm_registration_executor_keyboard(tg_id: str) -> InlineKeyboardBuilder:
@@ -45,5 +46,46 @@ def select_reasons_keyboard(reasons: list[RejectReason], selected_reasons: List[
     # Кнопка Подтвердить
     if selected_reasons:
         keyboard.row(InlineKeyboardButton(text="Подтвердить", callback_data=f"reject_reasons_done"))
+
+    return keyboard
+
+
+def admin_menu_keyboard() -> InlineKeyboardBuilder:
+    """Клавиатура меню админа"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text=f"💼 Добавить профессию", callback_data=f"add_profession"))
+    keyboard.row(InlineKeyboardButton(text=f"🛠️ Добавить раздел профессии", callback_data=f"add_job"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data=f"main_menu"))
+
+    return keyboard
+
+
+def back_to_main_menu_keyboard() -> InlineKeyboardBuilder:
+    """В главное меню"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data=f"main_menu"))
+
+    return keyboard
+
+
+def yes_no_keyboard() -> InlineKeyboardBuilder:
+    """Клавиатура ДА/НЕТ"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text=f"Да", callback_data=f"confirm"),
+        InlineKeyboardButton(text=f"Нет", callback_data=f"admin_cancel")
+    )
+
+    return keyboard
+
+
+def cancel_keyboard() -> InlineKeyboardBuilder:
+    """Кнопка отмены"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data=f"admin_cancel"))
 
     return keyboard

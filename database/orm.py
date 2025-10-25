@@ -11,7 +11,7 @@ from logger import logger
 from schemas.client import ClientAdd, RejectReason, Client
 from schemas.executor import ExecutorAdd, Executor
 from schemas.order import OrderAdd, Order, TaskFile
-from schemas.profession import Profession, Job
+from schemas.profession import Profession, Job, ProfessionAdd
 from schemas.user import UserAdd, User
 
 # для model_validate регистрируем возвращаемый из asyncpg.fetchrow класс Record
@@ -44,6 +44,20 @@ class AsyncOrm:
             return exists
         except Exception as e:
             logger.error(f"Ошибка при проверке регистрации пользователя {tg_id}: {e}")
+
+    @staticmethod
+    async def check_is_admin(tg_id: str, session: Any) -> bool:
+        """Проверка является ли пользователь админом"""
+        try:
+            exists = await session.fetchval(
+                """
+                SELECT EXISTS(SELECT 1 FROM users WHERE tg_id = $1 AND is_admin = true)
+                """,
+                tg_id
+            )
+            return exists
+        except Exception as e:
+            logger.error(f"Ошибка при проверке является ли пользователь {tg_id} админом: {e}")
 
     @staticmethod
     async def create_user(user: UserAdd, session: Any) -> None:
@@ -181,6 +195,23 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении username у user {tg_id}: {e}")
+
+    @staticmethod
+    async def create_profession(profession: ProfessionAdd, session: Any) -> None:
+        """Создание профессии"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO professions (title, emoji)
+                VALUES ($1, $2)
+                """,
+                profession.title, profession.emoji
+            )
+            logger.info(f"Добавлена профессия {profession.emoji} {profession.title}")
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении профессии {profession.emoji} {profession.title}: {e}")
+            raise
+
 
     @staticmethod
     async def get_professions(session: Any) -> List[Profession]:

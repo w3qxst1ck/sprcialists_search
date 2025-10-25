@@ -3,10 +3,13 @@ from typing import List
 from pydantic import BaseModel
 
 
-class Profession(BaseModel):
-    id: int
+class ProfessionAdd(BaseModel):
     title: str
     emoji: str | None = None
+
+
+class Profession(ProfessionAdd):
+    id: int
 
 
 class Job(BaseModel):
