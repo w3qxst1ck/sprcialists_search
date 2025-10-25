@@ -3,7 +3,7 @@ from typing import Any
 from aiogram import Router, F
 from aiogram.filters import or_f
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, InputMediaDocument
 
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
@@ -181,4 +181,30 @@ async def send_order_card(orders: list[Order], current_index: int, message: Call
 
     await state.update_data(prev_mess=prev_mess)
 
+
+@router.callback_query(F.data.split("|")[0] == "files_for_order")
+async def download_files(callback: CallbackQuery, session: Any) -> None:
+    """Отправка пользователю файлов заказа"""
+    # Удаляем предыдущее сообщение
+    # try:
+    #     await callback.message.delete()
+    # except:
+    #     pass
+
+    # Получаем заказ
+    order_id = int(callback.data.split("|")[1])
+    order: Order = await AsyncOrm.get_order_by_id(order_id, session)
+
+    # Отправляем файлы
+    files = [InputMediaDocument(media=file.file_id) for file in order.files]
+    try:
+        await callback.message.answer_media_group(media=files)
+    except Exception:
+        await callback.message.answer(f"{btn.INFO} Ошибка при отправке файлов. Повторите запрос позже")
+    # finally:
+    #     # Отправляем сообщение карточки заказа
+    #     msg = get_order_card_message(order)
+    #     has_files = bool(len(order.files))
+    #     keyboard = kb.my_order_keyboard(order_id, has_files=has_files)
+    #     await callback.message.answer(msg, reply_markup=keyboard.as_markup())
 

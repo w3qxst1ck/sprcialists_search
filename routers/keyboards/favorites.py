@@ -42,7 +42,7 @@ def favorites_orders_keyboard(orders: list[Order], current_index: int) -> Inline
     """Клавиатура для вывода избранных заказов"""
     keyboard = InlineKeyboardBuilder()
 
-    # Получаем текущего исполнителя
+    # Получаем текущий заказ
     order = orders[current_index]
 
     keyboard.row(
@@ -53,6 +53,10 @@ def favorites_orders_keyboard(orders: list[Order], current_index: int) -> Inline
 
     keyboard.row()
     keyboard.adjust(3)
+
+    # Кнопка скачать файлы, если они есть
+    if order.files:
+        keyboard.row(InlineKeyboardButton(text=f"📎 Скачать файлы", callback_data=f"files_for_order|{order.id}"))
 
     # Добавляем кнопку назад
     keyboard.row(InlineKeyboardButton(text=f"Удалить ⭐", callback_data=f"delete_fav_order|{order.id}"))
