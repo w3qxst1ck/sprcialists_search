@@ -1074,3 +1074,21 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при добавлении заказа {order_id} для исполнителя {executor_id}: {e}")
             raise
+
+    @staticmethod
+    async def is_order_already_in_favorites(executor_tg_id: str, order_id: int, session: Any) -> bool:
+        """True если заказ уже есть в избранном у исполнителя, иначе false"""
+        try:
+            query = await session.fetchrow(
+                """
+                SELECT FROM favorite_orders AS fav_or
+                JOIN executors AS ex ON fav_or.executor_id  = ex.id
+                WHERE ex.tg_id = $1 AND fav_or.order_id = $2
+                """,
+                executor_tg_id, order_id
+            )
+            return query is not None
+
+        except Exception as e:
+            logger.error(f"Ошибка при проверке заказа  {order_id} в избранном  для исполнителя {executor_tg_id}: {e}")
+            raise

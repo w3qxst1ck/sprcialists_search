@@ -1,8 +1,8 @@
 from typing import Any
 
-from aiogram import Router, F, Bot
+from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, FSInputFile, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
@@ -13,15 +13,15 @@ from database.orm import AsyncOrm
 from routers.keyboards import find_order as kb
 from routers.keyboards.client_reg import to_main_menu
 from routers.menu import main_menu
+from routers.messages.find_executor import contact_with_client
 from routers.messages.orders import order_card_to_show
 from routers.states.find import SelectJobs, OrdersFeed
 from routers.buttons import buttons as btn
+from schemas.client import Client
 from schemas.order import Order
 from schemas.profession import Profession, Job
 from utils.shuffle import shuffle_orders
 
-from settings import settings
-from logger import logger
 
 router = Router()
 
@@ -115,9 +115,7 @@ async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: A
     orders: list[Order] = await AsyncOrm.get_orders_by_jobs(jobs_ids, session)
     is_last: bool = len(orders) == 1
 
-    print(len(orders))
-
-    # Если исполнителей нет
+    # Если заказов нет
     if not orders:
         # Очищаем стейт
         await state.clear()
@@ -251,6 +249,59 @@ async def add_order_to_favorites(message: Message, state: FSMContext, session: A
     await message.answer(msg, reply_markup=keyboard)
 
 
+# НАПИСАТЬ ЗАКАЗЧИКУ
+@router.message(F.text == f"{btn.WRITE}", OrdersFeed.show)
+async def connect_with_client(message: Message, state: FSMContext, session: Any) -> None:
+    """Связаться с заказчиком"""
+    data = await state.get_data()
+
+    # Удаляем функциональные сообщения
+    try:
+        await data["functional_mess"].delete()
+    except:
+        pass
+
+    # Получаем текущий заказ
+    order: Order = data["current_or"]
+    # Получаем username заказчика для формирования ссылки
+    tg_username: str = await AsyncOrm.get_username(order.tg_id, session)
+    client: Client = await AsyncOrm.get_client(order.tg_id, session)
+
+    msg = contact_with_client(tg_username, client)
+    keyboard = kb.contact_with_client()
+
+    functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup())
+    await state.update_data(functional_mess=functional_mess)
+
+
+# ВОЗВРАЩЕНИЕ ИЗ РАЗНЫХ ТОЧЕК В ЛЕНТУ ЗАКАЗОВ
+@router.callback_query(F.data == "back_to_orders_feed", OrdersFeed.show)
+async def back_to_orders_feed(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Для возвращения в ленту из ответвлений"""
+    data = await state.get_data()
+    executor_tg_id: str = str(callback.from_user.id)
+
+    # Удаляем предыдущее сообщение
+    try:
+        await data["functional_mess"].delete()
+    except:
+        pass
+
+    # Получаем текущего исполнителя
+    order: Order = data["current_or"]
+
+    # Получаем исполнителей из памяти
+    orders: list[Order] = data["orders"]
+    is_last: bool = len(orders) == 1
+    already_in_fav = await check_is_order_in_favorites(executor_tg_id, order.id, session)
+
+    msg = order_card_to_show(order, already_in_fav)
+    keyboard = kb.order_show_keyboard(is_last)
+
+    await callback.message.answer(msg, reply_markup=keyboard)
+
+
 async def check_is_order_in_favorites(executor_tg_id: str, order_id: int, session: Any) -> bool:
     """Возвращает true если заказ есть в избранных исполнителя, иначе false"""
-    return False # TODO DEV VERSION
+    already_in_fav: bool = await AsyncOrm.is_order_already_in_favorites(executor_tg_id, order_id, session)
+    return already_in_fav

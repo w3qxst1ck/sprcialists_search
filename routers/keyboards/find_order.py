@@ -60,3 +60,11 @@ def order_show_keyboard(is_last: bool) -> ReplyKeyboardMarkup:
         keyboard.one_time_keyboard = True   # Скрывает клавиатуру после использования
 
     return keyboard
+
+
+def contact_with_client() -> InlineKeyboardBuilder:
+    """Клавиатура для связи с заказчиком"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="back_to_orders_feed"))
+    return keyboard
