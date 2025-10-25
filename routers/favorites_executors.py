@@ -131,7 +131,7 @@ async def delete_from_favorite(callback: CallbackQuery, state: FSMContext, sessi
     try:
         await AsyncOrm.delete_executor_from_favorites(client_tg_id, executor_id, session)
     except:
-        await callback.message.answer("Ошибка при удалении исполнителя из избранных, попробуйте еще раз позже")
+        await callback.message.answer(f"{btn.INFO} Ошибка при удалении исполнителя из избранных, попробуйте еще раз позже")
         return
 
     prev_mess = await callback.message.answer(f"{btn.SUCCESS} Исполнитель удален из избранных")

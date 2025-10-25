@@ -15,7 +15,6 @@ def main_menu(user_role: str, is_admin: bool = False) -> InlineKeyboardBuilder:
     if user_role == UserRoles.CLIENT.value:
         keyboard.row(InlineKeyboardButton(text=f"{btn.FIND_EX}", callback_data=f"main_menu|find_executor"))
         keyboard.row(InlineKeyboardButton(text=f"{btn.MY_ORDERS}", callback_data=f"main_menu|my_orders"))
-        keyboard.row(InlineKeyboardButton(text=f"{btn.PROFILE}", callback_data=f"main_menu|client_profile"))
         keyboard.row(InlineKeyboardButton(text=f"{btn.FAVORITE}", callback_data=f"main_menu|client_favorites"))
 
         keyboard.adjust(2)
