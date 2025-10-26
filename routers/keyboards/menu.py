@@ -7,7 +7,7 @@ from routers.buttons import buttons
 from settings import settings
 
 
-def main_menu(user_role: str) -> InlineKeyboardBuilder:
+def main_menu(user_role: str, is_admin: bool = False) -> InlineKeyboardBuilder:
     """Клавиатура с главным меню"""
     keyboard = InlineKeyboardBuilder()
 
@@ -26,5 +26,8 @@ def main_menu(user_role: str) -> InlineKeyboardBuilder:
         keyboard.row(InlineKeyboardButton(text=f"{btn.FAVORITE}", callback_data=f"main_menu|executor_favorites"))
 
         keyboard.adjust(2)
+
+    if is_admin:
+        keyboard.row(InlineKeyboardButton(text=f"{btn.ADMIN}", callback_data=f"main_menu|admin_menu"))
 
     return keyboard

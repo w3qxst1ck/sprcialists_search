@@ -79,9 +79,12 @@ async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMCo
                 await message.message.edit_text(msg)
             return
 
+    # Проверяем админ или нет
+    is_admin: bool = await AsyncOrm.check_is_admin(tg_id, session)
+
     # Формируем сообщение
     msg = ms.get_menu_message(user_role)
-    keyboard = kb.main_menu(user_role)
+    keyboard = kb.main_menu(user_role, is_admin)
 
     # Загружаем картину для главного меню
     try:

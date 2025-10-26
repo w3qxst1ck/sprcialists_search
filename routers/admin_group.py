@@ -9,13 +9,12 @@ from logger import logger
 
 from middlewares.database import DatabaseMiddleware
 from middlewares.admin import AdminMiddleware
-from middlewares.private import CheckPrivateMessageMiddleware, CheckGroupMessageMiddleware
+from middlewares.private import CheckGroupMessageMiddleware
 from routers.keyboards.client_reg import to_main_menu
 from routers.states.registration import Reject
 from schemas.executor import RejectReason
 from routers.keyboards import admin as kb
 from settings import settings
-from routers.keyboards.menu import main_menu
 
 # Роутер для использования в группе
 group_router = Router()
