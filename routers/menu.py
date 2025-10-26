@@ -76,6 +76,7 @@ async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMCo
             if isinstance(message, Message):
                 await message.answer(msg)
             else:
+                await message.answer()
                 await message.message.edit_text(msg)
             return
 
@@ -95,6 +96,7 @@ async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMCo
         else:
             try:
                 # await message.message.answer_photo(photo=menu_image, caption=msg, reply_markup=keyboard.as_markup())
+                await message.answer()
                 await message.message.edit_text(msg, reply_markup=keyboard.as_markup())
             # В случаем если не получилось отредактировать callback (например он был с фото), просто отвечаем
             except:
