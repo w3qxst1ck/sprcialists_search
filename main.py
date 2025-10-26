@@ -59,7 +59,7 @@ async def start_bot() -> None:
     # dp.callback_query.middleware(AdminMiddleware())
 
     # TODO create tables DEV
-    await AsyncOrm.create_tables()
+    # await AsyncOrm.create_tables()
 
     await dp.start_polling(bot)
 
