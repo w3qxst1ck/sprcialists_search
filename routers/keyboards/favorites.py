@@ -25,7 +25,8 @@ def favorites_executor_keyboard(executors: list[Executor], current_index: int) -
     keyboard.adjust(3)
 
     # Добавляем кнопку назад
-    keyboard.row(InlineKeyboardButton(text=f"Удалить ⭐", callback_data=f"delete_fav|{executor.id}"))
+    keyboard.row(InlineKeyboardButton(text=f"👍 Написать", callback_data=f"write_fav_ex|{executor.id}"))
+    keyboard.row(InlineKeyboardButton(text=f"⭐ Удалить", callback_data=f"delete_fav|{executor.id}"))
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="back_from_favorites_feed"))
 
     return keyboard
@@ -35,6 +36,14 @@ def back_keyboard() -> InlineKeyboardBuilder:
     """Клавиатура назад"""
     keyboard = InlineKeyboardBuilder()
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="main_menu"))
+    return keyboard
+
+
+def back_to_feed_keyboard() -> InlineKeyboardBuilder:
+    """Назад в ленту избранных"""
+    keyboard = InlineKeyboardBuilder()
+    keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="back_to_fav_feed"))
+
     return keyboard
 
 
@@ -55,7 +64,8 @@ def favorites_orders_keyboard(orders: list[Order], current_index: int) -> Inline
     keyboard.adjust(3)
 
     # Добавляем кнопку назад
-    keyboard.row(InlineKeyboardButton(text=f"Удалить ⭐", callback_data=f"delete_fav_order|{order.id}"))
+    keyboard.row(InlineKeyboardButton(text=f"👍 Написать", callback_data=f"write_fav_order|{order.id}"))
+    keyboard.row(InlineKeyboardButton(text=f"⭐ Удалить", callback_data=f"delete_fav_order|{order.id}"))
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="main_menu"))
 
     return keyboard

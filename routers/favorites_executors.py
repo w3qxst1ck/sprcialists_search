@@ -16,6 +16,7 @@ from routers.keyboards import favorites as kb
 from routers.keyboards.client_reg import to_main_menu
 from routers.menu import main_menu
 from routers.messages.executor import executor_profile_to_show
+from routers.messages.find_executor import contact_with_executor
 from routers.states.favorites import FavoriteExecutors
 
 from schemas.executor import Executor
@@ -94,6 +95,47 @@ async def show_executor(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(current_index=current_index)
     # Отправляем сообщение
     await send_executor_profile(executors, current_index, prev_mess, state)
+
+
+@router.callback_query(F.data.split("|")[0] == "write_fav_ex", FavoriteExecutors.feed)
+async def write_to_fav_executor(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
+    data = await state.get_data()
+
+    # Получаем данные для формирования сообщения
+    current_index = data["current_index"]
+    executors = data["executors"]
+    executor = executors[current_index]
+
+    ex_username = await AsyncOrm.get_username(executor.tg_id, session)
+
+    ms = contact_with_executor(executor, ex_username)
+    keyboard = kb.back_to_feed_keyboard()
+
+    # Удаляем предыдудщее сообщение
+    try:
+        await data["prev_mess"].delete()
+    except Exception as e:
+        print(e)
+
+    prev_mess = await callback.message.answer(ms, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
+
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data == "back_to_fav_feed", FavoriteExecutors.feed)
+async def back_to_favorites_feed(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Возвращение в ленту избранных"""
+    data = await state.get_data()
+
+    executors = data["executors"]
+    current_index = data["current_index"]
+
+    try:
+        await data["prev_mess"].delete()
+    except:
+        pass
+
+    await send_executor_profile(executors, current_index, callback, state, is_first=True)
 
 
 @router.callback_query(F.data == "back_from_favorites_feed", FavoriteExecutors.feed)

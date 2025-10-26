@@ -13,8 +13,10 @@ from database.orm import AsyncOrm
 
 from routers.buttons import buttons as btn
 from routers.keyboards import favorites as kb
+from routers.messages.find_executor import contact_with_client
 from routers.messages.orders import order_card_to_show
 from routers.states.favorites import FavoriteOrders
+from schemas.client import Client
 from schemas.executor import Executor
 from schemas.order import Order
 
@@ -71,6 +73,7 @@ async def favorites_orders(callback: CallbackQuery, session: Any, state: FSMCont
     await send_order_card(orders, current_index, callback, state, is_first=True)
 
 
+# Для листания вправо, влево
 @router.callback_query(or_f(F.data == "prev", F.data == "next"), FavoriteOrders.feed)
 async def show_order(callback: CallbackQuery, state: FSMContext) -> None:
     """Показывает следующий или предыдущий заказ"""
@@ -101,6 +104,25 @@ async def show_order(callback: CallbackQuery, state: FSMContext) -> None:
     await send_order_card(orders, current_index, prev_mess, state)
 
 
+# Написать заказчику
+@router.callback_query(F.data.split("|")[0] == "write_fav_order", FavoriteOrders.feed)
+async def write_to_client_from_favorite(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Написать заказчику из избранного"""
+    data = await state.get_data()
+
+    orders: list[Order] = data["orders"]
+    order: Order = orders[data["current_index"]]
+
+    client_username: str = await AsyncOrm.get_username(order.tg_id, session)
+    client: Client = await AsyncOrm.get_client(order.tg_id, session)
+
+    ms = contact_with_client(client_username, client)
+    keyboard = kb.back_to_feed_keyboard()
+
+    await callback.message.edit_text(ms, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
+
+
+# Удалить из избранного
 @router.callback_query(F.data.split("|")[0] == "delete_fav_order", FavoriteOrders.feed)
 async def delete_from_favorite(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Удаление заказа из списка избранных у исполнителя"""
@@ -142,6 +164,19 @@ async def delete_from_favorite(callback: CallbackQuery, state: FSMContext, sessi
     await send_order_card(orders, current_index, prev_mess, state, is_first=True)
 
 
+# Для отлавливания кнопок назад и отправки текущей ленты
+@router.callback_query(F.data == "back_to_fav_feed", FavoriteOrders.feed)
+async def back_to_current_feed(callback: CallbackQuery, state: FSMContext) -> None:
+    """Выводим текущий заказ в ленте"""
+    data = await state.get_data()
+
+    orders: list[Order] = data["orders"]
+    current_index = data["current_index"]
+
+    await send_order_card(orders, current_index, callback, state)
+
+
+# Универсальная отправка карточки заказа
 async def send_order_card(orders: list[Order], current_index: int, message: CallbackQuery | Message,
                           state: FSMContext, is_first: bool = False) -> None:
     """Отправка сообщения с карточкой заказа"""
