@@ -143,6 +143,7 @@ async def get_profession(callback: CallbackQuery, session: Any, state: FSMContex
     # Отправляем сообщение
     msg = "Выберите специализации из списка (до 5 штук)"
     keyboard = kb.jobs_keyboard(jobs, selected_jobs)
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
@@ -172,6 +173,7 @@ async def get_jobs_multiselect(callback: CallbackQuery, state: FSMContext) -> No
     # Отправляем сообщение
     msg = "Выберите специализации из списка (до 5 штук)"
     keyboard = kb.jobs_keyboard(all_jobs, selected_jobs)
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
@@ -191,11 +193,13 @@ async def get_jobs(callback: CallbackQuery, state: FSMContext, session: Any) -> 
         await AsyncOrm.update_profession(tg_id, jobs_ids, session)
     except:
         msg = f"{btn.INFO} Ошибка при изменении профессий. Повторите запрос позже"
+        await callback.answer()
         await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
         return
 
     # Отправляем сообщение
     msg = f"✅ Профессии успешно изменены"
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
 
@@ -445,11 +449,13 @@ async def skip_contacts(callback: CallbackQuery, session: Any, state: FSMContext
         await AsyncOrm.update_contacts(tg_id, None, session)
     except:
         msg = f"{btn.INFO} Ошибка при изменении контактной информации. Повторите запрос позже"
+        await callback.answer()
         await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
         return
 
     # Отправляем сообщение
     msg = "✅ Контактная информация успешно изменена"
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
 
@@ -521,11 +527,13 @@ async def skip_location(callback: CallbackQuery, session: Any, state: FSMContext
         await AsyncOrm.update_location(tg_id, None, session)
     except:
         msg = f"{btn.INFO} Ошибка при изменении города. Повторите запрос позже"
+        await callback.answer()
         await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
         return
 
     # Отправляем сообщение
     msg = "✅ Город успешно изменен"
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
 
@@ -624,11 +632,13 @@ async def get_links(callback: CallbackQuery, state: FSMContext, session: Any) ->
         await AsyncOrm.update_links(tg_id, links, session)
     except:
         msg = f"{btn.INFO} Ошибка при изменении ссылок на портфолио. Повторите запрос позже"
+        await callback.answer()
         await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
         return
 
     # Отправляем сообщение
     msg = "✅ Ссылки на портфолио успешно изменены"
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
 
@@ -639,6 +649,7 @@ async def cancel_upload_cv(callback: CallbackQuery, state: FSMContext, session: 
     await state.clear()
 
     try:
+        await callback.answer()
         await callback.message.edit_text(callback.message.text)
     except Exception:
         pass

@@ -44,6 +44,7 @@ async def executor_profile_menu(callback: CallbackQuery, session: Any) -> None:
     """Меню профиля исполнителя"""
     # Wait message со случаем возвращения от файла
     try:
+        await callback.answer()
         wait_msg = await callback.message.edit_text(WAIT_MSG)
     except:
         try:
@@ -211,6 +212,7 @@ async def cancel_upload_cv(callback: CallbackQuery, state: FSMContext, session: 
     await state.clear()
 
     try:
+        await callback.answer()
         await callback.message.edit_text(callback.message.text)
     except Exception:
         pass

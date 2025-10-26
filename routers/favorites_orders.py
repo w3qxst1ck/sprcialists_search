@@ -37,6 +37,7 @@ router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
 async def favorites_orders(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
     """Выводит избранные заказы для исполнителя"""
     # Отправляем сообщение об ожидании
+    await callback.answer()
     wait_mess = await callback.message.edit_text(f"{btn.WAIT_MSG}")
 
     executor_tg_id = str(callback.from_user.id)
@@ -119,6 +120,7 @@ async def write_to_client_from_favorite(callback: CallbackQuery, state: FSMConte
     ms = contact_with_client(client_username, client)
     keyboard = kb.back_to_feed_keyboard()
 
+    await callback.answer()
     await callback.message.edit_text(ms, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
 
 
@@ -192,6 +194,7 @@ async def send_order_card(orders: list[Order], current_index: int, message: Call
             except:
                 await message.answer(msg, reply_markup=keyboard.as_markup())
         else:
+            await message.answer()
             await message.message.edit_text(msg, reply_markup=keyboard.as_markup())
         return
 
@@ -212,6 +215,7 @@ async def send_order_card(orders: list[Order], current_index: int, message: Call
         if isinstance(message, Message):
             prev_mess = await message.edit_text(msg, reply_markup=keyboard.as_markup())
         else:
+            await message.answer()
             prev_mess = await message.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
     await state.update_data(prev_mess=prev_mess)
@@ -237,9 +241,6 @@ async def download_files(callback: CallbackQuery, session: Any) -> None:
     except Exception:
         await callback.message.answer(f"{btn.INFO} Ошибка при отправке файлов. Повторите запрос позже")
     # finally:
-    #     # Отправляем сообщение карточки заказа
-    #     msg = get_order_card_message(order)
-    #     has_files = bool(len(order.files))
-    #     keyboard = kb.my_order_keyboard(order_id, has_files=has_files)
-    #     await callback.message.answer(msg, reply_markup=keyboard.as_markup())
+    #     TODO
+    #     send_order_card
 

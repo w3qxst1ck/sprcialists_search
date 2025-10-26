@@ -42,6 +42,7 @@ async def start_registration(callback: types.CallbackQuery, session: Any, state:
     if role:
         role_text = settings.roles[role]
         msg = f"У вас уже выбрана роль {role_text}"
+        await callback.answer()
         await callback.message.edit_text(msg)
         return
 
@@ -58,6 +59,7 @@ async def start_registration(callback: types.CallbackQuery, session: Any, state:
             # Переводим в str
             allowed_date_text, allowed_time_text = convert_date_and_time_to_str(allowed_date, with_tz=True)
             msg = f"Повторная регистрация будет доступна после {allowed_date_text} {allowed_time_text} (МСК)"
+            await callback.answer()
             await callback.message.edit_text(msg)
             return
 
@@ -69,6 +71,7 @@ async def start_registration(callback: types.CallbackQuery, session: Any, state:
 
     # Отправляем сообщение
     msg = "Отправьте Имя/псевдоним, который будут видеть клиенты"
+    await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -209,6 +212,7 @@ async def get_profession(callback: types.CallbackQuery, session: Any, state: FSM
     # Отправляем сообщение
     msg = "Выберите специализации из списка (до 5 штук)"
     keyboard = kb.jobs_keyboard(jobs, selected_jobs)
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
@@ -238,6 +242,7 @@ async def get_jobs_multiselect(callback: types.CallbackQuery, state: FSMContext)
     # Отправляем сообщение
     msg = "Выберите специализации из списка (до 5 штук)"
     keyboard = kb.jobs_keyboard(all_jobs, selected_jobs)
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
@@ -249,6 +254,7 @@ async def get_jobs(callback: types.CallbackQuery, state: FSMContext) -> None:
 
     # Отправляем сообщение
     msg = "Отправьте информацию о себе (не более 500 символов)"
+    await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем сообщение
@@ -429,6 +435,7 @@ async def get_links(callback: types.CallbackQuery, state: FSMContext) -> None:
     # Отправляем сообщение
     msg = "Отправьте контакт для связи (например телефон: 8-999-888-77-66)\n\n" \
           "❗<b>Важно</b>: указанные контакты будут видны другим пользователям сервиса"
+    await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
     # Сохраняем последнее сообщение
@@ -475,6 +482,7 @@ async def get_contacts(message: types.Message | types.CallbackQuery, state: FSMC
 
     # С пропуском контактов
     else:
+        await message.answer()
         prev_mess = await message.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
     # Сохраняем сообщение
@@ -511,6 +519,7 @@ async def get_location(message: types.Message | types.CallbackQuery, state: FSMC
 
     # Если город пропущен
     else:
+        await message.answer()
         wait_msg = await message.message.edit_text(WAIT_MSG)
 
     # Меняем стейт
@@ -620,6 +629,7 @@ async def cancel_registration(callback: types.CallbackQuery, state: FSMContext) 
     msg = f"Нажмите /{cmd.START[0]}, чтобы начать регистрацию заново"
 
     try:
+        await callback.answer()
         await callback.message.edit_text(msg)
     except Exception:
         await callback.message.delete()

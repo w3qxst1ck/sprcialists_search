@@ -2,7 +2,7 @@ from typing import Any
 
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, InputMediaDocument
 
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
@@ -159,6 +159,14 @@ async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: A
     # Отправляем первый стартовый заказ
     await callback.message.answer(msg, reply_markup=keyboard)
 
+    # Если есть файлы отправляем их после заказа
+    if order.files:
+        files = [InputMediaDocument(media=file.file_id) for file in order.files]
+        try:
+            await callback.message.answer_media_group(media=files)
+        except:
+            pass
+
 
 # ПРОПУСТИТЬ
 @router.message(F.text == f"{btn.SKIP}", OrdersFeed.show)
@@ -206,6 +214,14 @@ async def orders_feed(message: Message, state: FSMContext, session: Any) -> None
     # Отправляем сообщение с заказом
     await message.answer(msg, reply_markup=keyboard)
 
+    # Если есть файлы отправляем их после заказа
+    if order.files:
+        files = [InputMediaDocument(media=file.file_id) for file in order.files]
+        try:
+            await message.answer_media_group(media=files)
+        except:
+            pass
+
 
 # ДОБАВИТЬ В ИЗБРАННОЕ
 @router.message(F.text == f"{btn.TO_FAV}", OrdersFeed.show)
@@ -250,6 +266,14 @@ async def add_order_to_favorites(message: Message, state: FSMContext, session: A
 
     # Отправляем сообщение с заказом
     await message.answer(msg, reply_markup=keyboard)
+
+    # Если есть файлы отправляем их после заказа
+    if order.files:
+        files = [InputMediaDocument(media=file.file_id) for file in order.files]
+        try:
+            await message.answer_media_group(media=files)
+        except:
+            pass
 
 
 # НАПИСАТЬ ЗАКАЗЧИКУ
@@ -302,6 +326,14 @@ async def back_to_orders_feed(callback: CallbackQuery, state: FSMContext, sessio
     keyboard = kb.order_show_keyboard(is_last)
 
     await callback.message.answer(msg, reply_markup=keyboard)
+
+    # Если есть файлы отправляем их после заказа
+    if order.files:
+        files = [InputMediaDocument(media=file.file_id) for file in order.files]
+        try:
+            await callback.message.answer_media_group(media=files)
+        except:
+            pass
 
 
 async def check_is_order_in_favorites(executor_tg_id: str, order_id: int, session: Any) -> bool:

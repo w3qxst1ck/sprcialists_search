@@ -97,6 +97,7 @@ async def pick_jobs(callback: CallbackQuery, state: FSMContext) -> None:
     msg = f"Выберите подкатегории для поиска"
     keyboard = kb.jobs_keyboard(jobs, selected)
 
+    await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
     # Обновляем данные с выбранными jobs

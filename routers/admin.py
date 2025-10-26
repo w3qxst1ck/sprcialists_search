@@ -30,12 +30,14 @@ async def admin_menu(callback: CallbackQuery, admin: bool) -> None:
     # Проверка админ ли
     if not admin:
         keyboard = kb.back_to_main_menu_keyboard()
+        await callback.answer()
         await callback.message.edit_text(f"{btn.INFO} Данный функционал доступен только для администраторов", reply_markup=keyboard.as_markup())
         return
 
     # Отправка сообщения
     keyboard = kb.admin_menu_keyboard()
     msg = f"{btn.ADMIN}"
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
@@ -48,6 +50,7 @@ async def add_profession_start(callback: CallbackQuery, state: FSMContext) -> No
 
     # Отправляем сообщение
     msg = "Отправьте название профессии"
+    await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
     await state.update_data(prev_mess=prev_mess)
 
@@ -141,10 +144,12 @@ async def add_profession_confirmed(callback: CallbackQuery, session: Any, state:
     try:
         await AsyncOrm.create_profession(profession, session)
     except:
+        await callback.answer()
         await callback.message.edit_text(f"{btn.INFO} Ошибка при сохранении профессии. Повторите запрос позже")
         return
 
     msg = f"✅ Профессия {profession.emoji} {profession.title} успешно добавлена"
+    await callback.answer()
     await callback.message.edit_text(msg)
     await callback.message.answer(f"{btn.ADMIN}", reply_markup=kb.admin_menu_keyboard().as_markup())
 

@@ -53,6 +53,7 @@ async def my_orders_menu(callback: CallbackQuery, session: Any, state: FSMContex
 
     # Сообщение
     msg = f"{btn.MY_ORDERS}"
+    await callback.answer()
     await wait_msg.edit_text(msg, reply_markup=kb.orders_menu(bool(len(orders))).as_markup())
 
 
@@ -69,6 +70,7 @@ async def my_orders_list(callback: CallbackQuery, session: Any) -> None:
 
     msg = get_my_orders_list(orders)
     keyboard = kb.my_orders_list_keyboard(orders)
+    await callback.answer()
     await wait_msg.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
@@ -83,6 +85,7 @@ async def my_order(callback: CallbackQuery, session: Any) -> None:
     msg = get_order_card_message(order)
     has_files = bool(len(order.files))
     keyboard = kb.my_order_keyboard(order_id, has_files=has_files)
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
@@ -96,6 +99,7 @@ async def delete_order(callback: CallbackQuery, session: Any) -> None:
 
     # Отправляем сообщение
     msg = f"Удалить заказ <b>\"{order.title}\"</b>?"
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.delete_order_confirm_keyboard(order_id).as_markup())
 
 
@@ -110,6 +114,7 @@ async def delete_order_confirmed(callback: CallbackQuery, session: Any) -> None:
 
     # Отправляем сообщение
     msg = f"✅ Заказ удален"
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.confirmed_create_order_keyboard().as_markup())
 
 
@@ -154,6 +159,7 @@ async def create_order_start(callback: CallbackQuery, state: FSMContext, session
     # Отправляем сообщение
     msg = "Выберите раздел для создания заказа"
     keyboard = kb.profession_keyboard(professions)
+    await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
     # Сохраняем сообщение
@@ -180,6 +186,7 @@ async def get_profession(callback: CallbackQuery, state: FSMContext, session: An
     # Запрашиваем jobs
     msg = "Выберите подкатегории для создания заказа (до 3 штук)"
     keyboard = kb.select_jobs_keyboard(jobs, [])
+    await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
     # Сохраняем сообщение
@@ -212,6 +219,7 @@ async def get_jobs_multiselect(callback: CallbackQuery, session: Any, state: FSM
     # Отправляем сообщение
     msg = callback.message.text
     keyboard = kb.select_jobs_keyboard(all_jobs, selected_jobs)
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
@@ -223,6 +231,7 @@ async def get_jobs(callback: CallbackQuery, state: FSMContext) -> None:
 
     # Запрашиваем название
     msg = "Отправьте название (заголовок) заказа"
+    await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем сообщение
@@ -351,6 +360,7 @@ async def get_price(message: Message | CallbackQuery, state: FSMContext) -> None
         prev_mess = await message.answer(msg, reply_markup=calendar.as_markup())
     # С пропуском цены
     else:
+        await message.answer()
         prev_mess = await message.message.edit_text(msg, reply_markup=calendar.as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -376,6 +386,7 @@ async def action_calendar(callback: CallbackQuery, state: FSMContext) -> None:
     # Меняем клавиатуру
     text = callback.message.text
     calendar = kb.calendar_keyboard(year, month, dates_data, need_prev_month=need_prev_month)
+    await callback.answer()
     prev_mess = await callback.message.edit_text(text, reply_markup=calendar.as_markup())
     await state.update_data(prev_mess=prev_mess)
 
@@ -422,6 +433,7 @@ async def get_deadline(callback: CallbackQuery, state: FSMContext) -> None:
 
     # Отправляем сообщение
     msg = "При необходимости отправьте <b>отдельными сообщениями</b> файлы (например с более подробным описанием ТЗ к задаче) или нажмите \"Пропустить\""
+    await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
     # Сохраняем сообщение
@@ -508,6 +520,7 @@ async def get_files(callback: CallbackQuery, state: FSMContext) -> None:
 
     # Отправляем сообщение
     msg = "Отправьте сообщение особые требования к задаче или нажмите \"Пропустить\""
+    await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
     # Сохраняем сообщение
@@ -545,6 +558,7 @@ async def get_requirements(message: Message | CallbackQuery, state: FSMContext, 
     if type(message) == Message:
         wait_msg = await message.answer(WAIT_MSG)
     else:
+        await message.answer()
         wait_msg = await message.message.edit_text(WAIT_MSG)
 
     # Получаем дату
@@ -609,11 +623,13 @@ async def confirm_create_order(callback: CallbackQuery, state: FSMContext, sessi
         await AsyncOrm.create_order(data["order"], session)
     except Exception:
         msg = f"{btn.INFO} Ошибка при размещении заказа. Повторите попытку позже"
+        await callback.answer()
         await callback.message.edit_text(msg, reply_markup=kb.confirmed_create_order_keyboard().as_markup())
         return
 
     # Отправляем сообщение пользователю
     msg = "✅ Ваш заказ успешно размещен. Теперь его будут видеть исполнители"
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.confirmed_create_order_keyboard().as_markup())
 
 
