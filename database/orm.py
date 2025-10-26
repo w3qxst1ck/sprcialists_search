@@ -212,6 +212,44 @@ class AsyncOrm:
             logger.error(f"Ошибка при добавлении профессии {profession.emoji} {profession.title}: {e}")
             raise
 
+    @staticmethod
+    async def update_profession(tg_id: str, jobs_ids: List[int], session: Any) -> None:
+        """Изменение профессии и jobs у исполнителя"""
+        try:
+            async with session.transaction():
+                # Получаем executor_id
+                executor_id = await session.fetchval(
+                    """
+                    SELECT id
+                    FROM executors
+                    WHERE tg_id = $1
+                    """,
+                    tg_id
+                )
+
+                # Удаление старых записей из executor_jobs
+                await session.execute(
+                    """
+                    DELETE FROM executors_jobs
+                    WHERE executor_id = $1
+                    """,
+                    executor_id
+                )
+
+                # Создание связи ExecutorsJobs
+                for job_id in jobs_ids:
+                    await session.execute(
+                        """
+                        INSERT INTO executors_jobs (job_id, executor_id)
+                        VALUES ($1, $2)
+                        """,
+                        job_id, executor_id
+                    )
+                logger.info(f"Профессии исполнителя tg_id {tg_id} изменены на {jobs_ids}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении профессий исполнителя tg_id {tg_id}: {e}")
+            raise
 
     @staticmethod
     async def get_professions(session: Any) -> List[Profession]:
@@ -424,6 +462,109 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении имени исполнителя с tg {tg_id}: {e}")
+
+    @staticmethod
+    async def update_rate(tg_id: str, rate: str, session: Any) -> None:
+        """Изменение rate исполнителя"""
+        try:
+            await session.execute(
+                """
+                UPDATE executors
+                SET rate = $1
+                WHERE tg_id = $2
+                """,
+                rate, tg_id
+            )
+            logger.info(f"Ценовая информация исполнителя tg_id {tg_id} изменена на '{rate}'")
+        except Exception as e:
+            logger.error(f"Ошибка при изменении ценовой информации исполнителя tg_id {tg_id} на '{rate}': {e}")
+            raise
+
+    @staticmethod
+    async def update_experience(tg_id: str, experience: str, session: Any) -> None:
+        """Изменение experience исполнителя"""
+        try:
+            await session.execute(
+                """
+                UPDATE executors
+                SET experience = $1
+                WHERE tg_id = $2
+                """,
+                experience, tg_id
+            )
+            logger.info(f"Опыт исполнителя tg_id {tg_id} изменен на '{experience}'")
+        except Exception as e:
+            logger.error(f"Ошибка при изменении опыта исполнителя tg_id {tg_id} на '{experience}': {e}")
+            raise
+
+    @staticmethod
+    async def update_description(tg_id: str, description: str, session: Any) -> None:
+        """Изменение description исполнителя"""
+        try:
+            await session.execute(
+                """
+                UPDATE executors
+                SET description = $1
+                WHERE tg_id = $2
+                """,
+                description, tg_id
+            )
+            logger.info(f"Описание исполнителя tg_id {tg_id} изменено на '{description}'")
+        except Exception as e:
+            logger.error(f"Ошибка при изменении описания исполнителя tg_id {tg_id} на '{description}': {e}")
+            raise
+
+    @staticmethod
+    async def update_contacts(tg_id: str, contacts: str | None, session: Any) -> None:
+        """Изменение contacts исполнителя"""
+        try:
+            await session.execute(
+                """
+                UPDATE executors
+                SET contacts = $1
+                WHERE tg_id = $2
+                """,
+                contacts, tg_id
+            )
+            logger.info(f"Контакты исполнителя tg_id {tg_id} изменены на '{contacts}'")
+        except Exception as e:
+            logger.error(f"Ошибка при изменении контактов исполнителя tg_id {tg_id} на '{contacts}': {e}")
+            raise
+
+    @staticmethod
+    async def update_location(tg_id: str, location: str | None, session: Any) -> None:
+        """Изменение location исполнителя"""
+        try:
+            await session.execute(
+                """
+                UPDATE executors
+                SET location = $1
+                WHERE tg_id = $2
+                """,
+                location, tg_id
+            )
+            logger.info(f"Город исполнителя tg_id {tg_id} изменен на '{location}'")
+        except Exception as e:
+            logger.error(f"Ошибка при изменении города исполнителя tg_id {tg_id} на '{location}': {e}")
+            raise
+
+    @staticmethod
+    async def update_links(tg_id: str, links: List[str], session: Any) -> None:
+        """Изменение ссылок на портфолио"""
+        links = "|".join(links)
+        try:
+            await session.execute(
+                """
+                UPDATE executors
+                SET links = $1
+                WHERE tg_id = $2
+                """,
+                links, tg_id
+            )
+            logger.info(f"Ссылки на портфолио исполнителя tg_id {tg_id} изменены на '{links}'")
+        except Exception as e:
+            logger.error(f"Ошибка при изменении ссылок на портфолио исполнителя tg_id {tg_id} на '{links}': {e}")
+            raise
 
     @staticmethod
     async def create_client(client: ClientAdd, session: Any) -> None:

@@ -63,6 +63,19 @@ async def executor_profile_menu(callback: CallbackQuery, session: Any) -> None:
     # Формируем анкету
     questionnaire = get_executor_profile_message(executor)
 
+    # Добавляем кнопки для редактирования анкеты
+    buttons_text = f"\n\n<i>Нажмите на соответствующую цифру для редактирования анкеты:</i>\n" \
+                   f"<b>1.</b> Изменить фотографию\n" \
+                   f"<b>2.</b> Изменить профессию\n" \
+                   f"<b>3.</b> Изменить ценовую информацию\n" \
+                   f"<b>4.</b> Изменить информацию об опыте\n" \
+                   f"<b>5.</b> Изменить информацию о себе\n" \
+                   f"<b>6.</b> Изменить контактную информацию\n" \
+                   f"<b>7.</b> Изменить город\n" \
+                   f"<b>8.</b> Изменить ссылки на портфолио"
+
+    caption = questionnaire + buttons_text
+
     # Получаем фотографию
     filepath = get_photo_path(settings.executors_profile_path, executor.tg_id)
     profile_image = FSInputFile(filepath)
@@ -80,7 +93,7 @@ async def executor_profile_menu(callback: CallbackQuery, session: Any) -> None:
     keyboard = kb.executor_profile_keyboard(cv_exists=cv_exists)
     await callback.message.answer_photo(
         profile_image,
-        caption=questionnaire,
+        caption=caption,
         reply_markup=keyboard.as_markup()
     )
 
