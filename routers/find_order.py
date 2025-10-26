@@ -50,6 +50,7 @@ async def select_profession(callback: CallbackQuery, session: Any, state: FSMCon
     msg = "Выберите рубрику"
     keyboard = kb.professions_keyboard(professions)
 
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
@@ -71,6 +72,7 @@ async def select_jobs_in_profession(callback: CallbackQuery, session: Any, state
     msg = f"Выберите подкатегории для поиска"
     keyboard = kb.jobs_keyboard(jobs, selected)
 
+    await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
