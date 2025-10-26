@@ -1025,7 +1025,7 @@ class AsyncOrm:
             if only_active:
                 order_rows = await session.fetch(
                     """
-                    SELECT o.id, o.title, o.task, o.price, o.requirements, o.period, o.created_at, o.client_id, o.tg_id, o.is_active 
+                    SELECT DISTINCT o.id, o.title, o.task, o.price, o.requirements, o.period, o.created_at, o.client_id, o.tg_id, o.is_active 
                     FROM orders AS o
                     JOIN orders_jobs AS oj ON o.id = oj.order_id
                     WHERE oj.job_id = ANY($1::int[]) AND o.is_active = true
@@ -1143,9 +1143,8 @@ class AsyncOrm:
             if only_active:
                 order_rows = await session.fetch(
                     """
-                    SELECT o.id, o.title, o.task, o.price, o.requirements, o.period, o.created_at, o.client_id, o.tg_id, o.is_active 
+                    SELECT DISTINCT o.id, o.title, o.task, o.price, o.requirements, o.period, o.created_at, o.client_id, o.tg_id, o.is_active 
                     FROM orders AS o
-                    JOIN orders_jobs AS oj ON o.id = oj.order_id
                     JOIN favorite_orders AS fav_o ON o.id = fav_o.order_id
                     WHERE o.is_active = true AND fav_o.executor_id = $1 
                     """,

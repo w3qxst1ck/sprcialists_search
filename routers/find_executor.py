@@ -333,7 +333,7 @@ async def connect_with_executor(message: Message, state: FSMContext, session: An
     msg = ms.contact_with_executor(executor, username)
     keyboard = kb.contact_with_executor()
 
-    functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup())
+    functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
     await state.update_data(functional_mess=functional_mess)
 
 

@@ -270,7 +270,7 @@ async def connect_with_client(message: Message, state: FSMContext, session: Any)
     msg = contact_with_client(tg_username, client)
     keyboard = kb.contact_with_client()
 
-    functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup())
+    functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
     await state.update_data(functional_mess=functional_mess)
 
 
