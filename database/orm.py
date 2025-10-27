@@ -10,7 +10,7 @@ from database.tables import Base, UserRoles
 from logger import logger
 from schemas.client import ClientAdd, RejectReason, Client
 from schemas.executor import ExecutorAdd, Executor
-from schemas.order import OrderAdd, Order, TaskFile
+from schemas.order import OrderAdd, Order, TaskFile, TaskFileAdd
 from schemas.profession import Profession, Job, ProfessionAdd
 from schemas.user import UserAdd, User
 
@@ -1241,6 +1241,174 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении заказов для jobs id {jobs_ids}: {e}")
+
+    @staticmethod
+    async def update_order_profession(order_id: int, jobs_ids: List[int], session) -> None:
+        """Изменение профессии заказа"""
+        try:
+            async with session.transaction():
+                # Удаление старых записей из orders_jobs
+                await session.execute(
+                    """
+                    DELETE FROM orders_jobs
+                    WHERE order_id = $1
+                    """,
+                    order_id)
+
+                # Создание связи OrdersJobs
+                for job_id in jobs_ids:
+                    await session.execute(
+                        """
+                        INSERT INTO orders_jobs (job_id, order_id)
+                        VALUES ($1, $2)
+                        """,
+                        job_id, order_id
+                    )
+                logger.info(f"Профессии заказа id {order_id} изменены на {jobs_ids}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении профессий заказа id {order_id}: {e}")
+            raise
+
+    @staticmethod
+    async def update_order_title(order_id: int, title: str, session: Any) -> None:
+        """Изменение названия заказа"""
+        try:
+            await session.execute(
+                """
+                UPDATE orders
+                SET title = $1
+                WHERE id = $2
+                """,
+                title, order_id
+            )
+            logger.info(f"Название заказа id {order_id} изменено на '{title}'")
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении названия заказа id {order_id} на '{title}': {e}")
+            raise
+
+    @staticmethod
+    async def update_order_task(order_id: int, task: str, session: Any) -> None:
+        """Изменение ТЗ заказа"""
+        try:
+            await session.execute(
+                """
+                UPDATE orders
+                SET task = $1
+                WHERE id = $2
+                """,
+                task, order_id
+            )
+            logger.info(f"ТЗ заказа id {order_id} изменено на '{task}'")
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении ТЗ заказа id {order_id} на '{task}': {e}")
+            raise
+
+    @staticmethod
+    async def update_order_price(order_id: int, price: str | None, session: Any) -> None:
+        """Изменение цены заказа"""
+        try:
+            await session.execute(
+                """
+                UPDATE orders
+                SET price = $1
+                WHERE id = $2
+                """,
+                price, order_id
+            )
+            logger.info(f"Цена заказа id {order_id} изменена на {price}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении цены заказа id {order_id} на {price}: {e}")
+            raise
+
+    @staticmethod
+    async def update_order_period(order_id: int, period: int, session: Any) -> None:
+        """Изменение срока заказа"""
+        try:
+            await session.execute(
+                """
+                UPDATE orders
+                SET period = $1
+                WHERE id = $2
+                """,
+                period, order_id
+            )
+            logger.info(f"Срок заказа id {order_id} изменена на {period}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении срока заказа id {order_id} на {period}: {e}")
+            raise
+
+    @staticmethod
+    async def update_order_requirements(order_id: int, reqs: str | None, session: Any) -> None:
+        """Изменение требований заказа"""
+        try:
+            await session.execute(
+                """
+                UPDATE orders
+                SET requirements = $1
+                WHERE id = $2
+                """,
+                reqs, order_id
+            )
+            logger.info(f"Требования заказа id {order_id} изменены на '{reqs}'")
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении требований заказа id {order_id} на '{reqs}': {e}")
+            raise
+
+    @staticmethod
+    async def update_order_files(order_id: int, files: List[TaskFileAdd], session) -> None:
+        """Изменение файлов заказа"""
+        # Если есть файлы
+        if files:
+            try:
+                async with session.transaction():
+                    # Удаление старых записей из taskfiles
+                    await session.execute(
+                        """
+                        DELETE FROM taskfiles
+                        WHERE order_id = $1
+                        """,
+                        order_id
+                    )
+
+                    # Создание taskfiles
+                    for file in files:
+                        await session.execute(
+                            """
+                            INSERT INTO taskfiles (filename, file_id, order_id)
+                            VALUES ($1, $2, $3)
+                            """,
+                            file.filename, file.file_id, order_id
+                        )
+                    files_text = ', '.join([f.filename for f in files])
+                    logger.info(f"Файлы заказа id {order_id} изменены на {files_text}")
+
+            except Exception as e:
+                files_text = ', '.join([f.filename for f in files])
+                logger.error(f"Ошибка при изменении файлов заказа id {files_text}: {e}")
+                raise
+
+        # Если оставили пустым
+        else:
+            try:
+                # Удаление старых записей из taskfiles
+                await session.execute(
+                    """
+                    DELETE FROM taskfiles
+                    WHERE order_id = $1
+                    """,
+                    order_id
+                )
+                logger.info(f"Файлы заказа id {order_id} удалены")
+
+            except Exception as e:
+                logger.error(f"Ошибка при удалении файлов заказа id {order_id}: {e}")
+                raise
 
     @staticmethod
     async def add_order_to_favorites(executor_id: int, order_id: int, session: Any):

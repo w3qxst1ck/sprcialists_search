@@ -2,7 +2,7 @@ import os
 from typing import Any
 
 from aiogram import Router, F, Bot
-from aiogram.filters import or_f, StateFilter
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, FSInputFile
 
@@ -15,16 +15,13 @@ from database.orm import AsyncOrm
 from routers.buttons import buttons as btn
 from routers.buttons.buttons import WAIT_MSG
 from routers.keyboards import executor_profile as kb
-from routers.keyboards.client_reg import to_main_menu
-from routers.menu import main_menu
 from routers.messages.executor import get_executor_profile_message
 from routers.states.registration import UploadCV
 
 from schemas.executor import Executor
 
-from logger import logger
 from settings import settings
-from utils.download_files import get_photo_path, get_cv_path, check_cv_file, load_photo_from_tg, load_cv_from_tg
+from utils.download_files import get_photo_path, get_cv_path, check_cv_file, load_cv_from_tg
 
 router = Router()
 

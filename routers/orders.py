@@ -1,18 +1,17 @@
 import datetime
-import types
 from typing import Any, List
 
-from aiogram import Router, F, Bot
-from aiogram.filters import StateFilter, or_f
+from aiogram import Router, F
+from aiogram.filters import or_f
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaDocument
+from aiogram.types import Message, CallbackQuery, InputMediaDocument
 
 from database.orm import AsyncOrm
 from middlewares.private import CheckPrivateMessageMiddleware
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
 from routers.buttons.buttons import WAIT_MSG
-from routers.messages.orders import get_order_card_message, get_my_orders_list
+from routers.messages.orders import get_order_card_message, get_my_orders_list, order_card_for_edit
 from routers.states.orders import CreateOrder
 from routers.keyboards import orders as kb
 from schemas.client import Client
@@ -75,18 +74,26 @@ async def my_orders_list(callback: CallbackQuery, session: Any) -> None:
 
 
 @router.callback_query(F.data.split("|")[0] == "my_order")
-async def my_order(callback: CallbackQuery, session: Any) -> None:
+async def my_order(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
     """Карточка заказа в размещенных заказах"""
+    # Скидываем стейт при редакторировании заказа
+    try:
+        await state.clear()
+    except:
+        pass
+
+    wait_msg = await callback.message.edit_text(btn.WAIT_MSG)
+
     # Получаем заказ
     order_id = int(callback.data.split("|")[1])
     order: Order = await AsyncOrm.get_order_by_id(order_id, session)
 
     # Отправляем сообщение
-    msg = get_order_card_message(order)
+    msg = order_card_for_edit(order)
     has_files = bool(len(order.files))
     keyboard = kb.my_order_keyboard(order_id, has_files=has_files)
     await callback.answer()
-    await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+    await wait_msg.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
 # УДАЛЕНИЕ ЗАКАЗА
@@ -297,7 +304,7 @@ async def get_task(message: Message, state: FSMContext) -> None:
     # Записываем ТЗ
     await state.update_data(task=message.text)
 
-    # Заготовка на пропуск ценв
+    # Заготовка на пропуск цены
     await state.update_data(price=None)
 
     # Меняем стейт
@@ -334,7 +341,7 @@ async def get_price(message: Message | CallbackQuery, state: FSMContext) -> None
 
         # Если ввели не корректное число
         if not is_valid_price(message.text):
-            prev_mess = await message.answer("Неверный формат данных, необходимо отправить только число без других симоволов",
+            prev_mess = await message.answer("Неверный формат данных, необходимо отправить только число без других символов",
                                              reply_markup=kb.skip_cancel_keyboard().as_markup())
             # Сохраняем предыдущее сообщение
             await state.update_data(prev_mess=prev_mess)
