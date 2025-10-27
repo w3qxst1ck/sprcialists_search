@@ -33,6 +33,24 @@ def get_order_card_message(order: OrderAdd) -> str:
     return msg
 
 
+def order_card_for_edit(order: OrderAdd) -> str:
+    """Карточка заказа с информацией о кнопках для изменения"""
+    msg = get_order_card_message(order)
+
+    # Добавляем кнопки для редактирования заказа
+    buttons_text = f"\n\n<i>Нажмите на соответствующую цифру для редактирования анкеты:</i>\n" \
+                   f"<b>1.</b> Изменить профессию\n" \
+                   f"<b>2.</b> Изменить название\n" \
+                   f"<b>3.</b> Изменить ТЗ\n" \
+                   f"<b>4.</b> Изменить бюджет\n" \
+                   f"<b>5.</b> Изменить срок заказа\n" \
+                   f"<b>6.</b> Изменить требования\n" \
+                   f"<b>7.</b> Изменить прикрепленные файлы"
+
+    msg += buttons_text
+    return msg
+
+
 def order_card_to_show(order: Order, in_favorites: bool = False) -> str:
     """Карточка заказа для показа в ленте"""
     msg = get_order_card_message(order)

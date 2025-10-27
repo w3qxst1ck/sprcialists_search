@@ -14,14 +14,14 @@ def executor_profile_keyboard(cv_exists: bool = False) -> InlineKeyboardBuilder:
 
     keyboard = InlineKeyboardBuilder()
     keyboard.row(
-        InlineKeyboardButton(text=f"1", callback_data=f"edit_executor|photo"),
-        InlineKeyboardButton(text=f"2", callback_data=f"edit_executor|profession"),
-        InlineKeyboardButton(text=f"3", callback_data=f"edit_executor|rate"),
-        InlineKeyboardButton(text=f"4", callback_data=f"edit_executor|experience"),
-        InlineKeyboardButton(text=f"5", callback_data=f"edit_executor|description"),
-        InlineKeyboardButton(text=f"6", callback_data=f"edit_executor|contacts"),
-        InlineKeyboardButton(text=f"7", callback_data=f"edit_executor|location"),
-        InlineKeyboardButton(text=f"8", callback_data=f"edit_executor|links"),
+        InlineKeyboardButton(text=f"{btn.ONE}", callback_data=f"edit_executor|photo"),
+        InlineKeyboardButton(text=f"{btn.TWO}", callback_data=f"edit_executor|profession"),
+        InlineKeyboardButton(text=f"{btn.THREE}", callback_data=f"edit_executor|rate"),
+        InlineKeyboardButton(text=f"{btn.FOUR}", callback_data=f"edit_executor|experience"),
+        InlineKeyboardButton(text=f"{btn.FIVE}", callback_data=f"edit_executor|description"),
+        InlineKeyboardButton(text=f"{btn.SIX}", callback_data=f"edit_executor|contacts"),
+        InlineKeyboardButton(text=f"{btn.SEVEN}", callback_data=f"edit_executor|location"),
+        InlineKeyboardButton(text=f"{btn.EIGHT}", callback_data=f"edit_executor|links"),
     )
     keyboard.adjust(4)
 

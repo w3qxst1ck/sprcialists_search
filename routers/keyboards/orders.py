@@ -43,11 +43,23 @@ def my_order_keyboard(order_id: int, has_files: bool = False) -> InlineKeyboardB
     """Клавиатура для манипуляций с заказом"""
     keyboard = InlineKeyboardBuilder()
 
-    # Удалить заказ
-    # keyboard.row(InlineKeyboardButton(text=f"Редактировать заказ", callback_data=f"edit_order|{order_id}"))
-    keyboard.row(InlineKeyboardButton(text=f"🗑️ Удалить заказ", callback_data=f"delete_order|{order_id}"))
+    keyboard.row(
+        InlineKeyboardButton(text=f"{btn.ONE}", callback_data=f"edit_order|profession|{order_id}"),
+        InlineKeyboardButton(text=f"{btn.TWO}", callback_data=f"edit_order|title|{order_id}"),
+        InlineKeyboardButton(text=f"{btn.THREE}", callback_data=f"edit_order|task|{order_id}"),
+        InlineKeyboardButton(text=f"{btn.FOUR}", callback_data=f"edit_order|price|{order_id}"),
+        InlineKeyboardButton(text=f"{btn.FIVE}", callback_data=f"edit_order|deadline|{order_id}"),
+        InlineKeyboardButton(text=f"{btn.SIX}", callback_data=f"edit_order|requirements|{order_id}"),
+        InlineKeyboardButton(text=f"{btn.SEVEN}", callback_data=f"edit_order|files|{order_id}"),
+    )
+    keyboard.adjust(4)
+
+    # Скачать файлы
     if has_files:
         keyboard.row(InlineKeyboardButton(text=f"📎 Скачать файлы", callback_data=f"download_files|{order_id}"))
+
+    # Удалить заказ
+    keyboard.row(InlineKeyboardButton(text=f"🗑️ Удалить заказ", callback_data=f"delete_order|{order_id}"))
 
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="my_orders_list"))
 
@@ -74,7 +86,7 @@ def profession_keyboard(professions: List[Profession]) -> InlineKeyboardBuilder:
     for profession in professions:
         keyboard.row(InlineKeyboardButton(text=f"{profession.title}", callback_data=f"choose_profession|{profession.id}"))
 
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="main_menu|my_orders"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="main_menu|my_orders"))
 
     return keyboard
 
@@ -99,7 +111,7 @@ def select_jobs_keyboard(jobs: List[Job], selected_jobs: List[int]) -> InlineKey
         keyboard.row(InlineKeyboardButton(text=f"Подтвердить", callback_data="select_jobs_done"))
 
     # Кнопка отмены
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="main_menu|my_orders"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="main_menu|my_orders"))
 
     return keyboard
 
@@ -157,7 +169,7 @@ def calendar_keyboard(year: int, month: int, dates_data: dict, need_prev_month: 
         )
 
     # Отменить
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="main_menu|my_orders"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="main_menu|my_orders"))
 
     return keyboard
 
@@ -169,7 +181,7 @@ def confirm_create_order_keyboard() -> InlineKeyboardBuilder:
     # Кнопка подтвердить
     keyboard.row(InlineKeyboardButton(text=f"Подтвердить", callback_data="confirm_create_order"))
     # Кнопка отмены
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="main_menu|my_orders"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="main_menu|my_orders"))
 
     return keyboard
 
@@ -189,7 +201,7 @@ def skip_cancel_keyboard() -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(InlineKeyboardButton(text=f"Пропустить", callback_data="skip"))
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="main_menu|my_orders"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="main_menu|my_orders"))
 
     return keyboard
 
@@ -199,7 +211,7 @@ def continue_cancel_keyboard() -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(InlineKeyboardButton(text=f"Продолжить", callback_data="continue"))
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="main_menu|my_orders"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="main_menu|my_orders"))
 
     return keyboard
 
@@ -208,7 +220,7 @@ def cancel_keyboard() -> InlineKeyboardBuilder:
     """Клавиатура отмены"""
     keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(InlineKeyboardButton(text=f"Отменить", callback_data="main_menu|my_orders"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="main_menu|my_orders"))
 
     return keyboard
 

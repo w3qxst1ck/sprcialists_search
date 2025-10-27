@@ -24,3 +24,14 @@ def is_valid_price(price: str) -> bool:
     except ValueError:
         return False
     return True
+
+
+def is_valid_deadline(days: str) -> bool:
+    """Проверка валидности дедлайна"""
+    try:
+        days_int = int(days)
+        if days_int < 1:
+            return False
+    except ValueError:
+        return False
+    return True

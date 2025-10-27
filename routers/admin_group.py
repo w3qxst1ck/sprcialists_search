@@ -54,7 +54,7 @@ async def confirm_executor_registration(callback: CallbackQuery, session: Any, b
     # Оповещаем исполнителя
     user_msg = f"✅ Ваша анкета успешно верифицирована\n\nТеперь вашу анкету будут видеть клиенты/заказчики"
     keyboard = to_main_menu()
-    await bot.send_message(executor_tg_id, user_msg, reply_markup=keyboard.as_markup())
+    await bot.send_message(executor_tg_id, user_msg, reply_markup=keyboard.as_markup(), message_effect_id="5046509860389126442")
 
 
 # Отказ в верификации исполнителя
