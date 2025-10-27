@@ -222,17 +222,22 @@ async def send_order_card(orders: list[Order], current_index: int, message: Call
 
 
 @router.callback_query(F.data.split("|")[0] == "files_for_order")
-async def download_files(callback: CallbackQuery, session: Any) -> None:
+async def download_files(callback: CallbackQuery, state: FSMContext) -> None:
     """Отправка пользователю файлов заказа"""
     # Удаляем предыдущее сообщение
-    # try:
-    #     await callback.message.delete()
-    # except:
-    #     pass
+    try:
+        await callback.answer()
+        await callback.message.edit_text(callback.message.text)
+    except:
+        pass
+
+    data = await state.get_data()
+
+    orders = data["orders"]
+    current_index = data["current_index"]
 
     # Получаем заказ
-    order_id = int(callback.data.split("|")[1])
-    order: Order = await AsyncOrm.get_order_by_id(order_id, session)
+    order = orders[current_index]
 
     # Отправляем файлы
     files = [InputMediaDocument(media=file.file_id) for file in order.files]
@@ -240,7 +245,7 @@ async def download_files(callback: CallbackQuery, session: Any) -> None:
         await callback.message.answer_media_group(media=files)
     except Exception:
         await callback.message.answer(f"{btn.INFO} Ошибка при отправке файлов. Повторите запрос позже")
-    # finally:
-    #     TODO
-    #     send_order_card
+    finally:
+        await send_order_card(orders, current_index, callback, state, is_first=False)
+
 
