@@ -1,6 +1,7 @@
 from typing import Any
 
-from aiogram import Router, F
+from aiogram import Router, F, Bot
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, InputMediaDocument
 
@@ -13,15 +14,15 @@ from database.orm import AsyncOrm
 from routers.keyboards import find_order as kb
 from routers.keyboards.client_reg import to_main_menu
 from routers.menu import main_menu
-from routers.messages.find_executor import contact_with_client
 from routers.messages.orders import order_card_to_show
+from routers.messages import find_order as ms
 from routers.states.find import SelectJobs, OrdersFeed
 from routers.buttons import buttons as btn
-from schemas.client import Client
 from schemas.order import Order
 from schemas.profession import Profession, Job
 from utils.shuffle import shuffle_orders
 
+from logger import logger
 
 router = Router()
 
@@ -105,6 +106,8 @@ async def pick_jobs(callback: CallbackQuery, state: FSMContext) -> None:
 @router.callback_query(F.data == "find_cl_show|show_orders", SelectJobs.jobs)
 async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Завершение мультиселекта и подбор подходящих заказов"""
+    # Убираем загрузку
+    await callback.answer()
     # Отправляем сообщение об ожидании
     wait_mess = await callback.message.edit_text(btn.WAIT_MSG)
 
@@ -277,10 +280,13 @@ async def add_order_to_favorites(message: Message, state: FSMContext, session: A
 
 
 # НАПИСАТЬ ЗАКАЗЧИКУ
-@router.message(F.text == f"{btn.WRITE}", OrdersFeed.show)
-async def connect_with_client(message: Message, state: FSMContext, session: Any) -> None:
+@router.message(F.text == f"{btn.RESPOND}", OrdersFeed.show)
+async def connect_with_client(message: Message, state: FSMContext) -> None:
     """Связаться с заказчиком"""
     data = await state.get_data()
+
+    # Меняем стейт для связи с заказчиком
+    await state.set_state(OrdersFeed.contact)
 
     # Удаляем функциональные сообщения
     try:
@@ -290,23 +296,104 @@ async def connect_with_client(message: Message, state: FSMContext, session: Any)
 
     # Получаем текущий заказ
     order: Order = data["current_or"]
-    # Получаем username заказчика для формирования ссылки
-    tg_username: str = await AsyncOrm.get_username(order.tg_id, session)
-    client: Client = await AsyncOrm.get_client(order.tg_id, session)
 
-    msg = contact_with_client(tg_username, client)
-    keyboard = kb.contact_with_client()
+    msg = f"Заказ <b>\"{order.title}\"</b>\n\nОтправьте в чат сопроводительный текст, который будет отправлен заказчику " \
+          f"вместе с вашим откликом"
+
+    keyboard = kb.back_to_orders_feed()
 
     functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
     await state.update_data(functional_mess=functional_mess)
 
 
+@router.message(OrdersFeed.contact)
+async def get_cover_letter(message: Message, state: FSMContext) -> None:
+    """Получение сопроводительного письма от исполнителя"""
+    data = await state.get_data()
+
+    #  Удаляем предыдущее сообщение если было
+    try:
+        await data["functional_mess"].delete()
+    except:
+        pass
+
+    # Если отправлен не текст
+    if not message.text:
+        functional_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                         reply_markup=kb.back_to_orders_feed().as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(functional_mess=functional_mess)
+        return
+
+    # Игнорируем текст от кнопок
+    if message.text in (btn.RESPOND, btn.SKIP, btn.TO_FAV):
+        functional_mess = await message.answer("Напишите другой текст",
+                                         reply_markup=kb.back_to_orders_feed().as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(functional_mess=functional_mess)
+        return
+
+    # Меняем стейт на подтверждение отправки
+    await state.set_state(OrdersFeed.confirm_send)
+
+    cover_letter = message.text
+
+    msg = f"Ваш отклик:\n\n<i>\"{cover_letter}\"</i>\n\nОтправляем?"
+    keyboard = kb.confirm_send_cover_letter()
+
+    functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup())
+    await state.update_data(functional_mess=functional_mess)
+
+    # Сохраняем текст сопроводительного письма в память
+    await state.update_data(cover_letter=cover_letter)
+
+
+@router.callback_query(OrdersFeed.confirm_send, F.data == "send_cover_letter")
+async def send_cover_letter(callback: CallbackQuery, state: FSMContext, session: Any, bot: Bot) -> None:
+    """Отправка сопроводительного письма с откликом"""
+    await callback.answer()
+
+    data = await state.get_data()
+    executor_tg_id = str(callback.from_user.id)
+    ex_tg_username = await AsyncOrm.get_username(executor_tg_id, session)
+    ex_name = await AsyncOrm.get_executor_name(executor_tg_id, session)
+
+    # Получаем заказ
+    order: Order = data["current_or"]
+    cover_letter = data["cover_letter"]
+
+    msg = f"{btn.SUCCESS} Ваш отклик по заказу \"<i>{order.title}</i>\" отправлен заказчику!"
+    keyboard = kb.back_to_orders_feed_from_contact()
+
+    # Отвечаем исполнителю
+    functional_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+    await state.update_data(functional_mess=functional_mess)
+
+    msg_to_client = ms.response_on_order_message(cover_letter, order, ex_tg_username, ex_name)
+
+    # Отправляем сообщение клиенту
+    try:
+        # await bot.send_message(order.tg_id, msg_to_client, message_effect_id="5104841245755180586", disable_web_page_preview=True)    # 🔥
+        await bot.send_message("420551454", msg_to_client,
+                               message_effect_id="5104841245755180586",
+                               disable_web_page_preview=True)    # TODO DEV VER
+
+    except Exception as e:
+        logger.error(f"Ошибка при отправке отклика заказчику по заказу {order.id} от {executor_tg_id}: {e}")
+
+
 # ВОЗВРАЩЕНИЕ ИЗ РАЗНЫХ ТОЧЕК В ЛЕНТУ ЗАКАЗОВ
-@router.callback_query(F.data == "back_to_orders_feed", OrdersFeed.show)
+@router.callback_query(StateFilter(OrdersFeed.show, OrdersFeed.contact, OrdersFeed.confirm_send),
+                       F.data == "back_to_orders_feed")
 async def back_to_orders_feed(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Для возвращения в ленту из ответвлений"""
     data = await state.get_data()
     executor_tg_id: str = str(callback.from_user.id)
+
+    await callback.answer()
+
+    # Меняем стейт на показ ленты
+    await state.set_state(OrdersFeed.show)
 
     # Удаляем предыдущее сообщение
     try:

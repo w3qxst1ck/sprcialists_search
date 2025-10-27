@@ -11,3 +11,5 @@ class ExecutorsFeed(StatesGroup):
 
 class OrdersFeed(StatesGroup):
     show = State()
+    contact = State()
+    confirm_send = State()

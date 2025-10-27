@@ -48,7 +48,7 @@ def order_show_keyboard(is_last: bool) -> ReplyKeyboardMarkup:
             [
                 KeyboardButton(text=f"{btn.SKIP}"),
                 KeyboardButton(text=f"{btn.TO_FAV}"),
-                KeyboardButton(text=f"{btn.WRITE}")
+                KeyboardButton(text=f"{btn.RESPOND}")
             ],
 
         ],
@@ -62,9 +62,26 @@ def order_show_keyboard(is_last: bool) -> ReplyKeyboardMarkup:
     return keyboard
 
 
-def contact_with_client() -> InlineKeyboardBuilder:
-    """Клавиатура для связи с заказчиком"""
+def confirm_send_cover_letter() -> InlineKeyboardBuilder:
+    """Клавиатура для подтверждения отправки сопроводительного письма"""
+    keyboard = InlineKeyboardBuilder()
+    keyboard.row(InlineKeyboardButton(text=f"{btn.SEND_COVER_LETTER}", callback_data="send_cover_letter"))
+
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="back_to_orders_feed"))
+    return keyboard
+
+
+def back_to_orders_feed() -> InlineKeyboardBuilder:
+    """Клавиатура для возвращения в ленту"""
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="back_to_orders_feed"))
+    return keyboard
+
+
+def back_to_orders_feed_from_contact() -> InlineKeyboardBuilder:
+    """Клавиатура для возвращения в ленту"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text=f"{btn.BACK_TO_FEED}", callback_data="back_to_orders_feed"))
     return keyboard
