@@ -215,3 +215,34 @@ async def cancel_upload_cv(callback: CallbackQuery, state: FSMContext, session: 
         pass
 
     await executor_profile_menu(callback, session)
+
+
+# ИЗМЕНЕНИЕ СТАТУСА ДОТСПУНОСТИ ДЛЯ ИСПОЛНИТЕЛЯ
+@router.callback_query(F.data == "main_menu|change_ex_status")
+async def my_active_status(callback: CallbackQuery, session: Any) -> None:
+    """Показывается статус исполнителя, принимает / не принимает заказы"""
+    await callback.answer()
+
+    tg_id = str(callback.from_user.id)
+
+    executor: Executor = await AsyncOrm.get_executor_by_tg_id(tg_id, session)
+    msg = "Сообщите заказчикам о своей загрузке\n\n<i>При выборе статуса \"Недоступен\" ваша анкета будет " \
+          "скрыта от всех заказчиков</i>"
+    keyboard = kb.executor_change_status_keyboard(executor)
+
+    await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+
+
+# @router.callback_query(F.data.split("|")[0] == "set_status")
+# async def change_status(callback: CallbackQuery, session: Any) -> None:
+#     """Изменение статуса у исполнителя"""
+#     await callback.answer()
+#
+#     tg_id = str(callback.from_user.id)
+#     new_status = "свободен" if callback.data.split("|")[1] == "free" else "занят"
+#
+#     executor: Executor = await AsyncOrm.get_executor_by_tg_id(tg_id, session)
+#
+#     if executor.availability == new_status:
+#         return
+

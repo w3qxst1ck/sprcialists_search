@@ -3,6 +3,7 @@ from typing import List
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from database.tables import Availability
 from routers.buttons import buttons as btn
 from schemas.executor import Executor
 from settings import settings
@@ -64,3 +65,20 @@ def cancel_upload_cv_keyboard() -> InlineKeyboardBuilder:
     keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_upload_cv"))
 
     return keyboard
+
+
+def executor_change_status_keyboard(executor: Executor) -> InlineKeyboardBuilder:
+    """Клавиатура для изменения статуса исполнителя"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(
+        text=f"{'[ ✓ ] ' if executor.availability == Availability.FREE.value else ''}Принимаю заказы",
+                                      callback_data="set_status|free"))
+    keyboard.row(InlineKeyboardButton(
+        text=f"{'[ ✓ ] ' if executor.availability == Availability.BUSY.value else ''}Недоступен",
+        callback_data="set_status|busy"))
+
+    keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data=f"main_menu"))
+
+    return keyboard
+
