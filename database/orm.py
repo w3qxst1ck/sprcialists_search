@@ -5,7 +5,7 @@ from typing import Any, List
 import asyncpg
 
 from database.database import async_engine
-from database.tables import Base, UserRoles
+from database.tables import Base, UserRoles, Availability
 
 from logger import logger
 from schemas.client import ClientAdd, RejectReason, Client
@@ -839,9 +839,9 @@ class AsyncOrm:
                 ex.availability, ex.contacts, ex.location, ex.photo, ex.verified  
                 FROM executors as ex
                 LEFT JOIN executors_jobs as ex_j ON ex.id = ex_j.executor_id 
-                WHERE ex.verified=true AND ex_j.job_id = ANY($1::int[])
+                WHERE ex.verified=true AND ex.availability=$1 AND ex_j.job_id = ANY($2::int[])
                 """,
-                jobs_ids
+                Availability.FREE.value, jobs_ids
             )
             executors = []
 

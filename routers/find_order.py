@@ -369,14 +369,14 @@ async def send_cover_letter(callback: CallbackQuery, state: FSMContext, session:
     functional_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
     await state.update_data(functional_mess=functional_mess)
 
-    msg_to_client = ms.response_on_order_message(cover_letter, order, ex_tg_username, ex_name)
-
     # Отправляем сообщение клиенту
+    msg_to_client = ms.response_on_order_message(cover_letter, order, ex_tg_username, ex_name)
     try:
-        # await bot.send_message(order.tg_id, msg_to_client, message_effect_id="5104841245755180586", disable_web_page_preview=True)    # 🔥
-        await bot.send_message("420551454", msg_to_client,
-                               message_effect_id="5104841245755180586",
-                               disable_web_page_preview=True)    # TODO DEV VER
+        await bot.send_message(order.tg_id, msg_to_client,
+                               message_effect_id="5104841245755180586", disable_web_page_preview=True)    # 🔥
+        # await bot.send_message("420551454", msg_to_client,
+        #                        message_effect_id="5104841245755180586",
+        #                        disable_web_page_preview=True)    # TODO DEV VER
 
     except Exception as e:
         logger.error(f"Ошибка при отправке отклика заказчику по заказу {order.id} от {executor_tg_id}: {e}")

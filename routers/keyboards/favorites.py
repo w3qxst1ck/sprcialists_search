@@ -25,8 +25,8 @@ def favorites_executor_keyboard(executors: list[Executor], current_index: int) -
     keyboard.adjust(3)
 
     # Добавляем кнопку назад
-    keyboard.row(InlineKeyboardButton(text=f"👍 Написать", callback_data=f"write_fav_ex|{executor.id}"))
-    keyboard.row(InlineKeyboardButton(text=f"⭐ Удалить", callback_data=f"delete_fav|{executor.id}"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.WRITE}", callback_data=f"write_fav_ex|{executor.id}"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.DEL_FAV}", callback_data=f"delete_fav|{executor.id}"))
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="back_from_favorites_feed"))
 
     return keyboard
@@ -68,8 +68,17 @@ def favorites_orders_keyboard(orders: list[Order], current_index: int) -> Inline
         keyboard.row(InlineKeyboardButton(text=f"📎 Скачать файлы", callback_data=f"files_for_order|{order.id}"))
 
     # Добавляем кнопку назад
-    keyboard.row(InlineKeyboardButton(text=f"👍 Написать", callback_data=f"write_fav_order|{order.id}"))
-    keyboard.row(InlineKeyboardButton(text=f"⭐ Удалить", callback_data=f"delete_fav_order|{order.id}"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.RESPOND}", callback_data=f"write_fav_order|{order.id}"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.DEL_FAV}", callback_data=f"delete_fav_order|{order.id}"))
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="main_menu"))
 
+    return keyboard
+
+
+def confirm_send_cover_letter() -> InlineKeyboardBuilder:
+    """Клавиатура для подтверждения отправки сопроводительного письма"""
+    keyboard = InlineKeyboardBuilder()
+    keyboard.row(InlineKeyboardButton(text=f"{btn.SEND_COVER_LETTER}", callback_data="send_cover_letter"))
+
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="back_to_fav_feed"))
     return keyboard

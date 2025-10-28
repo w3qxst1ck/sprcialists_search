@@ -13,8 +13,7 @@ class ClientType(Enum):
 
 class Availability(Enum):
     FREE = "свободен"
-    BUSY = "в работе"
-    HALF_BUSY = "занят частично"
+    BUSY = "занят"
 
 
 class UserRoles(Enum):

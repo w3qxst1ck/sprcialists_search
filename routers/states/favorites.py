@@ -7,3 +7,5 @@ class FavoriteExecutors(StatesGroup):
 
 class FavoriteOrders(StatesGroup):
     feed = State()
+    contact = State()
+    send_confirm = State()
