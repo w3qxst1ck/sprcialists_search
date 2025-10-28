@@ -12,8 +12,12 @@ class Profession(ProfessionAdd):
     id: int
 
 
-class Job(BaseModel):
-    id: int
+class JobAdd(BaseModel):
     title: str
     profession_id: int
+
+
+class Job(JobAdd):
+    id: int
+
 

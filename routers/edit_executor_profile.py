@@ -1,9 +1,9 @@
 from typing import Any, List
 
 from aiogram import Router, F, Bot
-from aiogram.filters import or_f, StateFilter, and_f
+from aiogram.filters import StateFilter, and_f
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, FSInputFile
 
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
@@ -15,15 +15,17 @@ from routers.buttons import buttons as btn
 from routers.buttons.buttons import WAIT_MSG
 from routers.executor_profile import executor_profile_menu
 from routers.keyboards import edit_executor_profile as kb
+from routers.keyboards.admin import confirm_edit_executor_keyboard
+from routers.messages.executor import edited_executor_card_for_admin_verification
 from routers.states.executor_profile import EditPhoto, EditProfession, EditRate, EditExperience, EditDescription, \
-    EditContacts, EditLocation, EditLinks
+    EditContacts, EditLocation, EditLinks, EditExecutor
 
 from schemas.executor import Executor
 
 from logger import logger
 from schemas.profession import Profession, Job
 from settings import settings
-from utils.download_files import load_photo_from_tg
+from utils.download_files import load_photo_from_tg, get_photo_path
 from utils.validations import is_valid_url
 
 router = Router()
@@ -96,7 +98,7 @@ async def get_photo(message: Message, bot: Bot, state: FSMContext) -> None:
 
 
 # ИЗМЕНЕНИЕ ПРОФЕССИИ
-@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "profession"))
+@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "profession"), EditExecutor.view)
 async def edit_profession(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
     """Изменение profession"""
     # Удаляем предыдущее сообщение
@@ -106,7 +108,7 @@ async def edit_profession(callback: CallbackQuery, session: Any, state: FSMConte
         pass
 
     # Меняем стейт
-    await state.set_state(EditProfession.profession)
+    await state.set_state(EditExecutor.profession)
 
     # Получаем доступные профессии
     professions: List[Profession] = await AsyncOrm.get_professions(session)
@@ -119,7 +121,7 @@ async def edit_profession(callback: CallbackQuery, session: Any, state: FSMConte
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.callback_query(F.data.split("|")[0] == "choose_profession", EditProfession.profession)
+@router.callback_query(F.data.split("|")[0] == "choose_profession", EditExecutor.profession)
 async def get_profession(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
     """Получение профессии, запрос Job"""
     profession_id = int(callback.data.split("|")[1])
@@ -128,7 +130,7 @@ async def get_profession(callback: CallbackQuery, session: Any, state: FSMContex
     await state.update_data(profession_id=profession_id)
 
     # Меняем стейт
-    await state.set_state(EditProfession.jobs)
+    await state.set_state(EditExecutor.jobs)
 
     # Получаем Jobs для профессии
     jobs: List[Job] = await AsyncOrm.get_jobs_by_profession(profession_id, session)
@@ -147,7 +149,7 @@ async def get_profession(callback: CallbackQuery, session: Any, state: FSMContex
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
-@router.callback_query(F.data.split("|")[0] == "choose_jobs", EditProfession.jobs)
+@router.callback_query(F.data.split("|")[0] == "choose_jobs", EditExecutor.jobs)
 async def get_jobs_multiselect(callback: CallbackQuery, state: FSMContext) -> None:
     """Вспомогательный хендлер для мультиселекта"""
     job_id = int(callback.data.split("|")[1])
@@ -177,25 +179,37 @@ async def get_jobs_multiselect(callback: CallbackQuery, state: FSMContext) -> No
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
-@router.callback_query(F.data == "choose_jobs_done", EditProfession.jobs)
+@router.callback_query(F.data == "choose_jobs_done", EditExecutor.jobs)
 async def get_jobs(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Запись Jobs после мультиселекта"""
     # Получаем дату
     data = await state.get_data()
 
-    # Очищаем стейт
-    await state.clear()
+    # Меняем стейт на view
+    await state.set_state(EditExecutor.view)
 
     # Меняем профессии и jobs в БД
-    tg_id = str(callback.from_user.id)
     jobs_ids = data["selected_jobs"]
-    try:
-        await AsyncOrm.update_profession(tg_id, jobs_ids, session)
-    except:
-        msg = f"{btn.INFO} Ошибка при изменении профессий. Повторите запрос позже"
-        await callback.answer()
-        await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
-        return
+
+    # Меняем old_executor, если это первое изменение и нет new_executor
+    if data.get("new_executor"):
+        executor: Executor = data["new_executor"]
+    else:
+        executor: Executor = data["old_executor"]
+
+    profession: Profession = await AsyncOrm.get_profession(data["profession_id"], session)
+    jobs: List[Job] = await AsyncOrm.get_jobs_by_ids(jobs_ids, session)
+    executor.profession = profession
+    executor.jobs = jobs
+    await state.update_data(new_executor=executor)
+
+    # try:
+    #     await AsyncOrm.update_profession(tg_id, jobs_ids, session)
+    # except:
+    #     msg = f"{btn.INFO} Ошибка при изменении профессий. Повторите запрос позже"
+    #     await callback.answer()
+    #     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
+    #     return
 
     # Отправляем сообщение
     msg = f"✅ Профессии успешно изменены"
@@ -204,7 +218,7 @@ async def get_jobs(callback: CallbackQuery, state: FSMContext, session: Any) -> 
 
 
 # ИЗМЕНЕНИЕ ЦЕНОВОЙ ИНФОРМАЦИИ
-@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "rate"))
+@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "rate"), EditExecutor.view)
 async def edit_rate(callback: CallbackQuery, state: FSMContext) -> None:
     """Изменение ценовой информации"""
     # Удаляем предыдущее сообщение
@@ -214,7 +228,7 @@ async def edit_rate(callback: CallbackQuery, state: FSMContext) -> None:
         pass
 
     # Меняем стейт
-    await state.set_state(EditRate.rate)
+    await state.set_state(EditExecutor.rate)
 
     # Отправляем сообщение
     msg = "Отправьте текстом вашу рабочую ставку (например: от 2000 ₽/час или 30 000 рублей/месяц)"
@@ -224,7 +238,7 @@ async def edit_rate(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.message(EditRate.rate)
+@router.message(EditExecutor.rate)
 async def get_rate(message: Message, state: FSMContext, session: Any) -> None:
     """Получаем ставку"""
     # Меняем предыдущее сообщение
@@ -243,16 +257,24 @@ async def get_rate(message: Message, state: FSMContext, session: Any) -> None:
         return
 
     # Очищаем стейт
-    await state.clear()
+    # await state.clear()
 
-    # Сохраняем информацию
-    try:
-        tg_id = str(message.from_user.id)
-        await AsyncOrm.update_rate(tg_id, message.text, session)
-    except:
-        msg = f"{btn.INFO} Ошибка при изменении ценовой информации. Повторите запрос позже"
-        await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
-        return
+    # Меняем old_executor, если это первое изменение и нет new_executor
+    if data.get("new_executor"):
+        executor: Executor = data["new_executor"]
+    else:
+        executor: Executor = data["old_executor"]
+    executor.rate = message.text
+
+    await state.update_data(new_executor=executor)
+
+    # try:
+    #     tg_id = str(message.from_user.id)
+    #     await AsyncOrm.update_rate(tg_id, message.text, session)
+    # except:
+    #     msg = f"{btn.INFO} Ошибка при изменении ценовой информации. Повторите запрос позже"
+    #     await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
+    #     return
 
     # Отправляем сообщение
     msg = "✅ Ценовая информация успешно изменена"
@@ -260,7 +282,7 @@ async def get_rate(message: Message, state: FSMContext, session: Any) -> None:
 
 
 # ИЗМЕНЕНИЕ ОПЫТА
-@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "experience"))
+@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "experience"), EditExecutor.view)
 async def edit_experience(callback: CallbackQuery, state: FSMContext) -> None:
     """Изменение опыта"""
     # Удаляем предыдущее сообщение
@@ -270,7 +292,7 @@ async def edit_experience(callback: CallbackQuery, state: FSMContext) -> None:
         pass
 
     # Меняем стейт
-    await state.set_state(EditExperience.experience)
+    await state.set_state(EditExecutor.experience)
 
     # Отправляем сообщение
     msg = "Отправьте информацию о своем рабочем опыте/уровень (например: 6 лет или senior)"
@@ -280,7 +302,7 @@ async def edit_experience(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.message(EditExperience.experience)
+@router.message(EditExecutor.experience)
 async def get_experience(message: Message, state: FSMContext, session: Any) -> None:
     """Получаем опыт"""
     # Меняем предыдущее сообщение
@@ -299,16 +321,25 @@ async def get_experience(message: Message, state: FSMContext, session: Any) -> N
         return
 
     # Очищаем стейт
-    await state.clear()
+    # await state.clear()
+
+    # Меняем old_executor, если это первое изменение и нет new_executor
+    if data.get("new_executor"):
+        executor: Executor = data["new_executor"]
+    else:
+        executor: Executor = data["old_executor"]
+    executor.experience = message.text
+
+    await state.update_data(new_executor=executor)
 
     # Сохраняем информацию
-    try:
-        tg_id = str(message.from_user.id)
-        await AsyncOrm.update_experience(tg_id, message.text, session)
-    except:
-        msg = f"{btn.INFO} Ошибка при изменении информации об опыте. Повторите запрос позже"
-        await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
-        return
+    # try:
+    #     tg_id = str(message.from_user.id)
+    #     await AsyncOrm.update_experience(tg_id, message.text, session)
+    # except:
+    #     msg = f"{btn.INFO} Ошибка при изменении информации об опыте. Повторите запрос позже"
+    #     await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
+    #     return
 
     # Отправляем сообщение
     msg = "✅ Информация об опыте успешно изменена"
@@ -316,7 +347,7 @@ async def get_experience(message: Message, state: FSMContext, session: Any) -> N
 
 
 # ИЗМЕНЕНИЕ ОПИСАНИЯ
-@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "description"))
+@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "description"), EditExecutor.view)
 async def edit_description(callback: CallbackQuery, state: FSMContext) -> None:
     """Изменение описания"""
     # Удаляем предыдущее сообщение
@@ -326,7 +357,7 @@ async def edit_description(callback: CallbackQuery, state: FSMContext) -> None:
         pass
 
     # Меняем стейт
-    await state.set_state(EditDescription.description)
+    await state.set_state(EditExecutor.description)
 
     # Отправляем сообщение
     msg = "Отправьте информацию о себе (не более 500 символов)"
@@ -336,7 +367,7 @@ async def edit_description(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.message(EditDescription.description)
+@router.message(EditExecutor.description)
 async def get_description(message: Message, state: FSMContext, session: Any) -> None:
     """Получаем описание"""
     # Меняем предыдущее сообщение
@@ -364,16 +395,25 @@ async def get_description(message: Message, state: FSMContext, session: Any) -> 
         return
 
     # Очищаем стейт
-    await state.clear()
+    # await state.clear()
+
+    # Меняем old_executor, если это первое изменение и нет new_executor
+    if data.get("new_executor"):
+        executor: Executor = data["new_executor"]
+    else:
+        executor: Executor = data["old_executor"]
+    executor.description = message.text
+
+    await state.update_data(new_executor=executor)
 
     # Сохраняем информацию
-    try:
-        tg_id = str(message.from_user.id)
-        await AsyncOrm.update_description(tg_id, message.text, session)
-    except:
-        msg = f"{btn.INFO} Ошибка при изменении описания. Повторите запрос позже"
-        await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
-        return
+    # try:
+    #     tg_id = str(message.from_user.id)
+    #     await AsyncOrm.update_description(tg_id, message.text, session)
+    # except:
+    #     msg = f"{btn.INFO} Ошибка при изменении описания. Повторите запрос позже"
+    #     await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
+    #     return
 
     # Отправляем сообщение
     msg = "✅ Описание успешно изменено"
@@ -381,7 +421,7 @@ async def get_description(message: Message, state: FSMContext, session: Any) -> 
 
 
 # ИЗМЕНЕНИЕ КОНТАКТОВ
-@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "contacts"))
+@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "contacts"), EditExecutor.view)
 async def edit_contacts(callback: CallbackQuery, state: FSMContext) -> None:
     """Изменение контактов"""
     # Удаляем предыдущее сообщение
@@ -391,7 +431,7 @@ async def edit_contacts(callback: CallbackQuery, state: FSMContext) -> None:
         pass
 
     # Меняем стейт
-    await state.set_state(EditContacts.contacts)
+    await state.set_state(EditExecutor.contacts)
 
     # Отправляем сообщение
     msg = "Отправьте контакт для связи (например телефон: 8-999-888-77-66)\n\n" \
@@ -402,7 +442,7 @@ async def edit_contacts(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.message(EditContacts.contacts)
+@router.message(EditExecutor.contacts)
 async def get_contacts(message: Message, state: FSMContext, session: Any) -> None:
     """Получаем контакты"""
     # Меняем предыдущее сообщение
@@ -421,37 +461,57 @@ async def get_contacts(message: Message, state: FSMContext, session: Any) -> Non
         return
 
     # Очищаем стейт
-    await state.clear()
+    # await state.clear()
+
+    # Меняем old_executor, если это первое изменение и нет new_executor
+    if data.get("new_executor"):
+        executor: Executor = data["new_executor"]
+    else:
+        executor: Executor = data["old_executor"]
+    executor.contacts = message.text
+
+    await state.update_data(new_executor=executor)
 
     # Сохраняем информацию
-    try:
-        tg_id = str(message.from_user.id)
-        await AsyncOrm.update_contacts(tg_id, message.text, session)
-    except:
-        msg = f"{btn.INFO} Ошибка при изменении контактной информации. Повторите запрос позже"
-        await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
-        return
+    # try:
+    #     tg_id = str(message.from_user.id)
+    #     await AsyncOrm.update_contacts(tg_id, message.text, session)
+    # except:
+    #     msg = f"{btn.INFO} Ошибка при изменении контактной информации. Повторите запрос позже"
+    #     await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
+    #     return
 
     # Отправляем сообщение
     msg = "✅ Контактная информация успешно изменена"
     await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
 
-@router.callback_query(F.data == "skip", EditContacts.contacts)
+@router.callback_query(F.data == "skip", EditExecutor.contacts)
 async def skip_contacts(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
     """Запись контактов пустыми"""
     # Очищаем стейт
-    await state.clear()
+    # await state.clear()
+
+    data = await state.get_data()
+
+    # Меняем old_executor, если это первое изменение и нет new_executor
+    if data.get("new_executor"):
+        executor: Executor = data["new_executor"]
+    else:
+        executor: Executor = data["old_executor"]
+    executor.contacts = None
+
+    await state.update_data(new_executor=executor)
 
     # Сохраняем информацию
-    try:
-        tg_id = str(callback.from_user.id)
-        await AsyncOrm.update_contacts(tg_id, None, session)
-    except:
-        msg = f"{btn.INFO} Ошибка при изменении контактной информации. Повторите запрос позже"
-        await callback.answer()
-        await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
-        return
+    # try:
+    #     tg_id = str(callback.from_user.id)
+    #     await AsyncOrm.update_contacts(tg_id, None, session)
+    # except:
+    #     msg = f"{btn.INFO} Ошибка при изменении контактной информации. Повторите запрос позже"
+    #     await callback.answer()
+    #     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
+    #     return
 
     # Отправляем сообщение
     msg = "✅ Контактная информация успешно изменена"
@@ -460,7 +520,7 @@ async def skip_contacts(callback: CallbackQuery, session: Any, state: FSMContext
 
 
 # ИЗМЕНЕНИЕ ГОРОД
-@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "location"))
+@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "location"), EditExecutor.view)
 async def edit_location(callback: CallbackQuery, state: FSMContext) -> None:
     """Изменение location"""
     # Удаляем предыдущее сообщение
@@ -470,7 +530,7 @@ async def edit_location(callback: CallbackQuery, state: FSMContext) -> None:
         pass
 
     # Меняем стейт
-    await state.set_state(EditLocation.location)
+    await state.set_state(EditExecutor.location)
 
     # Отправляем сообщение
     msg = "Отправьте ваш город"
@@ -480,7 +540,7 @@ async def edit_location(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.message(EditLocation.location)
+@router.message(EditExecutor.location)
 async def get_location(message: Message, state: FSMContext, session: Any) -> None:
     """Получаем location"""
     # Меняем предыдущее сообщение
@@ -499,37 +559,57 @@ async def get_location(message: Message, state: FSMContext, session: Any) -> Non
         return
 
     # Очищаем стейт
-    await state.clear()
+    # await state.clear()
+
+    # Меняем old_executor, если это первое изменение и нет new_executor
+    if data.get("new_executor"):
+        executor: Executor = data["new_executor"]
+    else:
+        executor: Executor = data["old_executor"]
+    executor.location = message.text
+
+    await state.update_data(new_executor=executor)
 
     # Сохраняем информацию
-    try:
-        tg_id = str(message.from_user.id)
-        await AsyncOrm.update_location(tg_id, message.text, session)
-    except:
-        msg = f"{btn.INFO} Ошибка при изменении города. Повторите запрос позже"
-        await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
-        return
+    # try:
+    #     tg_id = str(message.from_user.id)
+    #     await AsyncOrm.update_location(tg_id, message.text, session)
+    # except:
+    #     msg = f"{btn.INFO} Ошибка при изменении города. Повторите запрос позже"
+    #     await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
+    #     return
 
     # Отправляем сообщение
     msg = "✅ Город успешно изменен"
     await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
 
-@router.callback_query(F.data == "skip", EditLocation.location)
+@router.callback_query(F.data == "skip", EditExecutor.location)
 async def skip_location(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
     """Запись location пустым"""
     # Очищаем стейт
-    await state.clear()
+    # await state.clear()
+
+    data = await state.get_data()
+
+    # Меняем old_executor, если это первое изменение и нет new_executor
+    if data.get("new_executor"):
+        executor: Executor = data["new_executor"]
+    else:
+        executor: Executor = data["old_executor"]
+    executor.location = None
+
+    await state.update_data(new_executor=executor)
 
     # Сохраняем информацию
-    try:
-        tg_id = str(callback.from_user.id)
-        await AsyncOrm.update_location(tg_id, None, session)
-    except:
-        msg = f"{btn.INFO} Ошибка при изменении города. Повторите запрос позже"
-        await callback.answer()
-        await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
-        return
+    # try:
+    #     tg_id = str(callback.from_user.id)
+    #     await AsyncOrm.update_location(tg_id, None, session)
+    # except:
+    #     msg = f"{btn.INFO} Ошибка при изменении города. Повторите запрос позже"
+    #     await callback.answer()
+    #     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
+    #     return
 
     # Отправляем сообщение
     msg = "✅ Город успешно изменен"
@@ -538,7 +618,7 @@ async def skip_location(callback: CallbackQuery, session: Any, state: FSMContext
 
 
 # ИЗМЕНЕНИЕ ССЫЛОК НА ПОРТФОЛИО
-@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "links"))
+@router.callback_query(and_f(F.data.split("|")[0] == "edit_executor", F.data.split("|")[1] == "links"), EditExecutor.view)
 async def edit_links(callback: CallbackQuery, state: FSMContext) -> None:
     """Изменение links"""
     # Удаляем предыдущее сообщение
@@ -548,7 +628,7 @@ async def edit_links(callback: CallbackQuery, state: FSMContext) -> None:
         pass
 
     # Меняем стейт
-    await state.set_state(EditLinks.links)
+    await state.set_state(EditExecutor.links)
 
     # Делаем заготовку под ссылки
     await state.update_data(links=[])
@@ -561,7 +641,7 @@ async def edit_links(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.message(EditLinks.links)
+@router.message(EditExecutor.links)
 async def get_link(message: Message, state: FSMContext) -> None:
     """Вспомогательный хэндлер для получения ссылок на портфолио"""
     # Меняем предыдущее сообщение
@@ -616,25 +696,34 @@ async def get_link(message: Message, state: FSMContext) -> None:
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.callback_query(F.data == "continue", EditLinks.links)
+@router.callback_query(F.data == "continue", EditExecutor.links)
 async def get_links(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Получаем список ссылок на портфолио, запрашиваем контакты"""
     # Получаем дату
     data = await state.get_data()
 
     # Очищаем стейт
-    await state.clear()
+    # await state.clear()
+
+    # Меняем old_executor, если это первое изменение и нет new_executor
+    if data.get("new_executor"):
+        executor: Executor = data["new_executor"]
+    else:
+        executor: Executor = data["old_executor"]
+    executor.links = data["links"]
+
+    await state.update_data(new_executor=executor)
 
     # Сохраняем информацию
-    try:
-        tg_id = str(callback.from_user.id)
-        links = data["links"]
-        await AsyncOrm.update_links(tg_id, links, session)
-    except:
-        msg = f"{btn.INFO} Ошибка при изменении ссылок на портфолио. Повторите запрос позже"
-        await callback.answer()
-        await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
-        return
+    # try:
+    #     tg_id = str(callback.from_user.id)
+    #     links = data["links"]
+    #     await AsyncOrm.update_links(tg_id, links, session)
+    # except:
+    #     msg = f"{btn.INFO} Ошибка при изменении ссылок на портфолио. Повторите запрос позже"
+    #     await callback.answer()
+    #     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
+    #     return
 
     # Отправляем сообщение
     msg = "✅ Ссылки на портфолио успешно изменены"
@@ -642,11 +731,67 @@ async def get_links(callback: CallbackQuery, state: FSMContext, session: Any) ->
     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
 
+# ОТПРАВКА ИЗМЕНЕННОЙ АНКЕТЫ НА ВЕРИФИКАЦИЮ
+@router.callback_query(F.data.split("|")[0] == "send_to_verification", EditExecutor.view)
+async def send_to_verification(callback: CallbackQuery) -> None:
+    """Подтверждение отправки анкеты на верификацию"""
+    # Удаляем предыдущее сообщение
+    try:
+        await callback.message.delete()
+    except:
+        pass
+
+    tg_id = str(callback.from_user.id)
+
+    msg = f"❗ Во время проверки анкеты администратором большая часть функционала сервиса будет недоступна"
+    keyboard = kb.send_to_verification_keyboard(tg_id)
+
+    await callback.message.answer(msg, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "send_to_verification_confirmed", EditExecutor.view)
+async def send_to_verification_confirmed(callback: CallbackQuery, state: FSMContext, bot: Bot, session: Any) -> None:
+    """Отправка анкеты на верификацию"""
+    # Получаем данные
+    tg_id = str(callback.from_user.id)
+    data = await state.get_data()
+
+    # Очищаем стейт
+    await state.clear()
+
+    # Сохранение в БД обновленной анкеты с is_verified = False
+    executor: Executor = data["new_executor"]
+    executor.verified = False
+    try:
+        await AsyncOrm.update_executor(executor, session)
+    except:
+        await callback.answer()
+        await callback.message.answer(f"{btn.INFO} Ошибка при изменении профиля, попробуйте позже")
+        return
+
+    # Сообщение исполнителю
+    ex_msg = f"{btn.INFO} Анкета отправлена на проверку администратору\n\n"
+    await callback.answer()
+    await callback.message.edit_text(ex_msg)
+
+    # Сообщение админам в группу
+    admin_msg = edited_executor_card_for_admin_verification(executor)
+    admin_group_id = settings.admin_group_id
+    filepath = get_photo_path(settings.executors_profile_path, tg_id)
+    profile_image = FSInputFile(filepath)
+    await bot.send_photo(
+        admin_group_id,
+        photo=profile_image,
+        caption=admin_msg,
+        reply_markup=confirm_edit_executor_keyboard(tg_id).as_markup(),
+    )
+
+
 # ОТМЕНА ИЗМЕНЕНИЯ АНКЕТЫ
 @router.callback_query(F.data == "cancel_edit_profile", StateFilter("*"))
-async def cancel_upload_cv(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
+async def cancel_edit_profile(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Отмена изменения профиля"""
-    await state.clear()
+    # await state.clear()
 
     try:
         await callback.answer()
@@ -654,4 +799,4 @@ async def cancel_upload_cv(callback: CallbackQuery, state: FSMContext, session: 
     except Exception:
         pass
 
-    await executor_profile_menu(callback, session)
+    await executor_profile_menu(callback, session, state)

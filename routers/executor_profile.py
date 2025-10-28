@@ -16,6 +16,7 @@ from routers.buttons import buttons as btn
 from routers.buttons.buttons import WAIT_MSG
 from routers.keyboards import executor_profile as kb
 from routers.messages.executor import get_executor_profile_message
+from routers.states.executor_profile import EditExecutor
 from routers.states.registration import UploadCV
 
 from schemas.executor import Executor
@@ -37,7 +38,7 @@ router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
 
 # МЕНЮ ПРОФИЛЯ ИСПОЛНИТЕЛЯ
 @router.callback_query(F.data.split("|")[1] == "executor_profile")
-async def executor_profile_menu(callback: CallbackQuery, session: Any) -> None:
+async def executor_profile_menu(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
     """Меню профиля исполнителя"""
     # Wait message со случаем возвращения от файла
     try:
@@ -58,8 +59,18 @@ async def executor_profile_menu(callback: CallbackQuery, session: Any) -> None:
         await wait_msg.edit_text(msg)
         return
 
+    # Сразу ставим стейт для изменения анкеты
+    await state.set_state(EditExecutor.view)
+    await state.update_data(old_executor=executor)
+
     # Формируем анкету
-    questionnaire = get_executor_profile_message(executor)
+    data = await state.get_data()
+    # Если есть изменения в анкете
+    edited: bool = data.get("new_executor")
+    if edited:
+        questionnaire = get_executor_profile_message(data["new_executor"])
+    else:
+        questionnaire = get_executor_profile_message(executor)
 
     # Добавляем кнопки для редактирования анкеты
     buttons_text = f"\n\n<i>Нажмите на соответствующую цифру для редактирования анкеты:</i>\n" \
@@ -73,6 +84,10 @@ async def executor_profile_menu(callback: CallbackQuery, session: Any) -> None:
                    f"<b>8.</b> Изменить ссылки на портфолио"
 
     caption = questionnaire + buttons_text
+
+    # Если есть изменения
+    if edited:
+        caption += f"\n\n❗ <i>Чтобы изменения анкеты вступили в силу, необходимо отправить анкету на проверку администратору</i>"
 
     # Получаем фотографию
     filepath = get_photo_path(settings.executors_profile_path, executor.tg_id)
@@ -88,7 +103,7 @@ async def executor_profile_menu(callback: CallbackQuery, session: Any) -> None:
         pass
 
     # Отправляем сообщение
-    keyboard = kb.executor_profile_keyboard(cv_exists=cv_exists)
+    keyboard = kb.executor_profile_keyboard(edited, cv_exists=cv_exists)
     await callback.message.answer_photo(
         profile_image,
         caption=caption,
@@ -151,7 +166,7 @@ async def get_cv_file(message: Message, state: FSMContext, bot: Bot) -> None:
         return
 
     # Очищаем стейт
-    await state.clear()
+    # await state.clear()
 
     # Отправляем сообщение
     msg = "✅ Файл резюме добавлен"
@@ -206,7 +221,7 @@ async def delete_cv(callback: CallbackQuery) -> None:
 @router.callback_query(F.data == "cancel_upload_cv", StateFilter("*"))
 async def cancel_upload_cv(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Отмена загрузки резюме"""
-    await state.clear()
+    # await state.clear()
 
     try:
         await callback.answer()
@@ -214,4 +229,4 @@ async def cancel_upload_cv(callback: CallbackQuery, state: FSMContext, session: 
     except Exception:
         pass
 
-    await executor_profile_menu(callback, session)
+    await executor_profile_menu(callback, session, state)

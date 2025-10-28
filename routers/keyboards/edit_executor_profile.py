@@ -48,6 +48,17 @@ def jobs_keyboard(jobs: List[Job], selected_jobs: List[int]) -> InlineKeyboardBu
     return keyboard
 
 
+def send_to_verification_keyboard(tg_id: str) -> InlineKeyboardBuilder:
+    """Клавиатура подтверждения отправки анкеты на проверку после измененеия"""
+
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text=f"Отправить на проверку", callback_data=f"send_to_verification_confirmed|{tg_id}"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_edit_profile"))
+
+    return keyboard
+
+
 def to_profile_keyboard() -> InlineKeyboardBuilder:
     """Клавиатура в меню исполнителя"""
 

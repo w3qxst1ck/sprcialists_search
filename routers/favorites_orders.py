@@ -102,7 +102,10 @@ async def show_order(callback: CallbackQuery, state: FSMContext) -> None:
     # Сохраняем текущий индекс
     await state.update_data(current_index=current_index)
     # Отправляем сообщение
-    await send_order_card(orders, current_index, prev_mess, state)
+    try:
+        await send_order_card(orders, current_index, prev_mess, state)
+    except:
+        pass
 
 
 # Написать заказчику
@@ -216,7 +219,11 @@ async def send_order_card(orders: list[Order], current_index: int, message: Call
             prev_mess = await message.edit_text(msg, reply_markup=keyboard.as_markup())
         else:
             await message.answer()
-            prev_mess = await message.message.edit_text(msg, reply_markup=keyboard.as_markup())
+            # Если пришли после скачивания файлов
+            if message.data.split("|")[0] == "files_for_order":
+                prev_mess = await message.message.answer(msg, reply_markup=keyboard.as_markup())
+            else:
+                prev_mess = await message.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
     await state.update_data(prev_mess=prev_mess)
 

@@ -11,8 +11,8 @@ from middlewares.admin import AdminMiddleware
 from middlewares.private import CheckPrivateMessageMiddleware
 from routers.keyboards import admin as kb
 from routers.buttons import buttons as btn
-from routers.states.professions import AddProfession
-from schemas.profession import Profession, ProfessionAdd
+from routers.states.professions import AddProfession, AddJob
+from schemas.profession import Profession, ProfessionAdd, Job, JobAdd
 
 # Роутер для использования в ЛС
 router = Router()
@@ -25,10 +25,13 @@ router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
 
 
 @router.callback_query(F.data.split("|")[1] == "admin_menu")
-async def admin_menu(callback: CallbackQuery, admin: bool) -> None:
+async def admin_menu(callback: CallbackQuery, session: Any) -> None:
     """Админ меню"""
-    # Проверка админ ли
-    if not admin:
+    # Проверяем админ или нет
+    tg_id = str(callback.from_user.id)
+    is_admin: bool = await AsyncOrm.check_is_admin(tg_id, session)
+
+    if not is_admin:
         keyboard = kb.back_to_main_menu_keyboard()
         await callback.answer()
         await callback.message.edit_text(f"{btn.INFO} Данный функционал доступен только для администраторов", reply_markup=keyboard.as_markup())
@@ -154,15 +157,131 @@ async def add_profession_confirmed(callback: CallbackQuery, session: Any, state:
     await callback.message.answer(f"{btn.ADMIN}", reply_markup=kb.admin_menu_keyboard().as_markup())
 
 
+# ДОБАВЛЕНИЕ JOB
+@router.callback_query(F.data == "add_job")
+async def add_job_start(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Начало добавления job"""
+    # Назначаем стейт
+    await state.set_state(AddJob.profession)
+
+    # Получаем профессии
+    professions: List[Profession] = await AsyncOrm.get_professions(session)
+
+    # Отправляем сообщение
+    msg = "Выберите профессию, в которую необходимо добавить раздел"
+    await callback.answer()
+    keyboard = kb.profession_keyboard(professions)
+    prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data.split("|")[0] == "choose_profession", AddJob.profession)
+async def get_profession(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Получение профессии, запрос job title"""
+    # Записываем profession_id
+    profession_id = int(callback.data.split("|")[1])
+    await state.update_data(profession_id=profession_id)
+
+    # Меняем стейт
+    await state.set_state(AddJob.title)
+
+    # Получаем данные для сообщения
+    profession: Profession = await AsyncOrm.get_profession(profession_id, session)
+    jobs: List[Job] = await AsyncOrm.get_jobs_by_profession(profession_id, session)
+    jobs_text = "\n".join([job.title for job in jobs])
+    await state.update_data(jobs=jobs)
+    await state.update_data(profession=profession)
+
+    # Запрашиваем title
+    msg = f"Отправьте название раздела профессии\n\n"
+    if jobs:
+        msg += f"В профессии {profession.emoji + ' ' if profession.emoji else ''}{profession.title} уже имеются разделы:\n" \
+               f"<i>{jobs_text}</i>"
+    else:
+        msg += f"В профессии {profession.emoji + ' ' if profession.emoji else ''}{profession.title} пока нет ни одного раздела"
+
+    await callback.answer()
+    prev_mess = await callback.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.message(AddJob.title)
+async def get_job_title(message: Message, state: FSMContext) -> None:
+    """Получаем job title"""
+    # Меняем предыдущее сообщение
+    data = await state.get_data()
+    try:
+        await data["prev_mess"].edit_text(data["prev_mess"].html_text)
+    except Exception:
+        pass
+
+    # Если отправлен не текст
+    if not message.text:
+        prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+                                         reply_markup=kb.cancel_keyboard().as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Проверяем есть ли уже такое название
+    jobs: List[Job] = data["jobs"]
+    jobs_titles: List[str] = [job.title for job in jobs]
+    if message.text in jobs_titles:
+        prev_mess = await message.answer(f"Название \"{message.text}\" уже существует, отправьте другое название",
+                                         reply_markup=kb.cancel_keyboard().as_markup())
+        # Сохраняем предыдущее сообщение
+        await state.update_data(prev_mess=prev_mess)
+        return
+
+    # Сохраняем название
+    await state.update_data(title=message.text)
+
+    # Меняем стейт
+    await state.set_state(AddJob.confirmation)
+
+    # Отправляем сообщение
+    msg = f"Добавить раздел <b>{message.text}</b> в профессию {data['profession'].emoji + ' ' if data['profession'].emoji else ''}{data['profession'].title}?"
+    prev_mess = await message.answer(msg, reply_markup=kb.yes_no_keyboard().as_markup())
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.callback_query(F.data == "confirm", AddJob.confirmation)
+async def add_job_confirmed(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
+    """Сохранение job"""
+    # Получаем данные
+    data = await state.get_data()
+
+    # Скидываем стейт
+    await state.clear()
+
+    # Сохраняем профессию
+    job: JobAdd = JobAdd(
+        title=data['title'],
+        profession_id=data['profession_id'],
+    )
+
+    try:
+        await AsyncOrm.create_job(job, session)
+    except:
+        await callback.answer()
+        await callback.message.edit_text(f"{btn.INFO} Ошибка при сохранении раздела профессии. Повторите запрос позже")
+        return
+
+    msg = f"✅ Раздел {job.title} успешно добавлен в профессию {data['profession'].emoji + ' ' if data['profession'].emoji else ''}{data['profession'].title}"
+    await callback.answer()
+    await callback.message.edit_text(msg)
+    await callback.message.answer(f"{btn.ADMIN}", reply_markup=kb.admin_menu_keyboard().as_markup())
+
+
 @router.callback_query(F.data == "admin_cancel", StateFilter("*"))
-async def cancel_registration(callback: CallbackQuery, state: FSMContext, admin: bool) -> None:
+async def cancel_admin_addition(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Отмена действия админа"""
     try:
         await state.clear()
     except Exception:
         pass
 
-    await admin_menu(callback, admin)
+    await admin_menu(callback, session)
 
 
 

@@ -11,7 +11,7 @@ from logger import logger
 from schemas.client import ClientAdd, RejectReason, Client
 from schemas.executor import ExecutorAdd, Executor
 from schemas.order import OrderAdd, Order, TaskFile, TaskFileAdd
-from schemas.profession import Profession, Job, ProfessionAdd
+from schemas.profession import Profession, Job, ProfessionAdd, JobAdd
 from schemas.user import UserAdd, User
 
 # для model_validate регистрируем возвращаемый из asyncpg.fetchrow класс Record
@@ -213,6 +213,22 @@ class AsyncOrm:
             raise
 
     @staticmethod
+    async def create_job(job: JobAdd, session: Any) -> None:
+        """Создание Job"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO jobs (title, profession_id)
+                VALUES ($1, $2)
+                """,
+                job.title, job.profession_id
+            )
+            logger.info(f"Добавлена job {job.title} в профессию id {job.profession_id}")
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении job {job.title} в профессию id {job.profession_id}: {e}")
+            raise
+
+    @staticmethod
     async def update_profession(tg_id: str, jobs_ids: List[int], session: Any) -> None:
         """Изменение профессии и jobs у исполнителя"""
         try:
@@ -365,6 +381,59 @@ class AsyncOrm:
 
         except Exception as ex:
             logger.error(f"Ошибка при создании профиля исполнителя пользователем {e.tg_id}: {ex}")
+            raise
+
+    @staticmethod
+    async def update_executor(e: Executor, session: Any) -> None:
+        """Изменение анкеты исполнителя"""
+        links = "|".join(e.links)
+        updated_at = datetime.datetime.now()
+
+        try:
+            async with session.transaction():
+                # Изменение профиля исполнителя
+                await session.execute(
+                    """
+                    UPDATE executors 
+                    SET description=$1, rate=$2, experience=$3, links=$4, contacts=$5, location=$6, verified=false 
+                    WHERE id = $7
+                    """,
+                    e.description, e.rate, e.experience, links, e.contacts, e.location, e.id
+                )
+
+                # Удаление связи ExecutorsJobs
+                await session.execute(
+                    """
+                    DELETE FROM executors_jobs
+                    WHERE executor_id = $1
+                    """,
+                    e.id
+                )
+
+                # Создание связи ExecutorsJobs
+                for job in e.jobs:
+                    await session.execute(
+                        """
+                        INSERT INTO executors_jobs (job_id, executor_id)
+                        VALUES ($1, $2)
+                        """,
+                        job.id, e.id
+                    )
+
+                # Меняем updated_at у user
+                await session.execute(
+                    """
+                    UPDATE users
+                    SET updated_at = $1
+                    WHERE tg_id = $2
+                    """,
+                    updated_at, e.tg_id
+                )
+
+                logger.info(f"Профиль Исполнителя пользователя {e.tg_id} изменен")
+
+        except Exception as ex:
+            logger.error(f"Ошибка при изменении профиля исполнителя пользователя {e.tg_id}: {ex}")
             raise
 
     @staticmethod

@@ -5,6 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from schemas.client import RejectReason
 from routers.buttons import buttons as btn
+from schemas.profession import Profession
 
 
 def confirm_registration_executor_keyboard(tg_id: str) -> InlineKeyboardBuilder:
@@ -14,6 +15,18 @@ def confirm_registration_executor_keyboard(tg_id: str) -> InlineKeyboardBuilder:
     keyboard.row(
         InlineKeyboardButton(text="Подтвердить ✅", callback_data=f"executor_confirm|{tg_id}"),
         InlineKeyboardButton(text="Отклонить ❌", callback_data=f"executor_cancel|{tg_id}")
+    )
+
+    return keyboard
+
+
+def confirm_edit_executor_keyboard(tg_id: str) -> InlineKeyboardBuilder:
+    """Клавиатура подтверждения изменения анкеты исполнителя"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text="Подтвердить ✅", callback_data=f"executor_edit_confirm|{tg_id}"),
+        InlineKeyboardButton(text="Отклонить ❌", callback_data=f"executor_edit_cancel|{tg_id}")
     )
 
     return keyboard
@@ -57,6 +70,20 @@ def admin_menu_keyboard() -> InlineKeyboardBuilder:
     keyboard.row(InlineKeyboardButton(text=f"💼 Добавить профессию", callback_data=f"add_profession"))
     keyboard.row(InlineKeyboardButton(text=f"🛠️ Добавить раздел профессии", callback_data=f"add_job"))
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data=f"main_menu"))
+
+    return keyboard
+
+
+def profession_keyboard(professions: List[Profession]) -> InlineKeyboardBuilder:
+    """Клавиатура выбора профессии"""
+
+    keyboard = InlineKeyboardBuilder()
+
+    for p in professions:
+        keyboard.row(InlineKeyboardButton(text=f"{p.title}", callback_data=f"choose_profession|{p.id}"))
+
+    # Кнопка отмены
+    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data=f"admin_cancel"))
 
     return keyboard
 

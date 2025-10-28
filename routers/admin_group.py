@@ -11,8 +11,9 @@ from middlewares.database import DatabaseMiddleware
 from middlewares.admin import AdminMiddleware
 from middlewares.private import CheckGroupMessageMiddleware
 from routers.keyboards.client_reg import to_main_menu
+from routers.messages.executor import executor_card_for_admin_verification
 from routers.states.registration import Reject
-from schemas.executor import RejectReason
+from schemas.executor import RejectReason, Executor
 from routers.keyboards import admin as kb
 from settings import settings
 
@@ -168,3 +169,34 @@ async def send_reject_to_user(callback: CallbackQuery, state: FSMContext, sessio
         await AsyncOrm.delete_client(user_tg_id, session)
 
     logger.info(f"Анкета исполнителя пользователя {user_tg_id} отклонена администратором {admin_name}")
+
+
+# Подтверждение изменения анкеты исполнителя
+@group_router.callback_query(F.data.split("|")[0] == "executor_edit_confirm")
+async def confirm_executor_registration(callback: CallbackQuery, session: Any, bot: Bot, admin: bool) -> None:
+    """Верификация новой анкеты исполнителя в группе"""
+    # Проверяем админа
+    if not admin:
+        await callback.message.answer("⚠️ Функция доступна только администраторам")
+        return
+
+    # Убираем клавиатуру сразу после нажатия
+    await callback.message.edit_reply_markup(reply_markup=None)
+
+    # получаем tg_id исполнителя
+    executor_tg_id = callback.data.split("|")[1]
+
+    # Меняем статус верификации
+    admin_tg_id = str(callback.from_user.id)
+    await AsyncOrm.verify_executor(executor_tg_id, admin_tg_id, session)
+
+    # Оповещаем админов в группе
+    admin_name = str(callback.from_user.first_name)
+    executor: Executor = await AsyncOrm.get_executor_by_tg_id(executor_tg_id, session)
+    edited_caption = executor_card_for_admin_verification(executor) + f"\n\n<i>Изменения анкеты верифицированы администратором \"{admin_name}\"</i>"
+    await callback.message.edit_caption(caption=edited_caption)
+
+    # Оповещаем исполнителя
+    user_msg = f"✅ Внесенные изменения в анкету верифицированы администратором\n\n"
+    keyboard = to_main_menu()
+    await bot.send_message(executor_tg_id, user_msg, reply_markup=keyboard.as_markup(), message_effect_id="5046509860389126442")
