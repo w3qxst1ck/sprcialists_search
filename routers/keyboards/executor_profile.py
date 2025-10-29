@@ -10,7 +10,7 @@ from settings import settings
 from schemas.profession import Profession, Job
 
 
-def executor_profile_keyboard(cv_exists: bool = False) -> InlineKeyboardBuilder:
+def executor_profile_keyboard(edited: bool, cv_exists: bool = False) -> InlineKeyboardBuilder:
     """Клавиатура меню исполнителя"""
 
     keyboard = InlineKeyboardBuilder()
@@ -31,6 +31,10 @@ def executor_profile_keyboard(cv_exists: bool = False) -> InlineKeyboardBuilder:
         keyboard.row(InlineKeyboardButton(text=f"🗑️ Удалить резюме", callback_data=f"delete_cv"))
     else:
         keyboard.row(InlineKeyboardButton(text=f"📝 Загрузить резюме", callback_data=f"upload_cv"))
+
+    # Если есть изменения
+    if edited:
+        keyboard.row(InlineKeyboardButton(text=f"Отправить на проверку", callback_data=f"send_to_verification"))
 
     # Кнопка назад
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="main_menu"))
@@ -75,13 +79,13 @@ def executor_change_status_keyboard(executor: Executor) -> InlineKeyboardBuilder
     if executor.availability == Availability.FREE.value:
         keyboard.row(InlineKeyboardButton(text=f"[ ✓ ] Принимаю заказы", callback_data="set_status|none"))
     else:
-        keyboard.row(InlineKeyboardButton(text=f"Принимаю заказы", callback_data="set_status|free"))
+        keyboard.row(InlineKeyboardButton(text=f"[   ] Принимаю заказы", callback_data="set_status|free"))
 
     # Кнопка статуса занят
     if executor.availability == Availability.BUSY.value:
         keyboard.row(InlineKeyboardButton(text=f"[ ✓ ] Недоступен", callback_data="set_status|none"))
     else:
-        keyboard.row(InlineKeyboardButton(text=f"Недоступен", callback_data="set_status|busy"))
+        keyboard.row(InlineKeyboardButton(text=f"[   ] Недоступен", callback_data="set_status|busy"))
 
     # Кнопка назад
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data=f"main_menu"))

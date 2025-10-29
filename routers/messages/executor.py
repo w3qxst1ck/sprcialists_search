@@ -34,6 +34,19 @@ def executor_card_for_admin_verification(executor: ExecutorAdd) -> str:
     return msg
 
 
+def edited_executor_card_for_admin_verification(executor: ExecutorAdd) -> str:
+    """Измененная анкета исполнителя для верификации админами в группе"""
+    msg = get_executor_profile_message(executor)
+
+    verified = "✔️ Подтверждена" if executor.verified else "🚫 Не подтверждена"
+
+    msg += f"\n\n{verified}"
+
+    msg += "\n\n<i>*Исполнитель внес изменения в анкету и отправил на проверку</i>"
+
+    return msg
+
+
 def executor_profile_to_show(executor: Executor, in_favorites: bool = False) -> str:
     """Карточка исполнителя для показа в ленте"""
     msg = get_executor_profile_message(executor)

@@ -1,6 +1,18 @@
 from aiogram.fsm.state import StatesGroup, State
 
 
+class EditExecutor(StatesGroup):
+    view = State()
+    photo = State()
+    profession = State()
+    jobs = State()
+    rate = State()
+    experience = State()
+    description = State()
+    contacts = State()
+    location = State()
+    links = State()
+
 class EditPhoto(StatesGroup):
     photo = State()
 
