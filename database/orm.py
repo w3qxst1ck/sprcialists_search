@@ -1618,3 +1618,20 @@ class AsyncOrm:
             logger.error(f"Ошибка при удалении заказа {order_id} из избранных исполнителя {executor_tg_id}: {e}")
             raise
 
+    @staticmethod
+    async def update_executor_status(new_status: str, tg_id: str, session: Any):
+        """Изменения статуса исполнителя"""
+        try:
+            await session.execute(
+                """
+                UPDATE executors
+                SET availability = $1
+                WHERE tg_id = $2
+                """,
+                new_status, tg_id
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении статуса \"{new_status}\" занятости исполнителя {tg_id}: {e}")
+            raise
+

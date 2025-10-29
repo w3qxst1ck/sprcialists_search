@@ -75,13 +75,19 @@ def executor_change_status_keyboard(executor: Executor) -> InlineKeyboardBuilder
     """Клавиатура для изменения статуса исполнителя"""
     keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(InlineKeyboardButton(
-        text=f"{'[ ✓ ] ' if executor.availability == Availability.FREE.value else ''}Принимаю заказы",
-                                      callback_data="set_status|free"))
-    keyboard.row(InlineKeyboardButton(
-        text=f"{'[ ✓ ] ' if executor.availability == Availability.BUSY.value else ''}Недоступен",
-        callback_data="set_status|busy"))
+    # Кнопка статуса свободен
+    if executor.availability == Availability.FREE.value:
+        keyboard.row(InlineKeyboardButton(text=f"[ ✓ ] Принимаю заказы", callback_data="set_status|none"))
+    else:
+        keyboard.row(InlineKeyboardButton(text=f"[   ] Принимаю заказы", callback_data="set_status|free"))
 
+    # Кнопка статуса занят
+    if executor.availability == Availability.BUSY.value:
+        keyboard.row(InlineKeyboardButton(text=f"[ ✓ ] Недоступен", callback_data="set_status|none"))
+    else:
+        keyboard.row(InlineKeyboardButton(text=f"[   ] Недоступен", callback_data="set_status|busy"))
+
+    # Кнопка назад
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data=f"main_menu"))
 
     return keyboard

@@ -6,6 +6,7 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, FSInputFile
 
+from database.tables import Availability
 from middlewares.registered import RegisteredMiddleware
 from middlewares.database import DatabaseMiddleware
 from middlewares.private import CheckPrivateMessageMiddleware
@@ -241,22 +242,46 @@ async def my_active_status(callback: CallbackQuery, session: Any) -> None:
     tg_id = str(callback.from_user.id)
 
     executor: Executor = await AsyncOrm.get_executor_by_tg_id(tg_id, session)
-    msg = "Сообщите заказчикам о своей загрузке\n\n<i>При выборе статуса \"Недоступен\" ваша анкета будет " \
+
+    msg = "Сообщите заказчикам о своей занятости\n\n<i>При выборе статуса \"Недоступен\" ваша анкета будет " \
           "скрыта от всех заказчиков</i>"
     keyboard = kb.executor_change_status_keyboard(executor)
 
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
 
-# @router.callback_query(F.data.split("|")[0] == "set_status")
-# async def change_status(callback: CallbackQuery, session: Any) -> None:
-#     """Изменение статуса у исполнителя"""
-#     await callback.answer()
-#
-#     tg_id = str(callback.from_user.id)
-#     new_status = "свободен" if callback.data.split("|")[1] == "free" else "занят"
-#
-#     executor: Executor = await AsyncOrm.get_executor_by_tg_id(tg_id, session)
-#
-#     if executor.availability == new_status:
-#         return
+@router.callback_query(F.data.split("|")[0] == "set_status")
+async def change_status(callback: CallbackQuery, session: Any) -> None:
+    """Изменение статуса у исполнителя"""
+    await callback.answer()
+    new_status_callback = callback.data.split("|")[1]
+
+    # При неизменном статусе, ничего не делаем
+    if new_status_callback == "none":
+        return
+
+    # wait_msg = await callback.message.edit_text(btn.WAIT_MSG)
+
+    tg_id = str(callback.from_user.id)
+
+    # получаем название статуса как в БД
+    new_status = Availability.FREE.value if new_status_callback == "free" else Availability.BUSY.value
+
+    executor: Executor = await AsyncOrm.get_executor_by_tg_id(tg_id, session)
+
+    # Если статус изменился
+    if executor.availability != new_status:
+        # Меняем статус на новый
+        try:
+            await AsyncOrm.update_executor_status(new_status, tg_id, session)
+            executor.availability = new_status
+        except:
+            keyboard = kb.executor_change_status_keyboard(executor)
+            msg = "Ошибка при изменении статуса, попробуйте позже"
+            await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+            return
+
+    keyboard = kb.executor_change_status_keyboard(executor)
+
+    await callback.message.edit_reply_markup(reply_markup=keyboard.as_markup())
+
