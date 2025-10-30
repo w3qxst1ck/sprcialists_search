@@ -10,6 +10,7 @@ from middlewares.database import DatabaseMiddleware
 from middlewares.private import CheckPrivateMessageMiddleware
 
 from database.orm import AsyncOrm
+from middlewares.verified import check_verified_executor
 
 from routers.keyboards import find_order as kb
 from routers.keyboards.client_reg import to_main_menu
@@ -44,6 +45,19 @@ async def select_profession(callback: CallbackQuery, session: Any, state: FSMCon
         await state.clear()
     except:
         pass
+
+    # Проверям верификацию исполнителя
+    tg_id = str(callback.from_user.id)
+    verified: bool = await check_verified_executor(tg_id, session)
+
+    # Если пользователь не верифицирован
+    if not verified:
+        msg = "Данный функционал доступен только верифицированным пользователям"
+        keyboard = to_main_menu()
+
+        await callback.answer()
+        await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+        return
 
     # Получаем все профессии
     professions: list[Profession] = await AsyncOrm.get_professions(session)

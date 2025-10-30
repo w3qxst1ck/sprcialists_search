@@ -12,10 +12,12 @@ from middlewares.database import DatabaseMiddleware
 from middlewares.private import CheckPrivateMessageMiddleware
 
 from database.orm import AsyncOrm
+from middlewares.verified import check_verified_executor
 
 from routers.buttons import buttons as btn
 from routers.buttons.buttons import WAIT_MSG
 from routers.keyboards import executor_profile as kb
+from routers.keyboards.client_reg import to_main_menu
 from routers.messages.executor import get_executor_profile_message
 from routers.states.executor_profile import EditExecutor
 from routers.states.registration import UploadCV
@@ -239,7 +241,18 @@ async def my_active_status(callback: CallbackQuery, session: Any) -> None:
     """Показывается статус исполнителя, принимает / не принимает заказы"""
     await callback.answer()
 
+    # Проверям верификацию исполнителя
     tg_id = str(callback.from_user.id)
+    verified: bool = await check_verified_executor(tg_id, session)
+
+    # Если пользователь не верифицирован
+    if not verified:
+        msg = "Данный функционал доступен только верифицированным пользователям"
+        keyboard = to_main_menu()
+
+        await callback.answer()
+        await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+        return
 
     executor: Executor = await AsyncOrm.get_executor_by_tg_id(tg_id, session)
 
