@@ -3,6 +3,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from routers.buttons import buttons as btn
 from database.tables import ClientType
+from routers.buttons.commands import MENU
 from schemas.profession import Profession, Job
 from settings import settings
 
@@ -60,6 +61,15 @@ def executor_show_keyboard(is_last: bool) -> ReplyKeyboardMarkup:
     if is_last:
         keyboard.one_time_keyboard = True   # Скрывает клавиатуру после использования
 
+    return keyboard
+
+
+def show_again_or_main_menu_keyboard() -> InlineKeyboardBuilder:
+    """Клавиатура с кнопками посмотреть еще раз и главное меню"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text="Смотреть еще раз", callback_data="find_ex_show|show_executors"))
+    keyboard.row(InlineKeyboardButton(text=f"{MENU[1]}", callback_data="main_menu"))
     return keyboard
 
 

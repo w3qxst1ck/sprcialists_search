@@ -3,6 +3,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
 from routers.buttons import buttons as btn
+from routers.buttons.commands import MENU
 from schemas.profession import Job, Profession
 
 
@@ -76,6 +77,15 @@ def back_to_orders_feed() -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="back_to_orders_feed"))
+    return keyboard
+
+
+def show_again_or_main_menu_keyboard() -> InlineKeyboardBuilder:
+    """Клавиатура с кнопками посмотреть еще раз и главное меню"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text="Смотреть еще раз", callback_data="find_cl_show|show_orders"))
+    keyboard.row(InlineKeyboardButton(text=f"{MENU[1]}", callback_data="main_menu"))
     return keyboard
 
 

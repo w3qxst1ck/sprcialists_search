@@ -106,6 +106,7 @@ async def pick_jobs(callback: CallbackQuery, state: FSMContext) -> None:
 
 
 @router.callback_query(F.data == "find_ex_show|show_executors", SelectJobs.jobs)
+@router.callback_query(F.data == "find_ex_show|show_executors", ExecutorsFeed.show)     # Для повторного показа
 async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Завершение мультиселекта и подбор подходящих исполнителей"""
     # Отправляем сообщение об ожидании
@@ -208,12 +209,14 @@ async def executors_feed(message: Message, state: FSMContext, session: Any) -> N
     # Если больше нет исполнителей
     except IndexError:
         # Очищаем стейт
-        await state.clear()
+        # await state.clear()
 
         # Отправляем сообщение с главным меню
         await message.answer(f"{btn.INFO} Это все исполнители по вашему запросу",
                              reply_markup=ReplyKeyboardRemove())    # убираем клавиатуру ReplyKeyboard
-        await main_menu(message, session)
+        await message.answer("Посмотреть найденных исполнителей еще раз?",
+                             reply_markup=kb.show_again_or_main_menu_keyboard().as_markup())
+        # await main_menu(message, session)
         return
 
     # Проверяем есть ли исполнитель уже в избранном

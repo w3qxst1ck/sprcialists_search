@@ -104,6 +104,7 @@ async def pick_jobs(callback: CallbackQuery, state: FSMContext) -> None:
 
 
 @router.callback_query(F.data == "find_cl_show|show_orders", SelectJobs.jobs)
+@router.callback_query(F.data == "find_cl_show|show_orders", OrdersFeed.show)
 async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Завершение мультиселекта и подбор подходящих заказов"""
     # Убираем загрузку
@@ -195,12 +196,14 @@ async def orders_feed(message: Message, state: FSMContext, session: Any) -> None
     # Если больше нет заказов
     except IndexError:
         # Очищаем стейт
-        await state.clear()
+        # await state.clear()
 
         # Отправляем сообщение с главным меню
         await message.answer(f"{btn.INFO} Это все заказы по вашему запросу",
                              reply_markup=ReplyKeyboardRemove())    # убираем клавиатуру ReplyKeyboard
-        await main_menu(message, session)
+        await message.answer("Посмотреть найденные заказы еще раз?",
+                             reply_markup=kb.show_again_or_main_menu_keyboard().as_markup())
+        # await main_menu(message, session)
         return
 
     # Проверяем есть ли исполнитель уже в избранном
@@ -311,9 +314,9 @@ async def get_cover_letter(message: Message, state: FSMContext) -> None:
     """Получение сопроводительного письма от исполнителя"""
     data = await state.get_data()
 
-    #  Удаляем предыдущее сообщение если было
+    #  Меняем предыдущее сообщение
     try:
-        await data["functional_mess"].delete()
+        await data["functional_mess"].edit_text(data["functional_mess"].text)
     except:
         pass
 
