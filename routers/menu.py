@@ -67,19 +67,6 @@ async def main_menu(message: CallbackQuery | Message, session: Any, state: FSMCo
     # Получаем роль пользователя
     user_role: str = await AsyncOrm.get_user_role(tg_id, session)
 
-    # Проверяем верификацию (только для исполнителей)
-    if user_role == UserRoles.EXECUTOR.value:
-        is_verified = await AsyncOrm.is_verified(tg_id, session)
-        # Если исполнитель не верифицирован
-        if not is_verified:
-            msg = "Данные функционал доступен только верифицированным пользователям"
-            if isinstance(message, Message):
-                await message.answer(msg)
-            else:
-                await message.answer()
-                await message.message.edit_text(msg)
-            return
-
     # Проверяем админ или нет
     is_admin: bool = await AsyncOrm.check_is_admin(tg_id, session)
 

@@ -14,6 +14,7 @@ from database.orm import AsyncOrm
 
 from routers.buttons import buttons as btn
 from routers.keyboards import favorites as kb
+from routers.keyboards.client_reg import to_main_menu
 from routers.messages.find_order import contact_with_client, response_on_order_message
 from routers.messages.orders import order_card_to_show
 from routers.states.favorites import FavoriteOrders
@@ -43,6 +44,15 @@ async def favorites_orders(callback: CallbackQuery, session: Any, state: FSMCont
 
     executor_tg_id = str(callback.from_user.id)
     executor: Executor = await AsyncOrm.get_executor_by_tg_id(executor_tg_id, session)
+
+    # Если пользователь не верифицирован
+    if not executor.verified:
+        msg = "Данный функционал доступен только верифицированным пользователям"
+        keyboard = to_main_menu()
+
+        await callback.answer()
+        await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+        return
 
     # Начинаем state
     await state.set_state(FavoriteOrders.feed)
