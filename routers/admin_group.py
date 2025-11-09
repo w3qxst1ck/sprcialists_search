@@ -2,7 +2,7 @@ from typing import Any, List
 
 from aiogram import Router, types, F, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, FSInputFile
 from database.orm import AsyncOrm
 from database.tables import UserRoles
 from logger import logger
@@ -11,7 +11,7 @@ from middlewares.database import DatabaseMiddleware
 from middlewares.admin import AdminMiddleware
 from middlewares.private import CheckGroupMessageMiddleware
 from routers.keyboards.client_reg import to_main_menu
-from routers.messages.executor import executor_card_for_admin_verification
+from routers.messages.executor import executor_card_for_admin_verification, instruction_message
 from routers.states.registration import Reject, RejectEdit
 from schemas.executor import RejectReason, Executor
 from routers.keyboards import admin as kb
@@ -53,9 +53,20 @@ async def confirm_executor_registration(callback: CallbackQuery, session: Any, b
     await callback.message.edit_caption(caption=edited_caption)
 
     # Оповещаем исполнителя
-    user_msg = f"✅ Ваша анкета успешно верифицирована\n\nТеперь вашу анкету будут видеть клиенты/заказчики"
+    user_msg = f"✅ Поздравляем! Твоя анкета успешно верифицирована\n\n🥳 Теперь анкету будут видеть заказчики"
+    await bot.send_message(executor_tg_id, user_msg, message_effect_id="5046509860389126442")
+
+    # Сообщение с инструкцией
+    instruction_image = FSInputFile(settings.local_media_path + "instruction2.png")
+    caption_msg = instruction_message()
     keyboard = to_main_menu()
-    await bot.send_message(executor_tg_id, user_msg, reply_markup=keyboard.as_markup(), message_effect_id="5046509860389126442")
+
+    await bot.send_photo(
+        executor_tg_id,
+        photo=instruction_image,
+        caption=caption_msg,
+        reply_markup=keyboard.as_markup()
+    )
 
 
 # Отказ в верификации исполнителя

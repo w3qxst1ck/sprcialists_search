@@ -76,7 +76,7 @@ async def start_registration(callback: types.CallbackQuery, session: Any, state:
     await state.set_state(Executor.name)
 
     # Отправляем сообщение
-    msg = "Отправь Имя/псевдоним, который будут видеть заказчики"
+    msg = "Давай оформим твой профиль\n\nНапиши свое имя"
     await callback.answer()
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
@@ -144,7 +144,7 @@ async def get_photo(message: types.Message, bot: Bot, state: FSMContext) -> None
     await state.set_state(Executor.age)
 
     # Отправляем сообщение
-    msg = "Отправь свой возраст"
+    msg = "Напиши свой возраст"
     prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -187,7 +187,7 @@ async def get_age(message: types.Message, session: Any, state: FSMContext) -> No
     professions: List[Profession] = await AsyncOrm.get_professions(session)
 
     # Отправляем сообщение
-    msg = "Выбери профессию из списка"
+    msg = "Выбери направление"
     prev_mess = await message.answer(msg, reply_markup=kb.profession_keyboard(professions).as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -216,7 +216,7 @@ async def get_profession(callback: types.CallbackQuery, session: Any, state: FSM
     await state.update_data(selected_jobs=selected_jobs)
 
     # Отправляем сообщение
-    msg = "Выберите категории из списка (до 5 штук)"
+    msg = "Выбери категории (до 3 вариантов)"
     keyboard = kb.jobs_keyboard(jobs, selected_jobs)
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
@@ -236,8 +236,8 @@ async def get_jobs_multiselect(callback: types.CallbackQuery, state: FSMContext)
     if job_id in selected_jobs:
         selected_jobs.remove(job_id)
     else:
-        # Убираем одну если больше 5
-        if len(selected_jobs) == 5:
+        # Убираем одну если больше 3
+        if len(selected_jobs) == 3:
             selected_jobs[0] = job_id
         else:
             selected_jobs.append(job_id)
@@ -246,7 +246,7 @@ async def get_jobs_multiselect(callback: types.CallbackQuery, state: FSMContext)
     await state.update_data(selected_jobs=selected_jobs)
 
     # Отправляем сообщение
-    msg = "Выбери категории из списка (до 5 штук)"
+    msg = "Выбери категории (до 3 вариантов)"
     keyboard = kb.jobs_keyboard(all_jobs, selected_jobs)
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
@@ -300,7 +300,7 @@ async def get_description(message: types.Message, state: FSMContext) -> None:
     await state.set_state(Executor.rate)
 
     # Отправляем сообщение
-    msg = "Отправь текстом свою рабочую ставку (например: от 2000 ₽/час или 30 000 рублей/месяц)"
+    msg = "Напиши свой прайс (например: 2 000 ₽/час или 30 000 ₽/месяц)"
     prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем сообщение
@@ -332,7 +332,7 @@ async def get_rate(message: types.Message, state: FSMContext) -> None:
     await state.set_state(Executor.experience)
 
     # Отправляем сообщение
-    msg = "Отправь информацию о своем рабочем опыте/уровень (например: 6 лет или senior)"
+    msg = "Укажи опыт по выбранному направлению (например: 5 лет)"
     prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -406,8 +406,8 @@ async def get_link(message: types.Message, state: FSMContext) -> None:
         else:
             keyboard = kb.cancel_keyboard()
 
-        prev_mess = await message.answer("Неверный формат ссылки, необходимо отправить текст формата <i>https://www.google.com</i> "
-                                         "без дополнительных символов\nОтправьте ссылку заново",
+        prev_mess = await message.answer("Неверный формат ссылки! Необходимо отправить текст формата https://www.google.com без дополнительных символов.\n"
+                                         "Отправь ссылку заново",
                                          reply_markup=keyboard.as_markup())
         # Сохраняем предыдущее сообщение
         await state.update_data(prev_mess=prev_mess)
@@ -480,7 +480,7 @@ async def get_contacts(message: types.Message | types.CallbackQuery, state: FSMC
     await state.update_data(location=None)
 
     # Отправляем сообщение
-    msg = "Отправь свой город"
+    msg = "Напиши свой город"
 
     # Без пропуска контактов
     if type(message) == types.Message:
@@ -610,7 +610,7 @@ async def registration_confirmation(callback: types.CallbackQuery, state: FSMCon
     try:
         await AsyncOrm.create_executor(executor, session)
         # Отправка сообщения пользователю
-        user_msg = f"{INFO} Ожидай, твоя анкета отправлена администратору для верификации\n"
+        user_msg = f"{INFO} Анкета на проверке. Мы напишем сразу после верификации, обычно это занимает до 24 часов"
         await callback.message.answer(user_msg)
     except:
         await callback.message.answer(f"{INFO} Ошибка при регистрации, попробуй позже")

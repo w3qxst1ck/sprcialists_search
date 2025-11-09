@@ -36,7 +36,7 @@ def jobs_keyboard(jobs: List[Job], selected_jobs: List[int]) -> InlineKeyboardBu
 
         keyboard.row(InlineKeyboardButton(text=f"{title}", callback_data=f"choose_jobs|{job.id}"))
 
-    keyboard.adjust(2)
+    keyboard.adjust(1)
 
     # Подтвердить, если хотя бы одна Job выбрана
     if len(selected_jobs):

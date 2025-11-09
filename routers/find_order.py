@@ -314,9 +314,7 @@ async def connect_with_client(message: Message, state: FSMContext) -> None:
     # Получаем текущий заказ
     order: Order = data["current_or"]
 
-    msg = f"Заказ <b>\"{order.title}\"</b>\n\nОтправь в чат сопроводительный текст, который будет отправлен заказчику " \
-          f"вместе с твоим откликом"
-
+    msg = f"Заказ <b>\"{order.title}\"</b>\n\nНапиши сообщение заказчику, которое мы приложим к твоему отклику"
     keyboard = kb.back_to_orders_feed()
 
     functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
