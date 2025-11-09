@@ -203,7 +203,7 @@ async def send_executor_profile(executors: list[Executor], current_index: int, p
     # Если еще нет исполнителей или их удалили в ленте
     if len(executors) == 0:
         # Если исполнитель был 1 и его удалили
-        msg = "У вас еще нет избранных исполнителей"
+        msg = "У тебя еще нет избранных исполнителей"
         keyboard = kb.back_keyboard()
 
         if isinstance(prev_mess, CallbackQuery):
