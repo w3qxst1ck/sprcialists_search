@@ -107,7 +107,7 @@ class Jobs(Base):
     __tablename__ = "jobs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(nullable=False, index=True, unique=True)
+    title: Mapped[str] = mapped_column(nullable=False, index=True)
 
     profession_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
     executors: Mapped[list["Executors"]] = relationship(back_populates="jobs", secondary="executors_jobs")
