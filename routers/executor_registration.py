@@ -421,7 +421,7 @@ async def get_link(message: types.Message, state: FSMContext) -> None:
     await state.update_data(links=links)
 
     # Отправляем сообщение
-    msg = f"Отправь следующую ссылку или нажмите кнопку \"Продолжить\"\n\n" \
+    msg = f"Отправь следующую ссылку или нажми кнопку \"Продолжить\"\n\n" \
           f"Отправлено ссылок {links_count} шт.:\n{links_text}"
     prev_mess = await message.answer(msg, reply_markup=kb.continue_cancel_keyboard().as_markup(), disable_web_page_preview=True)
 

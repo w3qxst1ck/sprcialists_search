@@ -293,7 +293,7 @@ async def edit_price(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(order_id=order_id)
 
     # Отправляем сообщение
-    msg = "Отправь цену заказа в рублях (например: 2000) или нажмите \"Оставить пустым\""
+    msg = "Отправь цену заказа в рублях (например: 2000) или нажми \"Оставить пустым\""
     await callback.answer()
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_skip_edit_order_keyboard(order_id).as_markup())
 
@@ -587,7 +587,7 @@ async def get_file(message: Message, state: FSMContext) -> None:
         else:
             keyboard = kb.continue_cancel_keyboard(data["order_id"])
 
-        prev_mess = await message.answer("Размер файла не должен быть более 100МБ. Отправьте файл или нажмите \"Продолжить\"",
+        prev_mess = await message.answer("Размер файла не должен быть более 100МБ. Отправьте файл или нажми \"Продолжить\"",
                                          reply_markup=keyboard.as_markup())
         # Сохраняем предыдущее сообщение
         await state.update_data(prev_mess=prev_mess)

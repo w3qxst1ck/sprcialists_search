@@ -311,7 +311,7 @@ async def get_task(message: Message, state: FSMContext) -> None:
     await state.set_state(CreateOrder.price)
 
     # Отправляем сообщение
-    msg = "Отправь цену заказа в рублях (например: 2000) или нажмите \"Пропустить\""
+    msg = "Отправь цену заказа в рублях (например: 2000) или нажми \"Пропустить\""
     prev_mess = await message.answer(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -439,7 +439,7 @@ async def get_deadline(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(filenames=[])
 
     # Отправляем сообщение
-    msg = "При необходимости отправь <b>отдельными сообщениями</b> файлы (например с более подробным описанием ТЗ к задаче) или нажмите \"Пропустить\""
+    msg = "При необходимости отправь <b>отдельными сообщениями</b> файлы (например с более подробным описанием ТЗ к задаче) или нажми \"Пропустить\""
     await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
@@ -480,7 +480,7 @@ async def get_file(message: Message, state: FSMContext) -> None:
         else:
             keyboard = kb.cancel_keyboard()
 
-        prev_mess = await message.answer("Размер файла не должен быть более 100МБ. Отправьте файл или нажмите \"Продолжить\"",
+        prev_mess = await message.answer("Размер файла не должен быть более 100МБ. Отправь файл или нажми \"Продолжить\"",
                                          reply_markup=keyboard.as_markup())
         # Сохраняем предыдущее сообщение
         await state.update_data(prev_mess=prev_mess)
@@ -489,7 +489,7 @@ async def get_file(message: Message, state: FSMContext) -> None:
     # Проверяем если уже есть три файла
     if len(data["file_ids"]) == 3:
         prev_mess = await message.answer(
-            "Уже отправлено 3 файла, нажмите \"Продолжить\"",
+            "Уже отправлено 3 файла, нажми \"Продолжить\"",
             reply_markup=kb.continue_cancel_keyboard().as_markup()
         )
         # Сохраняем предыдущее сообщение
@@ -526,7 +526,7 @@ async def get_files(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(requirements=None)
 
     # Отправляем сообщение
-    msg = "Отправь сообщением особые требования к задаче или нажмите \"Пропустить\""
+    msg = "Отправь сообщением особые требования к задаче или нажми \"Пропустить\""
     await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
