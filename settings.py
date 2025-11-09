@@ -44,7 +44,7 @@ class Database(BaseSettings):
 class Settings(BaseSettings):
     bot_token: str = Field(..., env='BOT_TOKEN')
     admins: list = Field(..., env='ADMINS')
-    admin_tg_username: str = "kill_rilll"
+    admin_tg_username: str = Field(..., env='ADMIN_TG_USERNAME')
     admin_group_id: str = Field(..., env='ADMIN_GROUP_ID')
     local_media_path: str = "media/"
 
@@ -69,6 +69,5 @@ class Settings(BaseSettings):
     @property
     def calendar_months(self):
         return CALENDAR_MONTHS
-
 
 settings = Settings()
