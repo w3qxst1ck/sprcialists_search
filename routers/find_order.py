@@ -62,7 +62,7 @@ async def select_profession(callback: CallbackQuery, session: Any, state: FSMCon
     # Получаем все профессии
     professions: list[Profession] = await AsyncOrm.get_professions(session)
 
-    msg = "Выберите рубрику"
+    msg = "Выберите направление"
     keyboard = kb.professions_keyboard(professions)
 
     await callback.answer()
@@ -84,7 +84,7 @@ async def select_jobs_in_profession(callback: CallbackQuery, session: Any, state
     selected = []
     await state.update_data(jobs=jobs, selected=selected)
 
-    msg = f"Выберите подкатегории для поиска"
+    msg = f"Выбери категории для поиска"
     keyboard = kb.jobs_keyboard(jobs, selected)
 
     await callback.answer()
@@ -106,7 +106,7 @@ async def pick_jobs(callback: CallbackQuery, state: FSMContext) -> None:
     else:
         selected.append(selected_job_id)
 
-    msg = f"Выберите подкатегории для поиска"
+    msg = f"Выбери категории для поиска"
     keyboard = kb.jobs_keyboard(jobs, selected)
 
     await callback.answer()
@@ -142,7 +142,7 @@ async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: A
         await state.clear()
 
         await wait_mess.edit_text(
-            f"{btn.INFO} Подходящих заказов по вашему запросу не найдено, попробуйте выбрать больше рубрик",
+            f"😔 Заказов по твоему запросу не найдено. Попробуй указать больше категорий или выбрать другое направление",
             reply_markup=to_main_menu().as_markup()
         )
         return
@@ -213,7 +213,7 @@ async def orders_feed(message: Message, state: FSMContext, session: Any) -> None
         # await state.clear()
 
         # Отправляем сообщение с главным меню
-        await message.answer(f"{btn.INFO} Это все заказы по вашему запросу",
+        await message.answer(f"{btn.INFO} Это все заказы по твоему запросу",
                              reply_markup=ReplyKeyboardRemove())    # убираем клавиатуру ReplyKeyboard
         await message.answer("Посмотреть найденные заказы еще раз?",
                              reply_markup=kb.show_again_or_main_menu_keyboard().as_markup())
@@ -267,7 +267,7 @@ async def add_order_to_favorites(message: Message, state: FSMContext, session: A
     # Проверяем есть ли он уже в исполнителях
     already_in_fav: bool = await check_is_order_in_favorites(executor_tg_id, order.id, session)
     if already_in_fav:
-        await message.answer(f"{btn.INFO} Этот заказ уже есть у вас в списке избранных")
+        await message.answer(f"{btn.INFO} Этот заказ уже есть у тебя в списке избранных")
         # return
 
     else:
@@ -314,8 +314,8 @@ async def connect_with_client(message: Message, state: FSMContext) -> None:
     # Получаем текущий заказ
     order: Order = data["current_or"]
 
-    msg = f"Заказ <b>\"{order.title}\"</b>\n\nОтправьте в чат сопроводительный текст, который будет отправлен заказчику " \
-          f"вместе с вашим откликом"
+    msg = f"Заказ <b>\"{order.title}\"</b>\n\nОтправь в чат сопроводительный текст, который будет отправлен заказчику " \
+          f"вместе с твоим откликом"
 
     keyboard = kb.back_to_orders_feed()
 
@@ -344,7 +344,7 @@ async def get_cover_letter(message: Message, state: FSMContext) -> None:
 
     # Игнорируем текст от кнопок
     if message.text in (btn.RESPOND, btn.SKIP, btn.TO_FAV):
-        functional_mess = await message.answer("Напишите другой текст",
+        functional_mess = await message.answer("Напиши другой текст",
                                          reply_markup=kb.back_to_orders_feed().as_markup())
         # Сохраняем предыдущее сообщение
         await state.update_data(functional_mess=functional_mess)
@@ -355,7 +355,7 @@ async def get_cover_letter(message: Message, state: FSMContext) -> None:
 
     cover_letter = message.text
 
-    msg = f"Ваш отклик:\n\n<i>\"{cover_letter}\"</i>\n\nОтправляем?"
+    msg = f"Твой отклик:\n\n<i>\"{cover_letter}\"</i>\n\nОтправляем?"
     keyboard = kb.confirm_send_cover_letter()
 
     functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup())
@@ -379,7 +379,7 @@ async def send_cover_letter(callback: CallbackQuery, state: FSMContext, session:
     order: Order = data["current_or"]
     cover_letter = data["cover_letter"]
 
-    msg = f"{btn.SUCCESS} Ваш отклик по заказу \"<i>{order.title}</i>\" отправлен заказчику!"
+    msg = f"{btn.SUCCESS} Твой отклик по заказу \"<i>{order.title}</i>\" отправлен заказчику!"
     keyboard = kb.back_to_orders_feed_from_contact()
 
     # Отвечаем исполнителю
@@ -389,11 +389,12 @@ async def send_cover_letter(callback: CallbackQuery, state: FSMContext, session:
     # Отправляем сообщение клиенту
     msg_to_client = ms.response_on_order_message(cover_letter, order, ex_tg_username, ex_name)
     try:
-        await bot.send_message(order.tg_id, msg_to_client,
-                               message_effect_id="5104841245755180586", disable_web_page_preview=True)    # 🔥
-        # await bot.send_message("420551454", msg_to_client,
-        #                        message_effect_id="5104841245755180586",
-        #                        disable_web_page_preview=True)    # TODO DEV VER
+        await bot.send_message(
+            order.tg_id,
+            msg_to_client,
+            message_effect_id="5104841245755180586",        # 🔥
+            disable_web_page_preview=True
+        )
 
     except Exception as e:
         logger.error(f"Ошибка при отправке отклика заказчику по заказу {order.id} от {executor_tg_id}: {e}")

@@ -36,4 +36,4 @@ async def instruction(message: Message):
 @router.message(Command(cmd.HELP[0]))
 async def help(message: Message):
     """Помощь"""
-    await message.answer(f"Свяжитесь с администратором @{settings.admin_tg_username}")
+    await message.answer(f"Написать администратору: @{settings.admin_tg_username}")

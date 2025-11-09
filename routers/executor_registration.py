@@ -36,14 +36,20 @@ router.callback_query.middleware.register(DatabaseMiddleware())
 @router.callback_query(and_f(F.data.split("|")[0] == "choose_role", F.data.split("|")[1] == "executor"))
 async def start_registration(callback: types.CallbackQuery, session: Any, state: FSMContext) -> None:
     """Начало регистрации исполнителя"""
+    # Удаляем предыдущее сообщение
+    try:
+        await callback.message.delete()
+    except:
+        pass
+
     # Проверка уже выбранной роли у пользователя
     tg_id = str(callback.from_user.id)
     role: str | None = await AsyncOrm.get_user_role(tg_id, session)
     if role:
         role_text = settings.roles[role]
-        msg = f"У вас уже выбрана роль {role_text}"
+        msg = f"У тебя уже выбрана роль {role_text}"
         await callback.answer()
-        await callback.message.edit_text(msg)
+        await callback.message.answer(msg)
         return
 
     # Проверка на антиспам, можно регистрироваться через 7 дней после последней попытки
@@ -60,7 +66,7 @@ async def start_registration(callback: types.CallbackQuery, session: Any, state:
             allowed_date_text, allowed_time_text = convert_date_and_time_to_str(allowed_date, with_tz=True)
             msg = f"Повторная регистрация будет доступна после {allowed_date_text} {allowed_time_text} (МСК)"
             await callback.answer()
-            await callback.message.edit_text(msg)
+            await callback.message.answer(msg)
             return
 
     # Записываем роль
@@ -70,9 +76,9 @@ async def start_registration(callback: types.CallbackQuery, session: Any, state:
     await state.set_state(Executor.name)
 
     # Отправляем сообщение
-    msg = "Отправьте Имя/псевдоним, который будут видеть клиенты"
+    msg = "Отправь Имя/псевдоним, который будут видеть заказчики"
     await callback.answer()
-    prev_mess = await callback.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
+    prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
     await state.update_data(prev_mess=prev_mess)
@@ -103,7 +109,7 @@ async def get_name(message: types.Message, state: FSMContext) -> None:
     await state.set_state(Executor.photo)
 
     # Отправляем сообщение с запросом аватара
-    msg = "Отправьте фото профиля"
+    msg = "Отправь фото профиля"
     prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -138,7 +144,7 @@ async def get_photo(message: types.Message, bot: Bot, state: FSMContext) -> None
     await state.set_state(Executor.age)
 
     # Отправляем сообщение
-    msg = "Отправьте свой возраст"
+    msg = "Отправь свой возраст"
     prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -181,7 +187,7 @@ async def get_age(message: types.Message, session: Any, state: FSMContext) -> No
     professions: List[Profession] = await AsyncOrm.get_professions(session)
 
     # Отправляем сообщение
-    msg = "Выберите профессию из списка"
+    msg = "Выбери профессию из списка"
     prev_mess = await message.answer(msg, reply_markup=kb.profession_keyboard(professions).as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -210,7 +216,7 @@ async def get_profession(callback: types.CallbackQuery, session: Any, state: FSM
     await state.update_data(selected_jobs=selected_jobs)
 
     # Отправляем сообщение
-    msg = "Выберите специализации из списка (до 5 штук)"
+    msg = "Выберите категории из списка (до 5 штук)"
     keyboard = kb.jobs_keyboard(jobs, selected_jobs)
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
@@ -240,7 +246,7 @@ async def get_jobs_multiselect(callback: types.CallbackQuery, state: FSMContext)
     await state.update_data(selected_jobs=selected_jobs)
 
     # Отправляем сообщение
-    msg = "Выберите специализации из списка (до 5 штук)"
+    msg = "Выбери категории из списка (до 5 штук)"
     keyboard = kb.jobs_keyboard(all_jobs, selected_jobs)
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
@@ -253,7 +259,7 @@ async def get_jobs(callback: types.CallbackQuery, state: FSMContext) -> None:
     await state.set_state(Executor.description)
 
     # Отправляем сообщение
-    msg = "Отправьте информацию о себе (не более 500 символов)"
+    msg = "Отправь информацию о себе (не более 500 символов)"
     await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
@@ -294,7 +300,7 @@ async def get_description(message: types.Message, state: FSMContext) -> None:
     await state.set_state(Executor.rate)
 
     # Отправляем сообщение
-    msg = "Отправьте текстом вашу рабочую ставку (например: от 2000 ₽/час или 30 000 рублей/месяц)"
+    msg = "Отправь текстом свою рабочую ставку (например: от 2000 ₽/час или 30 000 рублей/месяц)"
     prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем сообщение
@@ -326,7 +332,7 @@ async def get_rate(message: types.Message, state: FSMContext) -> None:
     await state.set_state(Executor.experience)
 
     # Отправляем сообщение
-    msg = "Отправьте информацию о своем рабочем опыте/уровень (например: 6 лет или senior)"
+    msg = "Отправь информацию о своем рабочем опыте/уровень (например: 6 лет или senior)"
     prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -361,7 +367,7 @@ async def get_experience(message: types.Message, state: FSMContext) -> None:
     await state.set_state(Executor.links)
 
     # Отправляем сообщение
-    msg = "Отдельными сообщениями отправьте ссылки на портфолио"
+    msg = "Отдельными сообщениями отправь ссылки на портфолио"
     prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем сообщение
@@ -415,7 +421,7 @@ async def get_link(message: types.Message, state: FSMContext) -> None:
     await state.update_data(links=links)
 
     # Отправляем сообщение
-    msg = f"Отправьте следующую ссылку или нажмите кнопку \"Продолжить\"\n\n" \
+    msg = f"Отправь следующую ссылку или нажмите кнопку \"Продолжить\"\n\n" \
           f"Отправлено ссылок {links_count} шт.:\n{links_text}"
     prev_mess = await message.answer(msg, reply_markup=kb.continue_cancel_keyboard().as_markup(), disable_web_page_preview=True)
 
@@ -433,7 +439,7 @@ async def get_links(callback: types.CallbackQuery, state: FSMContext) -> None:
     await state.update_data(contacts=None)
 
     # Отправляем сообщение
-    msg = "Отправьте контакт для связи (например телефон: 8-999-888-77-66)\n\n" \
+    msg = "Отправь контакт для связи (например телефон: 8-999-888-77-66)\n\n" \
           "❗<b>Важно</b>: указанные контакты будут видны другим пользователям сервиса"
     await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
@@ -474,7 +480,7 @@ async def get_contacts(message: types.Message | types.CallbackQuery, state: FSMC
     await state.update_data(location=None)
 
     # Отправляем сообщение
-    msg = "Отправьте ваш город"
+    msg = "Отправь свой город"
 
     # Без пропуска контактов
     if type(message) == types.Message:
@@ -565,7 +571,7 @@ async def get_location(message: types.Message | types.CallbackQuery, state: FSMC
         pass
 
     # Отправляем сообщение с фотографией
-    msg = f"Ваша анкета готова. Проверьте введенные данные\n\n" \
+    msg = f"Твоя анкета готова. Проверь введенные данные\n\n" \
           f"{questionnaire}\n\n" \
           f"Публикуем?"
 
@@ -604,10 +610,10 @@ async def registration_confirmation(callback: types.CallbackQuery, state: FSMCon
     try:
         await AsyncOrm.create_executor(executor, session)
         # Отправка сообщения пользователю
-        user_msg = f"{INFO} Ожидайте, ваша анкета отправлена администратору для верификации\n"
+        user_msg = f"{INFO} Ожидай, твоя анкета отправлена администратору для верификации\n"
         await callback.message.answer(user_msg)
     except:
-        await callback.message.answer(f"{INFO} Ошибка при регистрации, попробуйте позже")
+        await callback.message.answer(f"{INFO} Ошибка при регистрации, попробуй позже")
         return
 
     # Отправляем в группу анкету на согласование
@@ -626,7 +632,7 @@ async def registration_confirmation(callback: types.CallbackQuery, state: FSMCon
 async def cancel_registration(callback: types.CallbackQuery, state: FSMContext) -> None:
     """Отмена регистрации"""
     await state.clear()
-    msg = f"Нажмите /{cmd.START[0]}, чтобы начать регистрацию заново"
+    msg = f"Нажми /{cmd.START[0]}, чтобы начать регистрацию заново"
 
     try:
         await callback.answer()

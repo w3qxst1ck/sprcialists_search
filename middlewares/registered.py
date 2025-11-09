@@ -48,7 +48,7 @@ async def send_empty_role_message(event: CallbackQuery | Message, bot: Bot) -> N
     keyboard = await choose_role_keyboard()
     await bot.send_message(
         event.from_user.id,
-        "Чтобы получить доступ к функциям бота, вам необходимо создать профиль\"клиента\" или \"исполнителя\"",
+        "Чтобы получить доступ к функциям бота, тебе необходимо создать профиль \"заказчика\" или \"исполнителя\"",
         reply_markup=keyboard.as_markup()
     )
 

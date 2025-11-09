@@ -36,7 +36,7 @@ def jobs_keyboard(jobs: list[Job], selected: list[int] = None) -> InlineKeyboard
             callback_data=f"find_cl_job|{job.id}")
         )
     if selected:
-        keyboard.row(InlineKeyboardButton(text=f"Продолжить", callback_data="find_cl_show|show_orders"))
+        keyboard.row(InlineKeyboardButton(text=f"{btn.CONTINUE}", callback_data="find_cl_show|show_orders"))
 
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="main_menu|find_order"))
     return keyboard

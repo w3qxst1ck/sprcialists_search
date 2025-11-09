@@ -50,7 +50,7 @@ async def select_profession(callback: CallbackQuery, session: Any, state: FSMCon
     # Получаем все профессии
     professions: list[Profession] = await AsyncOrm.get_professions(session)
 
-    msg = "Выберите рубрику"
+    msg = "Выбери направление"
     keyboard = kb.professions_keyboard(professions)
 
     await callback.answer()  # Убирает "загрузку"
@@ -72,7 +72,7 @@ async def select_jobs_in_profession(callback: CallbackQuery, session: Any, state
     selected = []
     await state.update_data(jobs=jobs, selected=selected)
 
-    msg = f"Выберите подкатегории для поиска"
+    msg = "Выбери категории (до 3 вариантов)"
     keyboard = kb.jobs_keyboard(jobs, selected)
 
     await callback.answer()  # Убирает "загрузку"
@@ -88,13 +88,17 @@ async def pick_jobs(callback: CallbackQuery, state: FSMContext) -> None:
 
     # Получаем jobs (которую выбрали)
     selected_job_id = int(callback.data.split("|")[1])
+
     # Записываем в выбранные, а если уже была, то убираем ее от туда
     if selected_job_id in selected:
         selected.remove(selected_job_id)
     else:
-        selected.append(selected_job_id)
+        if len(selected) == 3:
+            selected[0] = selected_job_id
+        else:
+            selected.append(selected_job_id)
 
-    msg = f"Выберите подкатегории для поиска"
+    msg = "Выбери категории (до 3 вариантов)"
     keyboard = kb.jobs_keyboard(jobs, selected)
 
     await callback.answer()
@@ -128,15 +132,15 @@ async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: A
         await state.clear()
 
         await wait_mess.edit_text(
-            f"{btn.INFO} Исполнителей по вашему запросу не найдено, попробуйте выбрать больше рубрик",
+            f"😔 Исполнителей по твоему запросу не найдено. Попробуй указать больше категорий или выбрать другое направление",
             reply_markup=to_main_menu().as_markup()
         )
         # await main_menu(callback, session)
         return
 
-    # Удаляем сообщение об ожидании
+    # Меняем сообщение об ожидании на инструкцию
     try:
-        await wait_mess.delete()
+        await wait_mess.edit_text(ms.instruction_msg())
     except:
         pass
 
@@ -180,7 +184,7 @@ async def end_multiselect(callback: CallbackQuery, state: FSMContext, session: A
 
     except Exception as e:
         logger.error(f"Ошибка при загрузке фото исполнителя {filepath} {executor.tg_id}: {e}")
-        msg = f"Сервис временно недоступен, попробуйте позже или обратитесь к администратору @{settings.admin_tg_username}"
+        msg = f"Сервис временно недоступен, попробуй позже или обратись к администратору @{settings.admin_tg_username}"
         keyboard = to_main_menu()
         await callback.message.answer(msg, reply_markup=keyboard.as_markup())
 
@@ -212,7 +216,7 @@ async def executors_feed(message: Message, state: FSMContext, session: Any) -> N
         # await state.clear()
 
         # Отправляем сообщение с главным меню
-        await message.answer(f"{btn.INFO} Это все исполнители по вашему запросу",
+        await message.answer(f"{btn.INFO} Это все исполнители по твоему запросу",
                              reply_markup=ReplyKeyboardRemove())    # убираем клавиатуру ReplyKeyboard
         await message.answer("Посмотреть найденных исполнителей еще раз?",
                              reply_markup=kb.show_again_or_main_menu_keyboard().as_markup())
@@ -248,7 +252,7 @@ async def executors_feed(message: Message, state: FSMContext, session: Any) -> N
 
     except Exception as e:
         logger.error(f"Ошибка при загрузке фото исполнителя {filepath} {executor.tg_id}: {e}")
-        msg = f"Сервис временно недоступен, попробуйте позже или обратитесь к администратору @{settings.admin_tg_username}"
+        msg = f"Сервис временно недоступен, попробуй позже или обратись к администратору @{settings.admin_tg_username}"
         keyboard = to_main_menu()
         await message.answer(msg, reply_markup=keyboard.as_markup())
 
@@ -277,7 +281,7 @@ async def add_executor_to_favorites(message: Message, state: FSMContext, session
     # Проверяем есть ли он уже в исполнителях
     already_in_fav: bool = await check_is_executor_in_favorites(client_tg_id, executor.id, session)
     if already_in_fav:
-        await message.answer(f"{btn.INFO} Этот исполнитель уже есть у вас в списке избранных")
+        await message.answer(f"{btn.INFO} Этот исполнитель уже есть у тебя в списке избранных")
         # return
 
     else:
@@ -285,7 +289,7 @@ async def add_executor_to_favorites(message: Message, state: FSMContext, session
         try:
             await AsyncOrm.add_executor_to_favorite(client_id, executor.id, session)
         except:
-            await message.answer(f"Ошибка при добавлении исполнителя в избранное, попробуйте позже")
+            await message.answer(f"Ошибка при добавлении исполнителя в избранное, попробуй позже")
             return
 
         await message.answer("Исполнитель сохранен в ⭐ избранное")
@@ -311,7 +315,7 @@ async def add_executor_to_favorites(message: Message, state: FSMContext, session
         )
     except Exception as e:
         logger.error(f"Ошибка при загрузке фото исполнителя {filepath} {executor.tg_id}: {e}")
-        msg = f"Сервис временно недоступен, попробуйте позже или обратитесь " \
+        msg = f"Сервис временно недоступен, попробуй позже или обратись " \
               f"к администратору @{settings.admin_tg_username}"
         keyboard = to_main_menu()
         await message.answer(msg, reply_markup=keyboard.as_markup())
@@ -382,7 +386,7 @@ async def back_to_executor_feed(callback: CallbackQuery, state: FSMContext, sess
         )
     except Exception as e:
         logger.error(f"Ошибка при загрузке фото исполнителя {filepath} {executor.tg_id}: {e}")
-        msg = f"Сервис временно недоступен, попробуйте позже или обратитесь " \
+        msg = f"Сервис временно недоступен, попробуй позже или обратись " \
               f"к администратору @{settings.admin_tg_username}"
         keyboard = to_main_menu()
         await callback.message.answer(msg, reply_markup=keyboard.as_markup())

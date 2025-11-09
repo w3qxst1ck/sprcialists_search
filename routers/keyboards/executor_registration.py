@@ -40,7 +40,7 @@ def jobs_keyboard(jobs: List[Job], selected_jobs: List[int]) -> InlineKeyboardBu
 
     # Подтвердить, если хотя бы одна Job выбрана
     if len(selected_jobs):
-        keyboard.row(InlineKeyboardButton(text=f"Подтвердить", callback_data="choose_jobs_done"))
+        keyboard.row(InlineKeyboardButton(text=f"{btn.CONTINUE}", callback_data="choose_jobs_done"))
 
     # Кнопка отмены
     keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_executor_registration"))

@@ -24,8 +24,8 @@ async def set_commands(bot: io.Bot):
     commands = [
         BotCommand(command=f"{cmd.MENU[0]}", description=f"{cmd.MENU[1]}"),
         BotCommand(command=f"{cmd.START[0]}", description=f"{cmd.START[1]}"),
-        BotCommand(command=f"{cmd.INSTRUCTION[0]}", description=f"{cmd.INSTRUCTION[1]}"),
-        BotCommand(command=f"{cmd.HELP[0]}", description=f"{cmd.HELP[1]}")
+        # BotCommand(command=f"{cmd.INSTRUCTION[0]}", description=f"{cmd.INSTRUCTION[1]}"),
+        # BotCommand(command=f"{cmd.HELP[0]}", description=f"{cmd.HELP[1]}")
     ]
     await bot.set_my_commands(commands, BotCommandScopeDefault())
 
@@ -33,10 +33,12 @@ async def set_commands(bot: io.Bot):
 async def set_description(bot: io.Bot):
     """Описание бота до запуска"""
     await bot.set_my_description(
-         f"Сервис, который помогает фрилансерам находить клиентов.\n\n"
-         f"- Быстро\n- Удобно\n- Просто\n\n Ежедневно отправляются тысячи заявок профессионалам,"
-         f"экономя время на поиски вакансий.\n\n- Гарантируем качество\n— Заботимся о пользователях\n\n"
-         f"Жмите /start, и начни получать заказы прямо сейчас\n\nОтзывы: @{settings.admin_tg_username}"
+         f"👋 Привет, это PRUV — бот для быстрого поиска креативных специалистов.\n\n"
+         f"Мы собрали <b>проверенных исполнителей</b> по разным креативным направлениям:\n\n"
+         f"✔️ Дизайн\n✔️️ Фото\n✔️ Видео\n✔️ SMM\n\n"
+         f"🔍 Заказчики могут быстро найти исполнителя под нужную задачу. А исполнители – новые заказы.\n\n"
+         f"<b>Все анкеты исполнителей проходят ручную модерацию, поэтому твой проект в надежных руках!</b>\n\n"
+         f"👇 Нажми Start, чтобы выбрать роль и начать работу.",
     )
 
 
@@ -44,7 +46,7 @@ async def start_bot() -> None:
     """Запуск бота"""
     bot = io.Bot(settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     await set_commands(bot)
-    await set_description(bot)
+    # await set_description(bot)
 
     storage = MemoryStorage()
     dp = io.Dispatcher(storage=storage)

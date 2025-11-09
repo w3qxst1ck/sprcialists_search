@@ -62,7 +62,7 @@ async def favorites_orders(callback: CallbackQuery, session: Any, state: FSMCont
 
     # Если заказов пока нет
     if not orders:
-        msg = "У вас еще нет избранных заказов"
+        msg = "У тебя еще нет избранных заказов"
         keyboard = kb.back_keyboard()
         await wait_mess.edit_text(msg, reply_markup=keyboard.as_markup())
         return
@@ -130,8 +130,8 @@ async def write_to_client_from_favorite(callback: CallbackQuery, state: FSMConte
 
     await state.set_state(FavoriteOrders.contact)
 
-    msg = f"Заказ <b>\"{order.title}\"</b>\n\nОтправьте в чат сопроводительный текст, который будет отправлен заказчику " \
-          f"вместе с вашим откликом"
+    msg = f"Заказ <b>\"{order.title}\"</b>\n\nОтправь в чат сопроводительный текст, который будет отправлен заказчику " \
+          f"вместе с твоим откликом"
     keyboard = kb.back_to_feed_keyboard()
 
     await callback.answer()
@@ -164,7 +164,7 @@ async def get_cover_letter(message: Message, state: FSMContext) -> None:
 
     cover_letter = message.text
 
-    msg = f"Ваш отклик:\n\n<i>\"{cover_letter}\"</i>\n\nОтправляем?"
+    msg = f"Твой отклик:\n\n<i>\"{cover_letter}\"</i>\n\nОтправляем?"
     keyboard = kb.confirm_send_cover_letter()
     await message.answer(msg, reply_markup=keyboard.as_markup())
 
@@ -189,7 +189,7 @@ async def send_cover_letter(callback: CallbackQuery, state: FSMContext, session:
     order: Order = orders[data["current_index"]]
     cover_letter = data["cover_letter"]
 
-    msg = f"{btn.SUCCESS} Ваш отклик по заказу \"<i>{order.title}</i>\" отправлен заказчику!"
+    msg = f"{btn.SUCCESS} Твой отклик по заказу \"<i>{order.title}</i>\" отправлен заказчику!"
     keyboard = kb.back_to_feed_keyboard()
 
     # Отвечаем исполнителю
@@ -199,10 +199,9 @@ async def send_cover_letter(callback: CallbackQuery, state: FSMContext, session:
     msg_to_client = response_on_order_message(cover_letter, order, ex_tg_username, ex_name)
     try:
         await bot.send_message(order.tg_id, msg_to_client,
-                               message_effect_id="5104841245755180586", disable_web_page_preview=True)    # 🔥
-        # await bot.send_message("420551454", msg_to_client,
-        #                        message_effect_id="5104841245755180586",
-        #                        disable_web_page_preview=True)    # TODO DEV VER
+                               message_effect_id="5104841245755180586",     # 🔥
+                               disable_web_page_preview=True
+                               )
 
     except Exception as e:
         logger.error(f"Ошибка при отправке отклика заказчику по заказу {order.id} от {executor_tg_id}: {e}")
@@ -275,7 +274,7 @@ async def send_order_card(orders: list[Order], current_index: int, message: Call
     # Если еще нет исполнителей или их удалили в ленте
     if len(orders) == 0:
         # Если заказ был 1 и его удалили
-        msg = "У вас еще нет избранных заказов"
+        msg = "У тебя еще нет избранных заказов"
         keyboard = kb.back_keyboard()
 
         if isinstance(message, Message):

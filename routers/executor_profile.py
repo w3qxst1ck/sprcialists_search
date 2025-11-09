@@ -58,7 +58,7 @@ async def executor_profile_menu(callback: CallbackQuery, session: Any, state: FS
     tg_id = str(callback.from_user.id)
     executor: Executor | None = await AsyncOrm.get_executor_by_tg_id(tg_id, session)
     if not executor:
-        msg = f"{btn.INFO} Ошибка при получении профиля, повторите попытку позже"
+        msg = f"{btn.INFO} Ошибка при получении профиля, повтори попытку позже"
         await wait_msg.edit_text(msg)
         return
 
@@ -76,7 +76,7 @@ async def executor_profile_menu(callback: CallbackQuery, session: Any, state: FS
         questionnaire = get_executor_profile_message(executor)
 
     # Добавляем кнопки для редактирования анкеты
-    buttons_text = f"\n\n<i>Нажмите на соответствующую цифру для редактирования анкеты:</i>\n" \
+    buttons_text = f"\n\n<i>Нажми на соответствующую цифру для редактирования анкеты:</i>\n" \
                    f"<b>1.</b> Изменить фотографию\n" \
                    f"<b>2.</b> Изменить профессию\n" \
                    f"<b>3.</b> Изменить ценовую информацию\n" \
@@ -127,7 +127,7 @@ async def upload_resume_start(callback: CallbackQuery, state: FSMContext) -> Non
     # Меняем стейт
     await state.set_state(UploadCV.cv)
 
-    msg = "Отправьте резюме <b>одним фалом</b>, допускается только формат <b>.pdf</b>"
+    msg = "Отправь резюме <b>одним фалом</b>, допускается только формат <b>.pdf</b>"
 
     # Отправляем сообщение
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_upload_cv_keyboard().as_markup())
@@ -256,7 +256,7 @@ async def my_active_status(callback: CallbackQuery, session: Any) -> None:
 
     executor: Executor = await AsyncOrm.get_executor_by_tg_id(tg_id, session)
 
-    msg = "Сообщите заказчикам о своей занятости\n\n<i>При выборе статуса \"Недоступен\" ваша анкета будет " \
+    msg = "Сообщи заказчикам о своей занятости\n\n<i>При выборе статуса \"Недоступен\" твоя анкета будет " \
           "скрыта от всех заказчиков</i>"
     keyboard = kb.executor_change_status_keyboard(executor)
 
@@ -273,8 +273,6 @@ async def change_status(callback: CallbackQuery, session: Any) -> None:
     if new_status_callback == "none":
         return
 
-    # wait_msg = await callback.message.edit_text(btn.WAIT_MSG)
-
     tg_id = str(callback.from_user.id)
 
     # получаем название статуса как в БД
@@ -290,7 +288,7 @@ async def change_status(callback: CallbackQuery, session: Any) -> None:
             executor.availability = new_status
         except:
             keyboard = kb.executor_change_status_keyboard(executor)
-            msg = "Ошибка при изменении статуса, попробуйте позже"
+            msg = "Ошибка при изменении статуса, попробуй позже"
             await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
             return
 

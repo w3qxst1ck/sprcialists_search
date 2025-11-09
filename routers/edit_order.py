@@ -50,7 +50,7 @@ async def edit_profession(callback: CallbackQuery, session: Any, state: FSMConte
     professions: List[Profession] = await AsyncOrm.get_professions(session)
 
     # Отправляем сообщение
-    msg = "Выберите раздел для заказа"
+    msg = "Выбери направление для заказа"
     prev_mess = await callback.message.answer(msg, reply_markup=kb.profession_keyboard(professions, order_id).as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -82,7 +82,7 @@ async def get_profession(callback: CallbackQuery, session: Any, state: FSMContex
     await state.update_data(selected_jobs=selected_jobs)
 
     # Отправляем сообщение
-    msg = "Выберите подкатегории для создания заказа (до 3 штук)"
+    msg = "Выбери категории (до 3 штук)"
     keyboard = kb.jobs_keyboard(jobs, selected_jobs, order_id=data["order_id"])
     await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
@@ -133,7 +133,7 @@ async def get_jobs(callback: CallbackQuery, state: FSMContext, session: Any) -> 
     try:
         await AsyncOrm.update_order_profession(data["order_id"], jobs_ids, session)
     except:
-        msg = f"{btn.INFO} Ошибка при изменении профессий. Повторите запрос позже"
+        msg = f"{btn.INFO} Ошибка при изменении профессий. Повтори запрос позже"
         await callback.answer()
         await callback.message.edit_text(msg, reply_markup=kb.to_order_keyboard(data["order_id"]).as_markup())
         return
@@ -162,7 +162,7 @@ async def edit_title(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(order_id=order_id)
 
     # Отправляем сообщение
-    msg = "Отправьте название (заголовок) заказа"
+    msg = "Отправь название (заголовок) заказа"
     await callback.answer()
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_edit_order_keyboard(order_id).as_markup())
 
@@ -222,7 +222,7 @@ async def edit_task(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(order_id=order_id)
 
     # Отправляем сообщение
-    msg = "Отправьте краткое ТЗ"
+    msg = "Отправь краткое ТЗ"
     await callback.answer()
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_edit_order_keyboard(order_id).as_markup())
 
@@ -293,7 +293,7 @@ async def edit_price(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(order_id=order_id)
 
     # Отправляем сообщение
-    msg = "Отправьте цену заказа в рублях (например: 2000) или нажмите \"Оставить пустым\""
+    msg = "Отправь цену заказа в рублях (например: 2000) или нажмите \"Оставить пустым\""
     await callback.answer()
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_skip_edit_order_keyboard(order_id).as_markup())
 
@@ -387,7 +387,7 @@ async def edit_deadline(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(order_id=order_id)
 
     # Отправляем сообщение
-    msg = "Отправьте <b>цифрой</b> количество дней на выполнение заказа"
+    msg = "Отправь <b>цифрой</b> количество дней на выполнение заказа"
     await callback.answer()
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_edit_order_keyboard(order_id).as_markup())
 
@@ -433,7 +433,7 @@ async def get_deadline(message: Message, state: FSMContext, session: Any) -> Non
         return
 
     # Отправляем сообщение
-    msg = "✅ Срок заказа успешно изменено"
+    msg = "✅ Срок заказа успешно изменен"
     await message.answer(msg, reply_markup=kb.to_order_keyboard(data["order_id"]).as_markup())
 
 
@@ -458,7 +458,7 @@ async def edit_requirements(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(order_id=order_id)
 
     # Отправляем сообщение
-    msg = "Отправьте сообщение особые требования к задаче или нажмите \"Оставить пустым\""
+    msg = "Отправь сообщением особые требования к задаче или нажми \"Оставить пустым\""
     await callback.answer()
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_skip_edit_order_keyboard(order_id).as_markup())
 
@@ -496,7 +496,7 @@ async def get_requirements(message: Message, state: FSMContext, session: Any) ->
         return
 
     # Отправляем сообщение
-    msg = "✅ Требования заказа успешно изменены"
+    msg = "✅ Требования к заказу успешно изменены"
     await message.answer(msg, reply_markup=kb.to_order_keyboard(data["order_id"]).as_markup())
 
 
@@ -519,7 +519,7 @@ async def skip_requirements(callback: CallbackQuery, session: Any, state: FSMCon
         return
 
     # Отправляем сообщение
-    msg = "✅ Требования заказа успешно изменены"
+    msg = "✅ Требования к заказу успешно изменены"
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.to_order_keyboard(data["order_id"]).as_markup())
 
@@ -546,7 +546,7 @@ async def edit_files(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(order_id=order_id)
 
     # Отправляем сообщение
-    msg = "Отправьте <b>отдельными сообщениями</b> файлы (например с более подробным описанием ТЗ к задаче) или нажмите \"Оставить пустым\""
+    msg = "Отправь <b>отдельными сообщениями</b> файлы (например с более подробным описанием ТЗ к задаче) или нажми \"Оставить пустым\""
     await callback.answer()
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_skip_edit_order_keyboard(order_id).as_markup())
 
@@ -596,7 +596,7 @@ async def get_file(message: Message, state: FSMContext) -> None:
     # Проверяем если уже есть три файла
     if len(data["file_ids"]) == 3:
         prev_mess = await message.answer(
-            "Вы уже отправили 3 файла, нажмите \"Продолжить\"",
+            "Уже отправлено 3 файла, нажми \"Продолжить\"",
             reply_markup=kb.continue_cancel_keyboard(data["order_id"]).as_markup()
         )
         # Сохраняем предыдущее сообщение
@@ -615,7 +615,7 @@ async def get_file(message: Message, state: FSMContext) -> None:
     filenames_text = ", ".join(filenames)
 
     # Отправляем сообщение
-    msg = f"Отправьте следующий файл или нажмите кнопку \"Продолжить\"\n\n" \
+    msg = f"Отправь следующий файл или нажми кнопку \"Продолжить\"\n\n" \
           f"Отправлено файлов {len(file_ids)}/3:\n{filenames_text}"
     prev_mess = await message.answer(msg, reply_markup=kb.continue_cancel_keyboard(data["order_id"]).as_markup())
 

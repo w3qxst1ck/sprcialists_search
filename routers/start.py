@@ -37,10 +37,6 @@ async def start(message: types.Message, admin: bool, session: Any) -> None:
     # Если пользователь зарегистрирован и у него выбрана роль
     if user_exists and user_has_role:
         await main_menu(message, session)
-        # user_role: str = await AsyncOrm.get_user_role(tg_id, session)
-        # msg = "Главное меню"
-        # keyboard = main_menu(user_role)
-        # await message.answer(msg, reply_markup=keyboard.as_markup())
         return
 
     # Если пользователь не первый раз или не выбрана роль
@@ -57,20 +53,27 @@ async def start(message: types.Message, admin: bool, session: Any) -> None:
             )
             await AsyncOrm.create_user(new_user, session)
 
+        # try:
+        #     msg = await get_start_message()
+        #     start_image = FSInputFile(settings.local_media_path + "start.jpg")
+        #     await message.answer_photo(
+        #         photo=start_image,
+        #         caption=msg,
+        #     )
+        # except:
+        #     pass
+
         # Предлагаем выбрать роль
         keyboard = await choose_role_keyboard()
-        msg = await get_start_message()
+        roles_image = FSInputFile(settings.local_media_path + "roles.png")
 
-        try:
-            start_image = FSInputFile(settings.local_media_path + "start.jpg")
-            await message.answer_photo(
-                photo=start_image,
-                caption=msg,
-            )
-        except:
-            pass
+        await message.answer_photo(
+            photo=roles_image,
+            caption="Выбери роль, чтобы продолжить",
+            reply_markup=keyboard.as_markup()
+        )
 
-        await message.answer(f"Выберите роль и пройдите регистрацию", reply_markup=keyboard.as_markup())
+        # await message.answer(f"Выбери роль, чтобы продолжить", reply_markup=keyboard.as_markup())
 
 
 async def get_start_message() -> str:
@@ -82,7 +85,7 @@ async def choose_role_keyboard() -> InlineKeyboardBuilder:
     """Клавиатура выбора роли"""
     keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(InlineKeyboardButton(text=f"Я клиент", callback_data="choose_role|client"))
+    keyboard.row(InlineKeyboardButton(text=f"Я заказчик", callback_data="choose_role|client"))
     keyboard.row(InlineKeyboardButton(text=f"Я исполнитель", callback_data="choose_role|executor"))
 
     return keyboard

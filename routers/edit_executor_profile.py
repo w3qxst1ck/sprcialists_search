@@ -55,7 +55,7 @@ async def edit_photo(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(EditPhoto.photo)
 
     # Отправляем сообщение
-    msg = "Отправьте новое фото профиля"
+    msg = "Отправь новое фото профиля"
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_edit_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -87,7 +87,7 @@ async def get_photo(message: Message, bot: Bot, state: FSMContext) -> None:
     try:
         await load_photo_from_tg(message, bot, settings.executors_profile_path)
     except:
-        msg = f"{btn.INFO} Ошибка при обновлении фото профиля. Повторите запрос позже"
+        msg = f"{btn.INFO} Ошибка при обновлении фото профиля. Повтори запрос позже"
         await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
         return
 
@@ -115,7 +115,7 @@ async def edit_profession(callback: CallbackQuery, session: Any, state: FSMConte
     professions: List[Profession] = await AsyncOrm.get_professions(session)
 
     # Отправляем сообщение
-    msg = "Выберите профессию из списка"
+    msg = "Выбери профессию из списка"
     prev_mess = await callback.message.answer(msg, reply_markup=kb.profession_keyboard(professions).as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -144,7 +144,7 @@ async def get_profession(callback: CallbackQuery, session: Any, state: FSMContex
     await state.update_data(selected_jobs=selected_jobs)
 
     # Отправляем сообщение
-    msg = "Выберите специализации из списка (до 5 штук)"
+    msg = "Выбери категории (до 5 штук)"
     keyboard = kb.jobs_keyboard(jobs, selected_jobs)
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
@@ -174,8 +174,9 @@ async def get_jobs_multiselect(callback: CallbackQuery, state: FSMContext) -> No
     await state.update_data(selected_jobs=selected_jobs)
 
     # Отправляем сообщение
-    msg = "Выберите специализации из списка (до 5 штук)"
+    msg = "Выбери категории (до 5 штук)"
     keyboard = kb.jobs_keyboard(all_jobs, selected_jobs)
+
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
@@ -224,7 +225,7 @@ async def edit_rate(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(EditExecutor.rate)
 
     # Отправляем сообщение
-    msg = "Отправьте текстом вашу рабочую ставку (например: от 2000 ₽/час или 30 000 рублей/месяц)"
+    msg = "Отправь текстом свою рабочую ставку (например: от 2000 ₽/час или 30 000 рублей/месяц)"
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_edit_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -277,7 +278,7 @@ async def edit_experience(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(EditExecutor.experience)
 
     # Отправляем сообщение
-    msg = "Отправьте информацию о своем рабочем опыте/уровень (например: 6 лет или senior)"
+    msg = "Отправь информацию о своем рабочем опыте/уровень (например: 6 лет или senior)"
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_edit_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -330,7 +331,7 @@ async def edit_description(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(EditExecutor.description)
 
     # Отправляем сообщение
-    msg = "Отправьте информацию о себе (не более 500 символов)"
+    msg = "Отправь информацию о себе (не более 500 символов)"
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_edit_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -392,7 +393,7 @@ async def edit_contacts(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(EditExecutor.contacts)
 
     # Отправляем сообщение
-    msg = "Отправьте контакт для связи (например телефон: 8-999-888-77-66)\n\n" \
+    msg = "Отправь контакты для связи (например телефон: 8-999-888-77-66)\n\n" \
           "❗<b>Важно</b>: указанные контакты будут видны другим пользователям сервиса"
     prev_mess = await callback.message.answer(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
@@ -466,7 +467,7 @@ async def edit_location(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(EditExecutor.location)
 
     # Отправляем сообщение
-    msg = "Отправьте ваш город"
+    msg = "Отправь свой город"
     prev_mess = await callback.message.answer(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -542,7 +543,7 @@ async def edit_links(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(links=[])
 
     # Отправляем сообщение
-    msg = "Отдельными сообщениями отправьте ссылки на портфолио"
+    msg = "Отдельными сообщениями отправь ссылки на портфолио"
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_edit_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -596,7 +597,7 @@ async def get_link(message: Message, state: FSMContext) -> None:
     await state.update_data(links=links)
 
     # Отправляем сообщение
-    msg = f"Отправьте следующую ссылку или нажмите кнопку \"Продолжить\"\n\n" \
+    msg = f"Отправь следующую ссылку или нажмите кнопку \"Продолжить\"\n\n" \
           f"Отправлено ссылок {links_count} шт.:\n{links_text}"
     prev_mess = await message.answer(msg, reply_markup=kb.continue_cancel_keyboard().as_markup(), disable_web_page_preview=True)
 
@@ -609,9 +610,6 @@ async def get_links(callback: CallbackQuery, state: FSMContext, session: Any) ->
     """Получаем список ссылок на портфолио, запрашиваем контакты"""
     # Получаем дату
     data = await state.get_data()
-
-    # Очищаем стейт
-    # await state.clear()
 
     # Меняем old_executor, если это первое изменение и нет new_executor
     if data.get("new_executor"):

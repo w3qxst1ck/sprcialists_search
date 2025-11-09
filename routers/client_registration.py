@@ -9,7 +9,7 @@ from aiogram.types import CallbackQuery, Message, FSInputFile
 from database.tables import UserRoles
 from middlewares.database import DatabaseMiddleware
 from middlewares.private import CheckPrivateMessageMiddleware
-from routers.messages.client import get_client_profile_message
+from routers.messages.client import get_client_profile_message, instruction_msg
 from routers.states.registration import Client
 from routers.keyboards.admin import confirm_registration_client_keyboard
 from routers.buttons import commands as cmd, buttons as btn
@@ -37,13 +37,19 @@ router.callback_query.middleware.register(DatabaseMiddleware())
 @router.callback_query(and_f(F.data.split("|")[0] == "choose_role", F.data.split("|")[1] == "client"))
 async def start_registration(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
     """Начало регистрации клиента"""
+    # Удаляем предыдущее сообщение
+    try:
+        await callback.message.delete()
+    except:
+        pass
+
     # Проверка уже выбранной роли у пользователя
     tg_id = str(callback.from_user.id)
     role: str | None = await AsyncOrm.get_user_role(tg_id, session)
     if role:
         role_text = role.capitalize()
-        msg = f"У вас уже выбрана роль \"{role_text}\""
-        await callback.message.edit_text(msg)
+        msg = f"У тебя уже выбрана роль \"{role_text}\""
+        await callback.message.answer(msg)
         return
 
     # Проверка на антиспам, можно регистрироваться через 7 дней после последней попытки
@@ -59,16 +65,16 @@ async def start_registration(callback: CallbackQuery, session: Any, state: FSMCo
             # Переводим в str
             allowed_date_text, allowed_time_text = convert_date_and_time_to_str(allowed_date, with_tz=True)
             msg = f"Повторная регистрация будет доступна после {allowed_date_text} {allowed_time_text} (МСК)"
-            await callback.message.edit_text(msg)
+            await callback.message.answer(msg)
             return
 
     # Ставим стейт
     await state.set_state(Client.name)
 
-    msg = "Отправьте имя/псевдоним, который будут видеть другие пользователи"
+    msg = "Напиши свое имя"
     keyboard = kb.cancel_keyboard()
 
-    prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+    prev_mess = await callback.message.answer(msg, reply_markup=keyboard.as_markup())
     await state.update_data(prev_mess=prev_mess)
 
 
@@ -101,7 +107,7 @@ async def get_client_name(message: Message, state: FSMContext, session: Any) -> 
     try:
         await AsyncOrm.create_client(client, session)
     except Exception:
-        await message.answer(f"Ошибка при регистрации, попробуйте зарегистрироваться проще")
+        await message.answer(f"Ошибка при регистрации, попробуйте зарегистрироваться позже")
         # Очищаем стейт
         await state.clear()
         return
@@ -110,7 +116,16 @@ async def get_client_name(message: Message, state: FSMContext, session: Any) -> 
     await state.clear()
 
     # Оповещаем пользователя об успешной регистрации
-    await message.answer("✅ Вы успешно зарегистрированы")
+    await message.answer("✅ Регистрация завершена")
+
+    # Отправляем инструкцию
+    instruction_image = FSInputFile(settings.local_media_path + "instruction.png")
+    caption_msg = instruction_msg()
+
+    await message.answer_photo(
+        photo=instruction_image,
+        caption=caption_msg,
+    )
 
     # Переводим клиента в главное меню
     await main_menu(message, session)
@@ -120,7 +135,7 @@ async def get_client_name(message: Message, state: FSMContext, session: Any) -> 
 async def cancel_registration(callback: CallbackQuery, state: FSMContext) -> None:
     """Отмена регистрации клиента"""
     await state.clear()
-    msg = f"Нажмите /{cmd.START[0]}, чтобы начать регистрацию заново"
+    msg = f"Нажми /{cmd.START[0]}, чтобы начать регистрацию заново"
     await callback.message.edit_text(msg)
 
 

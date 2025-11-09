@@ -33,7 +33,7 @@ def response_on_order_message(cover_letter: str, order: Order, ex_tg_username: s
         filenames_text = ""
 
     # Формируем краткое описание заказа
-    msg = f"Новый отклик по вашему заказу!\n" \
+    msg = f"Новый отклик по твоему заказу!\n" \
           f"\n<b>{order.title}</b>\n" \
           f"🗓️ {order.period} {days_text} | 💵 {price} {filenames_text}\n\n"
 
@@ -41,5 +41,5 @@ def response_on_order_message(cover_letter: str, order: Order, ex_tg_username: s
     msg += f"<i>\"{cover_letter}\"</i>\n\n"
 
     # Добавляем ссылку на исполнителя
-    msg += f"Обсудите детали в чате с исполнителем 👉 <a href='https://t.me/{ex_tg_username}'><u>{ex_name}</u></a>\n"
+    msg += f"Обсуди детали в чате с исполнителем 👉 <a href='https://t.me/{ex_tg_username}'><u>{ex_name}</u></a>\n"
     return msg

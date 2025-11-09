@@ -144,7 +144,7 @@ async def download_files(callback: CallbackQuery, session: Any) -> None:
     try:
         await callback.message.answer_media_group(media=files)
     except Exception:
-        await callback.message.answer(f"{btn.INFO} Ошибка при отправке файлов. Повторите запрос позже")
+        await callback.message.answer(f"{btn.INFO} Ошибка при отправке файлов. Повтори запрос позже")
     finally:
         # Отправляем сообщение карточки заказа
         msg = get_order_card_message(order)
@@ -164,7 +164,7 @@ async def create_order_start(callback: CallbackQuery, state: FSMContext, session
     professions: List[Profession] = await AsyncOrm.get_professions(session)
 
     # Отправляем сообщение
-    msg = "Выберите раздел для создания заказа"
+    msg = "Выбери направление для создания заказа"
     keyboard = kb.profession_keyboard(professions)
     await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
@@ -191,7 +191,7 @@ async def get_profession(callback: CallbackQuery, state: FSMContext, session: An
     await state.update_data(all_jobs=jobs)
 
     # Запрашиваем jobs
-    msg = "Выберите подкатегории для создания заказа (до 3 штук)"
+    msg = "Выбери категории (до 3 штук)"
     keyboard = kb.select_jobs_keyboard(jobs, [])
     await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
@@ -237,7 +237,7 @@ async def get_jobs(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(CreateOrder.title)
 
     # Запрашиваем название
-    msg = "Отправьте название (заголовок) заказа"
+    msg = "Отправь название (заголовок) заказа"
     await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
@@ -269,7 +269,7 @@ async def get_title(message: Message, state: FSMContext) -> None:
     await state.set_state(CreateOrder.task)
 
     # Отправляем сообщение
-    msg = "Отправьте краткое ТЗ"
+    msg = "Отправь краткое ТЗ"
     prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -311,7 +311,7 @@ async def get_task(message: Message, state: FSMContext) -> None:
     await state.set_state(CreateOrder.price)
 
     # Отправляем сообщение
-    msg = "Отправьте цену заказа в рублях (например: 2000) или нажмите \"Пропустить\""
+    msg = "Отправь цену заказа в рублях (например: 2000) или нажмите \"Пропустить\""
     prev_mess = await message.answer(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -360,7 +360,7 @@ async def get_price(message: Message | CallbackQuery, state: FSMContext) -> None
     calendar = kb.calendar_keyboard(now_year, now_month, dates_data, need_prev_month=False)
 
     # Отправляем сообщение
-    msg = "Укажите срок выполнения заказа с помощью клавиатуры ниже"
+    msg = "Укажи срок выполнения заказа с помощью клавиатуры ниже"
 
     # Без пропуска цены
     if type(message) == Message:
@@ -439,7 +439,7 @@ async def get_deadline(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(filenames=[])
 
     # Отправляем сообщение
-    msg = "При необходимости отправьте <b>отдельными сообщениями</b> файлы (например с более подробным описанием ТЗ к задаче) или нажмите \"Пропустить\""
+    msg = "При необходимости отправь <b>отдельными сообщениями</b> файлы (например с более подробным описанием ТЗ к задаче) или нажмите \"Пропустить\""
     await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
@@ -489,7 +489,7 @@ async def get_file(message: Message, state: FSMContext) -> None:
     # Проверяем если уже есть три файла
     if len(data["file_ids"]) == 3:
         prev_mess = await message.answer(
-            "Вы уже отправили 3 файла, нажмите \"Продолжить\"",
+            "Уже отправлено 3 файла, нажмите \"Продолжить\"",
             reply_markup=kb.continue_cancel_keyboard().as_markup()
         )
         # Сохраняем предыдущее сообщение
@@ -508,7 +508,7 @@ async def get_file(message: Message, state: FSMContext) -> None:
     filenames_text = ", ".join(filenames)
 
     # Отправляем сообщение
-    msg = f"Отправьте следующий файл или нажмите кнопку \"Продолжить\"\n\n" \
+    msg = f"Отправь следующий файл или нажми кнопку \"Продолжить\"\n\n" \
           f"Отправлено файлов {len(file_ids)}/3:\n{filenames_text}"
     prev_mess = await message.answer(msg, reply_markup=kb.continue_cancel_keyboard().as_markup())
 
@@ -526,7 +526,7 @@ async def get_files(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(requirements=None)
 
     # Отправляем сообщение
-    msg = "Отправьте сообщение особые требования к задаче или нажмите \"Пропустить\""
+    msg = "Отправь сообщением особые требования к задаче или нажмите \"Пропустить\""
     await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
@@ -609,7 +609,7 @@ async def get_requirements(message: Message | CallbackQuery, state: FSMContext, 
 
     # Отправляем сообщение
     order_card = get_order_card_message(order)
-    msg = f"Проверьте введенные данные\n\n" \
+    msg = f"Проверь введенные данные\n\n" \
           f"{order_card}\n\n" \
           f"Публикуем?"
     keyboard = kb.confirm_create_order_keyboard()
@@ -629,13 +629,13 @@ async def confirm_create_order(callback: CallbackQuery, state: FSMContext, sessi
     try:
         await AsyncOrm.create_order(data["order"], session)
     except Exception:
-        msg = f"{btn.INFO} Ошибка при размещении заказа. Повторите попытку позже"
+        msg = f"{btn.INFO} Ошибка при размещении заказа. Повтори попытку позже"
         await callback.answer()
         await callback.message.edit_text(msg, reply_markup=kb.confirmed_create_order_keyboard().as_markup())
         return
 
     # Отправляем сообщение пользователю
-    msg = "✅ Ваш заказ успешно размещен. Теперь его будут видеть исполнители"
+    msg = "✅ Твой заказ успешно размещен. Теперь его будут видеть исполнители"
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.confirmed_create_order_keyboard().as_markup())
 
