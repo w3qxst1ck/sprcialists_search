@@ -34,7 +34,7 @@ def executor_profile_keyboard(edited: bool, cv_exists: bool = False) -> InlineKe
 
     # Если есть изменения
     if edited:
-        keyboard.row(InlineKeyboardButton(text=f"Отправить на проверку", callback_data=f"send_to_verification"))
+        keyboard.row(InlineKeyboardButton(text=f"{btn.SEND_TO_VERIFY}", callback_data=f"send_to_verification"))
 
     # Кнопка назад
     keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="main_menu"))

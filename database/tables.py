@@ -51,6 +51,7 @@ class User(Base):
 
     executor_profile: Mapped["Executors"] = relationship(uselist=False, back_populates="user")
     client_profile: Mapped["Clients"] = relationship(uselist=False, back_populates="user")
+    blocked: Mapped["BlockedUsers"] = relationship(back_populates="user")
 
 
 class Clients(Base):
@@ -132,6 +133,7 @@ class RejectReasons(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     reason: Mapped[str] = mapped_column(index=True, nullable=False)
     text: Mapped[str] = mapped_column(nullable=False)
+    period: Mapped[int] = mapped_column(nullable=False)
 
 
 class Orders(Base):
@@ -190,3 +192,13 @@ class TaskFiles(Base):
     file_id: Mapped[str] = mapped_column(nullable=False)
 
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"))
+
+
+class BlockedUsers(Base):
+    """Таблица с банами пользователей"""
+    __tablename__ = "blocked_users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    expire_date: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    user_tg_id: Mapped[str] = mapped_column(index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))

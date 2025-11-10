@@ -16,6 +16,7 @@ from routers.buttons import commands as cmd, buttons as btn
 from routers.menu import main_menu
 
 from database.orm import AsyncOrm
+from schemas.blocked_users import BlockedUser
 from schemas.client import ClientAdd
 from schemas.user import User
 from settings import settings
@@ -52,19 +53,16 @@ async def start_registration(callback: CallbackQuery, session: Any, state: FSMCo
         await callback.message.answer(msg)
         return
 
-    # Проверка на антиспам, можно регистрироваться через 7 дней после последней попытки
-    # updated_at = None при регистрации в таблице user
-    user: User = await AsyncOrm.get_user(tg_id, session)
+    # Проверка заблокирован ли пользователь
+    blocked_user: BlockedUser = await AsyncOrm.get_blocked_user(tg_id, session)
 
-    # Если пользователь существует и он хотя бы раз пытался зарегистрироваться
-    if user and user.updated_at:
-        ban_expired = (user.updated_at + datetime.timedelta(days=settings.registration_ban_days)) < datetime.datetime.now()
-        if not ban_expired:
-            # Высчитываем разрешенную дату
-            allowed_date = user.updated_at + datetime.timedelta(days=settings.registration_ban_days)
-            # Переводим в str
-            allowed_date_text, allowed_time_text = convert_date_and_time_to_str(allowed_date, with_tz=True)
-            msg = f"Повторная регистрация будет доступна после {allowed_date_text} {allowed_time_text} (МСК)"
+    if blocked_user:
+        # Проверяем срок блокировки
+        # Если срок еще не вышел
+        if blocked_user.expire_date > datetime.datetime.now():
+            date, time = convert_date_and_time_to_str(blocked_user.expire_date, with_tz=True)
+            msg = f"Повторная регистрация будет доступна после {date} {time} (МСК)"
+            await callback.answer()
             await callback.message.answer(msg)
             return
 

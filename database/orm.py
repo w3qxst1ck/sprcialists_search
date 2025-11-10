@@ -8,6 +8,7 @@ from database.database import async_engine
 from database.tables import Base, UserRoles, Availability
 
 from logger import logger
+from schemas.blocked_users import BlockedUserAdd, BlockedUser
 from schemas.client import ClientAdd, RejectReason, Client
 from schemas.executor import ExecutorAdd, Executor
 from schemas.order import OrderAdd, Order, TaskFile, TaskFileAdd
@@ -1634,4 +1635,58 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при изменении статуса \"{new_status}\" занятости исполнителя {tg_id}: {e}")
             raise
+
+    @staticmethod
+    async def create_blocked_user(u: BlockedUserAdd, session: Any) -> None:
+        """Создание заблокированного пользователя"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO blocked_users (user_tg_id, user_id, expire_date)
+                VALUES ($1, $2, $3)
+                """,
+                u.user_tg_id, u.user_id, u.expire_date
+            )
+            logger.info(f"Добавлен заблокированный пользователь tg_id {u.user_tg_id} сроком до {u.expire_date}")
+        except Exception as e:
+            logger.error(f"Ошибка при заблокированного пользователя tg_id {u.user_tg_id} сроком до {u.expire_date}: {e}")
+
+    @staticmethod
+    async def get_blocked_user(tg_id: str, session: Any) -> BlockedUser | None:
+        """Получение заблокированного пользователя"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT * 
+                FROM blocked_users
+                WHERE user_tg_id=$1
+                """,
+                tg_id
+            )
+            if row:
+                blocked_user = BlockedUser.model_validate(row)
+            else:
+                blocked_user = None
+            return blocked_user
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении заблокированного пользователя tg_id {tg_id}: {e}")
+
+    @staticmethod
+    async def update_blocked_user_expire_date(tg_id: str, expire_date: datetime, session: Any) -> None:
+        """Обновление expire_date у заблокированного пользователя"""
+        try:
+            await session.execute(
+                """
+                UPDATE blocked_users
+                SET expire_date = $1
+                WHERE user_tg_id = $2
+                """,
+                expire_date, tg_id
+            )
+            logger.info(f"Срок блокировки пользователя tg_id {tg_id} обновлен до {expire_date}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении срока блокировки пользователя tg_id {tg_id} до {expire_date}: {e}")
+
 

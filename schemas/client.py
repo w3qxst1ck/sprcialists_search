@@ -14,4 +14,5 @@ class RejectReason(BaseModel):
     id: int
     reason: str
     text: str
+    period: int
 

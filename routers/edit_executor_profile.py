@@ -18,6 +18,7 @@ from routers.keyboards import edit_executor_profile as kb
 from routers.keyboards.admin import confirm_edit_executor_keyboard
 from routers.messages.executor import edited_executor_card_for_admin_verification
 from routers.states.executor_profile import EditPhoto, EditExecutor
+from schemas.blocked_users import BlockedUser
 
 from schemas.executor import Executor
 
@@ -144,7 +145,7 @@ async def get_profession(callback: CallbackQuery, session: Any, state: FSMContex
     await state.update_data(selected_jobs=selected_jobs)
 
     # Отправляем сообщение
-    msg = "Выбери категории (до 5 штук)"
+    msg = "Выбери категории (до 3 вариантов)"
     keyboard = kb.jobs_keyboard(jobs, selected_jobs)
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
@@ -164,8 +165,8 @@ async def get_jobs_multiselect(callback: CallbackQuery, state: FSMContext) -> No
     if job_id in selected_jobs:
         selected_jobs.remove(job_id)
     else:
-        # Убираем одну если больше 5
-        if len(selected_jobs) == 5:
+        # Убираем одну если больше 3
+        if len(selected_jobs) == 3:
             selected_jobs[0] = job_id
         else:
             selected_jobs.append(job_id)
@@ -174,7 +175,7 @@ async def get_jobs_multiselect(callback: CallbackQuery, state: FSMContext) -> No
     await state.update_data(selected_jobs=selected_jobs)
 
     # Отправляем сообщение
-    msg = "Выбери категории (до 5 штук)"
+    msg = "Выбери категории (до 3 вариантов)"
     keyboard = kb.jobs_keyboard(all_jobs, selected_jobs)
 
     await callback.answer()
@@ -206,7 +207,9 @@ async def get_jobs(callback: CallbackQuery, state: FSMContext, session: Any) -> 
     await state.update_data(new_executor=executor)
 
     # Отправляем сообщение
-    msg = f"✅ Профессии успешно изменены"
+    msg = f"Профессии изменены" \
+          f"\n\n❗ Чтобы изменения вступили в силу, необходимо отправить анкету на проверку администратору, " \
+          f"это можно сделать в профиле с помощью кнопки \"{btn.SEND_TO_VERIFY}\""
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
@@ -260,7 +263,9 @@ async def get_rate(message: Message, state: FSMContext) -> None:
     await state.update_data(new_executor=executor)
 
     # Отправляем сообщение
-    msg = "✅ Ценовая информация успешно изменена"
+    msg = f"Ценовая информация изменена" \
+          f"\n\n❗ Чтобы изменения вступили в силу, необходимо отправить анкету на проверку администратору, " \
+          f"это можно сделать в профиле с помощью кнопки \"{btn.SEND_TO_VERIFY}\""
     await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
 
@@ -313,7 +318,9 @@ async def get_experience(message: Message, state: FSMContext, session: Any) -> N
     await state.update_data(new_executor=executor)
 
     # Отправляем сообщение
-    msg = "✅ Информация об опыте успешно изменена"
+    msg = f"Информация об опыте изменена" \
+          f"\n\n❗ Чтобы изменения вступили в силу, необходимо отправить анкету на проверку администратору, " \
+          f"это можно сделать в профиле с помощью кнопки \"{btn.SEND_TO_VERIFY}\""
     await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
 
@@ -375,7 +382,9 @@ async def get_description(message: Message, state: FSMContext, session: Any) -> 
     await state.update_data(new_executor=executor)
 
     # Отправляем сообщение
-    msg = "✅ Описание успешно изменено"
+    msg = f"Описание изменено" \
+          f"\n\n❗ Чтобы изменения вступили в силу, необходимо отправить анкету на проверку администратору, " \
+          f"это можно сделать в профиле с помощью кнопки \"{btn.SEND_TO_VERIFY}\""
     await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
 
@@ -429,7 +438,9 @@ async def get_contacts(message: Message, state: FSMContext, session: Any) -> Non
     await state.update_data(new_executor=executor)
 
     # Отправляем сообщение
-    msg = "✅ Контактная информация успешно изменена"
+    msg = f"Контактная информация изменена" \
+          f"\n\n❗ Чтобы изменения вступили в силу, необходимо отправить анкету на проверку администратору, " \
+          f"это можно сделать в профиле с помощью кнопки \"{btn.SEND_TO_VERIFY}\""
     await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
 
@@ -448,7 +459,9 @@ async def skip_contacts(callback: CallbackQuery, session: Any, state: FSMContext
     await state.update_data(new_executor=executor)
 
     # Отправляем сообщение
-    msg = "✅ Контактная информация успешно изменена"
+    msg = f"Контактная информация изменена" \
+          f"\n\n❗ Чтобы изменения вступили в силу, необходимо отправить анкету на проверку администратору, " \
+          f"это можно сделать в профиле с помощью кнопки \"{btn.SEND_TO_VERIFY}\""
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
@@ -502,7 +515,9 @@ async def get_location(message: Message, state: FSMContext, session: Any) -> Non
     await state.update_data(new_executor=executor)
 
     # Отправляем сообщение
-    msg = "✅ Город успешно изменен"
+    msg = f"Город изменен" \
+          f"\n\n❗ Чтобы изменения вступили в силу, необходимо отправить анкету на проверку администратору, " \
+          f"это можно сделать в профиле с помощью кнопки \"{btn.SEND_TO_VERIFY}\""
     await message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
 
@@ -521,7 +536,9 @@ async def skip_location(callback: CallbackQuery, session: Any, state: FSMContext
     await state.update_data(new_executor=executor)
 
     # Отправляем сообщение
-    msg = "✅ Город успешно изменен"
+    msg = f"Город изменен" \
+          f"\n\n❗ Чтобы изменения вступили в силу, необходимо отправить анкету на проверку администратору, " \
+          f"это можно сделать в профиле с помощью кнопки \"{btn.SEND_TO_VERIFY}\""
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
@@ -621,7 +638,9 @@ async def get_links(callback: CallbackQuery, state: FSMContext, session: Any) ->
     await state.update_data(new_executor=executor)
 
     # Отправляем сообщение
-    msg = "✅ Ссылки на портфолио успешно изменены"
+    msg = f"Ссылки на портфолио изменены" \
+          f"\n\n❗ Чтобы изменения вступили в силу, необходимо отправить анкету на проверку администратору, " \
+          f"это можно сделать в профиле с помощью кнопки \"{btn.SEND_TO_VERIFY}\""
     await callback.answer()
     await callback.message.edit_text(msg, reply_markup=kb.to_profile_keyboard().as_markup())
 
@@ -638,19 +657,19 @@ async def send_to_verification(callback: CallbackQuery, session: Any) -> None:
 
     # Получаем пользователя
     tg_id = str(callback.from_user.id)
-    user: User = await AsyncOrm.get_user(tg_id, session)
 
-    # Если пользователь существует и он хотя бы раз пытался зарегистрироваться
-    ban_expired = (user.updated_at + datetime.timedelta(days=settings.registration_ban_days)) < datetime.datetime.now()
-    if not ban_expired:
-        # Высчитываем разрешенную дату
-        allowed_date = user.updated_at + datetime.timedelta(days=settings.registration_ban_days)
-        # Переводим в str
-        allowed_date_text, allowed_time_text = convert_date_and_time_to_str(allowed_date, with_tz=True)
-        msg = f"Изменение анкеты будет доступно после {allowed_date_text} {allowed_time_text} (МСК)"
-        await callback.answer()
-        await callback.message.answer(msg, reply_markup=kb.to_profile_keyboard().as_markup())
-        return
+    # Проверка заблокирован ли пользователь
+    blocked_user: BlockedUser = await AsyncOrm.get_blocked_user(tg_id, session)
+
+    if blocked_user:
+        # Проверяем срок блокировки
+        # Если срок еще не вышел
+        if blocked_user.expire_date > datetime.datetime.now():
+            date, time = convert_date_and_time_to_str(blocked_user.expire_date, with_tz=True)
+            msg = f"Изменение анкеты будет доступно после {date} {time} (МСК)"
+            await callback.answer()
+            await callback.message.answer(msg)
+            return
 
     msg = f"❗ Во время проверки анкеты администратором большая часть функционала сервиса будет недоступна"
     keyboard = kb.send_to_verification_keyboard(tg_id)
@@ -679,7 +698,7 @@ async def send_to_verification_confirmed(callback: CallbackQuery, state: FSMCont
         return
 
     # Сообщение исполнителю
-    ex_msg = f"{btn.INFO} Анкета отправлена на проверку администратору\n\n"
+    ex_msg = f"{btn.INFO} Анкета на проверке. Мы напишем сразу после верификации, обычно это занимает до 24 часов"
     await callback.answer()
     await callback.message.edit_text(ex_msg)
 

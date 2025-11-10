@@ -54,11 +54,11 @@ def select_reasons_keyboard(reasons: list[RejectReason], selected_reasons: List[
         else:
             text = reason.reason
 
-        keyboard.row(InlineKeyboardButton(text=text, callback_data=f"reject_reason|{reason.id}"))
+        keyboard.row(InlineKeyboardButton(text=text, callback_data=f"reject_reason|{reason.id}|{reason.period}"))
 
     # Кнопка Подтвердить
     if selected_reasons:
-        keyboard.row(InlineKeyboardButton(text="Подтвердить", callback_data=f"reject_reasons_done"))
+        keyboard.row(InlineKeyboardButton(text=f"{btn.CONTINUE}", callback_data=f"reject_reasons_done"))
 
     return keyboard
 
