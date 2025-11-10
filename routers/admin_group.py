@@ -239,7 +239,7 @@ async def confirm_executor_registration(callback: CallbackQuery, session: Any, b
     await callback.message.edit_caption(caption=edited_caption)
 
     # Оповещаем исполнителя
-    user_msg = f"✅ Внесенные изменения в анкету верифицированы администратором\n\n"
+    user_msg = f"✅ Изменения, внесенные в анкету, верифицированы администратором\n\n"
     keyboard = to_main_menu()
     await bot.send_message(executor_tg_id, user_msg, reply_markup=keyboard.as_markup(), message_effect_id="5046509860389126442")
 
