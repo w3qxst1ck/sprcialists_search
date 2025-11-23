@@ -1,12 +1,12 @@
 import pytz
 from fastapi import FastAPI
-from sqladmin.filters import BooleanFilter
+from sqladmin.filters import BooleanFilter, ForeignKeyFilter
 
 from app.filters import AdminFilter, RoleFilter, BannedFilter, VerifiedFilter, AvailabilityFilter
 from database.database import async_engine
 from sqladmin import Admin, ModelView
 from database import tables as t
-from database.tables import User, Executors, Clients, BlockedUsers
+from database.tables import User, Executors, Clients, BlockedUsers, RejectReasons, Orders
 from settings import settings
 
 app = FastAPI()
@@ -36,6 +36,11 @@ class UsersAdmin(ModelView, model=User):
 
     column_list = [User.id, User.tg_id, User.role, User.username,
                    User.created_at, User.updated_at, User.is_banned, User.is_admin]
+
+    column_details_list = [
+        User.id, User.tg_id, User.username, User.firstname, User.lastname, User.created_at, User.updated_at,
+        User.role, User.executor_profile, User.client_profile, User.is_banned, User.is_admin, User.blocked
+    ]
 
     column_labels = {User.tg_id: "телеграм id", User.role: "роль", User.username: "телеграм username",
                      User.created_at: "дата регистрации", User.updated_at: "дата изменения",
@@ -152,6 +157,9 @@ class ClientsAdmin(ModelView, model=Clients):
         Clients.id, Clients.tg_id, Clients.name, Clients.orders
     ]
 
+    column_details_list = [Clients.id, Clients.tg_id, Clients.name, Clients.user,
+                           Clients.orders, Clients.executors_favorites]
+
     column_labels = {
         Clients.tg_id: "телеграм id", Clients.name: "имя", Clients.orders: "заказы",
         Clients.executors_favorites: "избранные исполнители"
@@ -186,34 +194,81 @@ class JobsAdmin(ModelView, model=t.Jobs):
     category_icon = categories["professions"][1]
 
 
-class RejectReasonsAdmin(ModelView, model=t.RejectReasons):
-    column_list = "__all__"
-
+class RejectReasonsAdmin(ModelView, model=RejectReasons):
     name = "Причина отказа"
     name_plural = "Причины отказа"
-
     category = categories["accounts"][0]
     category_icon = categories["accounts"][1]
 
+    column_exclude_list = [RejectReasons.id]
 
-class OrdersAdmin(ModelView, model=t.Orders):
-    column_list = "__all__"
+    column_labels = {
+        RejectReasons.reason: "причина", RejectReasons.text: "описание", RejectReasons.period: "период блокировки",
+    }
 
+    column_formatters = {
+        RejectReasons.text: lambda r, a: r.text[:15] + "..."
+    }
+
+    can_edit = True
+    can_create = True
+    can_delete = True
+
+
+class OrdersAdmin(ModelView, model=Orders):
     name = "Заказ"
     name_plural = "Заказы"
 
     category = categories["orders"][0]
     category_icon = categories["orders"][1]
 
+    column_list = [Orders.client, Orders.title, Orders.jobs, Orders.price, Orders.period, Orders.created_at]
+    column_details_list = [
+        Orders.id, Orders.client, Orders.jobs, Orders.title, Orders.task, Orders.price, Orders.period,
+        Orders.requirements, Orders.files, Orders.created_at, Orders.is_active, Orders.executors_favorites
+    ]
 
-class TaskFilesAdmin(ModelView, model=t.TaskFiles):
-    column_list = "__all__"
+    column_default_sort = [(Orders.created_at, True)]
 
-    name = "Файл заказа"
-    name_plural = "Файлы заказов"
+    column_labels = {
+        Orders.client: "заказчик", Orders.jobs: "категории", Orders.files: "файлы",
+        Orders.executors_favorites: "в избранном", Orders.tg_id: "телеграм id", Orders.title: "название",
+        Orders.task: "описание задачи", Orders.price: "цена", Orders.requirements: "требования",
+        Orders.period: "срок выполнения", Orders.created_at: "дата размещения", Orders.is_active: "активен",
+    }
 
-    category = categories["orders"][0]
-    category_icon = categories["orders"][1]
+    column_formatters = {
+        Orders.created_at: lambda o, a: o.created_at.astimezone(
+            tz=pytz.timezone(settings.timezone)
+        ).strftime("%d.%m.%Y %H:%M"),
+    }
+
+    column_formatters_detail = {
+        Orders.created_at: lambda o, a: o.created_at.astimezone(
+            tz=pytz.timezone(settings.timezone)
+        ).strftime("%d.%m.%Y %H:%M"),
+    }
+    column_filters = [
+        ForeignKeyFilter(Orders.client_id, Clients.name, title="Заказчик")
+    ]
+
+    can_delete = True
+    can_edit = True
+    form_edit_rules = ["is_active"]
+    can_create = False
+
+    page_size = 25
+    page_size_options = [10, 25, 50, 100]
+
+
+# class TaskFilesAdmin(ModelView, model=t.TaskFiles):
+#     column_list = "__all__"
+#
+#     name = "Файл заказа"
+#     name_plural = "Файлы заказов"
+#
+#     category = categories["orders"][0]
+#     category_icon = categories["orders"][1]
 
 
 class FavoriteExecutorsAdmin(ModelView, model=t.FavoriteExecutors):
@@ -254,10 +309,10 @@ admin.add_view(ProfessionsAdmin)
 admin.add_view(JobsAdmin)
 
 admin.add_view(OrdersAdmin)
-admin.add_view(TaskFilesAdmin)
 
-admin.add_view(FavoriteExecutorsAdmin)
-admin.add_view(FavoriteOrdersAdmin)
-admin.add_view(OrdersJobsAdmin)
-admin.add_view(ExecutorsJobsAdmin)
+# admin.add_view(TaskFilesAdmin)
+# admin.add_view(FavoriteExecutorsAdmin)
+# admin.add_view(FavoriteOrdersAdmin)
+# admin.add_view(OrdersJobsAdmin)
+# admin.add_view(ExecutorsJobsAdmin)
 

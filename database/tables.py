@@ -244,6 +244,9 @@ class TaskFiles(Base):
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"))
     order: Mapped["Orders"] = relationship(back_populates="files")
 
+    def __str__(self):
+        return f"{self.filename}"
+
 
 class BlockedUsers(Base):
     """Таблица с банами пользователей"""
@@ -255,3 +258,6 @@ class BlockedUsers(Base):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     user: Mapped["User"] = relationship(back_populates="blocked")
+
+    def __str__(self):
+        return f"{self.expire_date}"
