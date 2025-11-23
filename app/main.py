@@ -292,11 +292,49 @@ class OrdersAdmin(ModelView, model=Orders):
 
 
 class OrdersResponsesAdmin(ModelView, model=OrdersResponses):
-    column_list = "__all__"
-
+    name = "Отклик на заказ"
+    name_plural = "Отклики на заказы"
     category = categories["orders"][0]
     category_icon = categories["orders"][1]
 
+    column_list = [OrdersResponses.order, OrdersResponses.executor, OrdersResponses.text, OrdersResponses.created_at,]
+    column_details_list = [
+        OrdersResponses.id, OrdersResponses.order, OrdersResponses.executor, OrdersResponses.text,
+        OrdersResponses.created_at,
+    ]
+
+    column_labels = {
+        OrdersResponses.order: "заказ",
+        OrdersResponses.executor: "исполнитель",
+        OrdersResponses.created_at: "дата",
+        OrdersResponses.text: "текст"
+    }
+
+    column_formatters = {
+        OrdersResponses.created_at: lambda o, a: o.created_at.astimezone(
+            tz=pytz.timezone(settings.timezone)
+        ).strftime("%d.%m.%Y %H:%M"),
+        OrdersResponses.text: lambda o, a: o.text[:15] + "..."
+    }
+
+    column_formatters_detail = {
+        OrdersResponses.created_at: lambda o, a: o.created_at.astimezone(
+            tz=pytz.timezone(settings.timezone)
+        ).strftime("%d.%m.%Y %H:%M"),
+        OrdersResponses.text: lambda o, a: f"\"{o.text}\""
+    }
+
+    column_filters = [
+        ForeignKeyFilter(OrdersResponses.executor_id, Executors.name, title="Исполнители"),
+        ForeignKeyFilter(OrdersResponses.order_id, Orders.title, title="Заказы"),
+    ]
+
+    can_delete = False
+    can_edit = False
+    can_create = False
+
+    page_size = 25
+    page_size_options = [10, 25, 50, 100]
 
 # class TaskFilesAdmin(ModelView, model=t.TaskFiles):
 #     column_list = "__all__"

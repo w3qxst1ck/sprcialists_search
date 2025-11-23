@@ -19,6 +19,7 @@ from routers.messages.orders import order_card_to_show
 from routers.messages import find_order as ms
 from routers.states.find import SelectJobs, OrdersFeed
 from routers.buttons import buttons as btn
+from schemas.executor import Executor
 from schemas.order import Order
 from schemas.profession import Profession, Job
 from utils.shuffle import shuffle_orders
@@ -298,9 +299,10 @@ async def add_order_to_favorites(message: Message, state: FSMContext, session: A
 
 # НАПИСАТЬ ЗАКАЗЧИКУ
 @router.message(F.text == f"{btn.RESPOND}", OrdersFeed.show)
-async def connect_with_client(message: Message, state: FSMContext) -> None:
+async def connect_with_client(message: Message, state: FSMContext, session: Any) -> None:
     """Связаться с заказчиком"""
     data = await state.get_data()
+    executor_tg_id = str(message.from_user.id)
 
     # Меняем стейт для связи с заказчиком
     await state.set_state(OrdersFeed.contact)
@@ -314,7 +316,15 @@ async def connect_with_client(message: Message, state: FSMContext) -> None:
     # Получаем текущий заказ
     order: Order = data["current_or"]
 
-    msg = f"Заказ <b>\"{order.title}\"</b>\n\nНапиши сообщение заказчику, которое мы приложим к твоему отклику"
+    # Проверяем есть ли уже такой отклик
+    response_exists: bool = await AsyncOrm.check_order_response_already_exists(executor_tg_id, order.id, session)
+
+    if not response_exists:
+        msg = f"Заказ <b>\"{order.title}\"</b>\n\nНапиши сообщение заказчику, которое мы приложим к твоему отклику"
+
+    else:
+        msg = f"{btn.INFO} Ты уже откликался на заказ <b>\"{order.title}\"</b>\n\nПосмотри другие заказы"
+
     keyboard = kb.back_to_orders_feed()
 
     functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
@@ -370,22 +380,34 @@ async def send_cover_letter(callback: CallbackQuery, state: FSMContext, session:
 
     data = await state.get_data()
     executor_tg_id = str(callback.from_user.id)
-    ex_tg_username = await AsyncOrm.get_username(executor_tg_id, session)
-    ex_name = await AsyncOrm.get_executor_name(executor_tg_id, session)
+
+    # Получаем исполнителя
+    ex_tg_username: str = await AsyncOrm.get_username(executor_tg_id, session)
+    executor: Executor = await AsyncOrm.get_executor_by_tg_id(executor_tg_id, session)
 
     # Получаем заказ
     order: Order = data["current_or"]
     cover_letter = data["cover_letter"]
 
+    keyboard = kb.back_to_orders_feed_from_contact()
+
+    # Сохраняем отклик в БД
+    try:
+        await AsyncOrm.create_order_response(cover_letter, order.id, executor.id, session)
+    except:
+        error_msg = f"{btn.INFO} Ошибка при отправке отклика, попробуй позже"
+        await callback.message.edit_text(error_msg, reply_markup=keyboard.as_markup())
+        return
+
+    # Отвечаем исполнителю
     msg = f"{btn.SUCCESS} Твой отклик по заказу \"<i>{order.title}</i>\" отправлен заказчику!"
     keyboard = kb.back_to_orders_feed_from_contact()
 
-    # Отвечаем исполнителю
     functional_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
     await state.update_data(functional_mess=functional_mess)
 
     # Отправляем сообщение клиенту
-    msg_to_client = ms.response_on_order_message(cover_letter, order, ex_tg_username, ex_name)
+    msg_to_client = ms.response_on_order_message(cover_letter, order, ex_tg_username, executor.name)
     try:
         await bot.send_message(
             order.tg_id,

@@ -1689,4 +1689,38 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при обновлении срока блокировки пользователя tg_id {tg_id} до {expire_date}: {e}")
 
+    @staticmethod
+    async def create_order_response(text: str, order_id: int, executor_id: int, session: Any) -> None:
+        """Создание отклика исполнителя на заказ"""
+        try:
+            created_at = datetime.datetime.now()
+            await session.execute(
+                """
+                INSERT INTO orders_responses (created_at, text, order_id, executor_id)
+                VALUES($1, $2, $3, $4)
+                """,
+                created_at, text, order_id, executor_id
+            )
+            logger.info(f"Создан отклик на заказ {order_id} от исполнителя {executor_id}")
 
+        except Exception as e:
+            logger.error(f"Ошибка при создании отклика на заказ {order_id} от исполнителя {executor_id}: {e}")
+            raise
+
+    @staticmethod
+    async def check_order_response_already_exists(executor_tg_id: str, order_id: int, session: any) -> bool:
+        """Проверка существования отклика исполнителя на заказ"""
+        try:
+            exists = await session.fetchval(
+                """
+                SELECT EXISTS(
+                    SELECT 1 FROM orders_responses AS res
+                    JOIN executors AS ex ON res.executor_id = ex.id
+                    WHERE order_id = $1 AND ex.tg_id = $2
+                )
+                """,
+                order_id, executor_tg_id)
+            return exists
+
+        except Exception as e:
+            logger.error(f"Ошибка при проверке существования отклика пользователя {tg_id} на заказ {order_id}: {e}")
