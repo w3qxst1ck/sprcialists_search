@@ -100,8 +100,7 @@ class Executors(Base):
 
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="executors", secondary="executors_jobs")
 
-    # favorites: Mapped[list["Clients"]] = relationship(back_populates="executors", secondary="favorite_executors")
-    # favorites_orders: Mapped[list["Orders"]] = relationship(back_populates="executors", secondary="favorite_orders")
+    responses: Mapped[list["OrdersResponses"]] = relationship(back_populates="executor", cascade="all, delete")
 
     clients_favorites: Mapped[list["Clients"]] = relationship(
         secondary="favorite_executors",
@@ -188,7 +187,8 @@ class Orders(Base):
 
     files: Mapped[list["TaskFiles"]] = relationship(back_populates="order")
 
-    # executors_fav: Mapped[list["Executors"]] = relationship(back_populates="favorite_orders", secondary="favorite_orders")
+    responses: Mapped[list["OrdersResponses"]] = relationship(back_populates="order", cascade="all, delete")
+
     executors_favorites: Mapped[list["Executors"]] = relationship(
         secondary="favorite_orders",
         back_populates="orders_favorites"
@@ -261,3 +261,21 @@ class BlockedUsers(Base):
 
     def __str__(self):
         return f"{self.expire_date}"
+
+
+class OrdersResponses(Base):
+    """Таблица с откликами"""
+    __tablename__ = "orders_responses"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(nullable=False)
+    text: Mapped[str] = mapped_column(nullable=False)
+
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"))
+    order: Mapped["Orders"] = relationship(back_populates="responses")
+
+    executor_id: Mapped[int] = mapped_column(ForeignKey("executors.id", ondelete="CASCADE"))
+    executor: Mapped["Executors"] = relationship(back_populates="responses")
+
+    def __str__(self):
+        return f"{self.executor_id} -> {self.order_id}"

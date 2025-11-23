@@ -82,26 +82,6 @@ class BannedFilter:
             return query
 
 
-# class JobsFilter:
-#     title = "Направления"
-#     parameter_name = "profession"
-#
-#     def lookups(self, request, model, get_filtered_query) -> list[tuple[str, str]]:
-#         """
-#         Returns a list of tuples with the filter key and the human-readable label.
-#         """
-#         with request.state.session as session:
-#             rows = (session.execute(select(Professions.id, Professions.title))).all()
-#             professions_tuples = [(r.id, r.title) for r in rows]
-#         return professions_tuples
-#
-#     async def get_filtered_query(self, query, value, model):
-#         """
-#         Returns a filtered query based on the filter value.
-#         """
-#         return query.filter(Jobs.profession_id == value)
-
-
 class VerifiedFilter:
     title = "Верификация"
     parameter_name = "verified"

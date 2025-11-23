@@ -7,7 +7,8 @@ from app.filters import AdminFilter, RoleFilter, BannedFilter, VerifiedFilter, A
 from database.database import async_engine
 from sqladmin import Admin, ModelView
 from database import tables as t
-from database.tables import User, Executors, Clients, BlockedUsers, RejectReasons, Orders, Professions, Jobs
+from database.tables import User, Executors, Clients, BlockedUsers, RejectReasons, Orders, Professions, Jobs, \
+    OrdersResponses
 from settings import settings
 
 
@@ -18,7 +19,7 @@ categories = {
 }
 
 app = FastAPI()
-admin = Admin(app, async_engine, authentication_backend=authentication_backend, templates_dir="/templates/sqladmin")
+admin = Admin(app, async_engine, authentication_backend=authentication_backend, templates_dir="app/templates/sqladmin")
 
 
 @app.get("/db")
@@ -290,6 +291,13 @@ class OrdersAdmin(ModelView, model=Orders):
     page_size_options = [10, 25, 50, 100]
 
 
+class OrdersResponsesAdmin(ModelView, model=OrdersResponses):
+    column_list = "__all__"
+
+    category = categories["orders"][0]
+    category_icon = categories["orders"][1]
+
+
 # class TaskFilesAdmin(ModelView, model=t.TaskFiles):
 #     column_list = "__all__"
 #
@@ -299,33 +307,32 @@ class OrdersAdmin(ModelView, model=Orders):
 #     category = categories["orders"][0]
 #     category_icon = categories["orders"][1]
 
-
-class FavoriteExecutorsAdmin(ModelView, model=t.FavoriteExecutors):
-    column_list = "__all__"
-
-    category = categories["orders"][0]
-    category_icon = categories["orders"][1]
-
-
-class FavoriteOrdersAdmin(ModelView, model=t.FavoriteOrders):
-    column_list = "__all__"
-
-    category = categories["orders"][0]
-    category_icon = categories["orders"][1]
-
-
-class OrdersJobsAdmin(ModelView, model=t.OrdersJobs):
-    column_list = "__all__"
-
-    category = categories["orders"][0]
-    category_icon = categories["orders"][1]
-
-
-class ExecutorsJobsAdmin(ModelView, model=t.ExecutorsJobs):
-    column_list = "__all__"
-
-    category = categories["orders"][0]
-    category_icon = categories["orders"][1]
+# class FavoriteExecutorsAdmin(ModelView, model=t.FavoriteExecutors):
+#     column_list = "__all__"
+#
+#     category = categories["orders"][0]
+#     category_icon = categories["orders"][1]
+#
+#
+# class FavoriteOrdersAdmin(ModelView, model=t.FavoriteOrders):
+#     column_list = "__all__"
+#
+#     category = categories["orders"][0]
+#     category_icon = categories["orders"][1]
+#
+#
+# class OrdersJobsAdmin(ModelView, model=t.OrdersJobs):
+#     column_list = "__all__"
+#
+#     category = categories["orders"][0]
+#     category_icon = categories["orders"][1]
+#
+#
+# class ExecutorsJobsAdmin(ModelView, model=t.ExecutorsJobs):
+#     column_list = "__all__"
+#
+#     category = categories["orders"][0]
+#     category_icon = categories["orders"][1]
 
 
 admin.add_view(UsersAdmin)
@@ -338,6 +345,7 @@ admin.add_view(ProfessionsAdmin)
 admin.add_view(JobsAdmin)
 
 admin.add_view(OrdersAdmin)
+admin.add_view(OrdersResponsesAdmin)
 
 # admin.add_view(TaskFilesAdmin)
 # admin.add_view(FavoriteExecutorsAdmin)
