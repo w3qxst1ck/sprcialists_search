@@ -66,7 +66,10 @@ class Clients(Base):
     name: Mapped[str] = mapped_column(String(50), nullable=False, comment="Имя пользователя должно содержать не более 50 символов")
 
     user: Mapped["User"] = relationship(back_populates="client_profile")
+
     orders: Mapped[list["Orders"]] = relationship(back_populates="client")
+
+    views: Mapped[list["ExecutorsViews"]] = relationship(back_populates="client")
 
     # favorites: Mapped[list["Executors"]] = relationship(back_populates="clients", secondary="favorite_executors")
     executors_favorites: Mapped[list["Executors"]] = relationship(
@@ -101,6 +104,8 @@ class Executors(Base):
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="executors", secondary="executors_jobs")
 
     responses: Mapped[list["OrdersResponses"]] = relationship(back_populates="executor", cascade="all, delete")
+
+    views: Mapped[list["ExecutorsViews"]] = relationship(back_populates="executor", cascade="all, delete")
 
     clients_favorites: Mapped[list["Clients"]] = relationship(
         secondary="favorite_executors",
@@ -279,3 +284,17 @@ class OrdersResponses(Base):
 
     def __str__(self):
         return f"{self.executor_id} -> {self.order_id}"
+
+
+class ExecutorsViews(Base):
+    """Таблица просмотров исполнителей"""
+    __tablename__ = "executors_views"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(nullable=False)
+
+    executor_id: Mapped[int] = mapped_column(ForeignKey("executors.id", ondelete="CASCADE"))
+    executor: Mapped["Executors"] = relationship(back_populates="views")
+
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"))
+    client: Mapped["Clients"] = relationship(back_populates="views")
