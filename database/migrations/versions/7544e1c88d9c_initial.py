@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: f163d294f8d7
+Revision ID: 7544e1c88d9c
 Revises:
-Create Date: 2025-11-10 12:36:35.185613
+Create Date: 2025-11-19 18:11:58.289421
 
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "f163d294f8d7"
+revision: str = "7544e1c88d9c"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -128,24 +128,6 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_jobs_title"), "jobs", ["title"], unique=False)
     op.create_table(
-        "orders",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("tg_id", sa.String(), nullable=False),
-        sa.Column("title", sa.String(), nullable=False),
-        sa.Column("task", sa.String(length=1000), nullable=False),
-        sa.Column("price", sa.String(), nullable=True),
-        sa.Column("requirements", sa.String(), nullable=True),
-        sa.Column("period", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("is_active", sa.Boolean(), nullable=False),
-        sa.Column("client_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["client_id"], ["professions.id"], ondelete="CASCADE"
-        ),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index(op.f("ix_orders_tg_id"), "orders", ["tg_id"], unique=False)
-    op.create_table(
         "executors_jobs",
         sa.Column("job_id", sa.Integer(), nullable=False),
         sa.Column("executor_id", sa.Integer(), nullable=False),
@@ -167,6 +149,24 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("client_id", "executor_id"),
     )
+    op.create_table(
+        "orders",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("tg_id", sa.String(), nullable=False),
+        sa.Column("title", sa.String(), nullable=False),
+        sa.Column("task", sa.String(length=1000), nullable=False),
+        sa.Column("price", sa.String(), nullable=True),
+        sa.Column("requirements", sa.String(), nullable=True),
+        sa.Column("period", sa.Integer(), nullable=False),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("is_active", sa.Boolean(), nullable=False),
+        sa.Column("client_id", sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["client_id"], ["clients.id"], ondelete="CASCADE"
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(op.f("ix_orders_tg_id"), "orders", ["tg_id"], unique=False)
     op.create_table(
         "favorite_orders",
         sa.Column("executor_id", sa.Integer(), nullable=False),
@@ -212,10 +212,10 @@ def downgrade() -> None:
     op.drop_table("taskfiles")
     op.drop_table("orders_jobs")
     op.drop_table("favorite_orders")
-    op.drop_table("favorite_executors")
-    op.drop_table("executors_jobs")
     op.drop_index(op.f("ix_orders_tg_id"), table_name="orders")
     op.drop_table("orders")
+    op.drop_table("favorite_executors")
+    op.drop_table("executors_jobs")
     op.drop_index(op.f("ix_jobs_title"), table_name="jobs")
     op.drop_table("jobs")
     op.drop_table("executors")

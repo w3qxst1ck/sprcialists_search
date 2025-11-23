@@ -15,13 +15,26 @@ def favorites_executor_keyboard(executors: list[Executor], current_index: int) -
     # Получаем текущего исполнителя
     executor = executors[current_index]
 
+    executors_count = len(executors)
+
+    # Защита от ошибки с изменением на то же самое сообщение
+    if executors_count == 1:
+        keyboard.row(InlineKeyboardButton(text="<", callback_data="None"))
+    else:
+        keyboard.row(InlineKeyboardButton(text="<", callback_data="prev_ex"))
+
     keyboard.row(
-        InlineKeyboardButton(text="<", callback_data="prev_ex"),
         InlineKeyboardButton(text=f"{current_index + 1}/{len(executors)}", callback_data="None"),
-        InlineKeyboardButton(text=">", callback_data=f"next_ex")
+
     )
 
-    keyboard.row()
+    # Защита от ошибки с изменением на то же самое сообщение
+    if executors_count == 1:
+        keyboard.row(InlineKeyboardButton(text=">", callback_data=f"None"))
+    else:
+        keyboard.row(InlineKeyboardButton(text=">", callback_data=f"next_ex"))
+
+    # keyboard.row()
     keyboard.adjust(3)
 
     # Добавляем кнопку назад

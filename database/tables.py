@@ -51,7 +51,10 @@ class User(Base):
 
     executor_profile: Mapped["Executors"] = relationship(uselist=False, back_populates="user")
     client_profile: Mapped["Clients"] = relationship(uselist=False, back_populates="user")
-    blocked: Mapped["BlockedUsers"] = relationship(back_populates="user")
+    blocked: Mapped["BlockedUsers"] = relationship(uselist=False, back_populates="user")
+
+    def __str__(self):
+        return f"id {self.id}. {self.tg_id} {self.username + ' ' if self.username else ''}"
 
 
 class Clients(Base):
@@ -64,7 +67,15 @@ class Clients(Base):
 
     user: Mapped["User"] = relationship(back_populates="client_profile")
     orders: Mapped[list["Orders"]] = relationship(back_populates="client")
-    favorites: Mapped[list["Executors"]] = relationship(back_populates="clients", secondary="favorite_executors")
+
+    # favorites: Mapped[list["Executors"]] = relationship(back_populates="clients", secondary="favorite_executors")
+    executors_favorites: Mapped[list["Executors"]] = relationship(
+        secondary="favorite_executors",
+        back_populates="clients_favorites"
+    )
+
+    def __str__(self):
+        return f"заказчик {self.name}"
 
 
 class Executors(Base):
@@ -88,8 +99,21 @@ class Executors(Base):
     user: Mapped["User"] = relationship(back_populates="executor_profile")
 
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="executors", secondary="executors_jobs")
-    favorites: Mapped[list["Clients"]] = relationship(back_populates="executors", secondary="favorite_executors")
-    favorites_orders: Mapped[list["Orders"]] = relationship(back_populates="executors", secondary="favorite_orders")
+
+    # favorites: Mapped[list["Clients"]] = relationship(back_populates="executors", secondary="favorite_executors")
+    # favorites_orders: Mapped[list["Orders"]] = relationship(back_populates="executors", secondary="favorite_orders")
+
+    clients_favorites: Mapped[list["Clients"]] = relationship(
+        secondary="favorite_executors",
+        back_populates="executors_favorites"
+    )
+    orders_favorites: Mapped[list["Orders"]] = relationship(
+        secondary="favorite_orders",
+        back_populates="executors_favorites"
+    )
+
+    def __str__(self):
+        return f"исполнитель {self.name}"
 
 
 class Professions(Base):
@@ -102,6 +126,9 @@ class Professions(Base):
 
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="profession")
 
+    def __str__(self):
+        return f"{self.emoji} {self.title}"
+
 
 class Jobs(Base):
     """Выполняемые работы в профессии"""
@@ -111,8 +138,12 @@ class Jobs(Base):
     title: Mapped[str] = mapped_column(nullable=False, index=True)
 
     profession_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
+    profession: Mapped["Professions"] = relationship(back_populates="jobs")
     executors: Mapped[list["Executors"]] = relationship(back_populates="jobs", secondary="executors_jobs")
     orders: Mapped[list["Orders"]] = relationship(back_populates="jobs", secondary="orders_jobs")
+
+    def __str__(self):
+        return f"{self.title}"
 
 
 class ExecutorsJobs(Base):
@@ -150,10 +181,21 @@ class Orders(Base):
     created_at: Mapped[datetime.datetime]
     is_active: Mapped[bool] = mapped_column(nullable=False)
 
-    client_id: Mapped[int] = mapped_column(ForeignKey("professions.id", ondelete="CASCADE"))
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"))
+    client: Mapped["Clients"] = relationship(back_populates="orders")
+
     jobs: Mapped[list["Jobs"]] = relationship(back_populates="orders", secondary="orders_jobs")
+
     files: Mapped[list["TaskFiles"]] = relationship(back_populates="order")
-    executors_fav: Mapped[list["Executors"]] = relationship(back_populates="favorite_orders", secondary="favorite_orders")
+
+    # executors_fav: Mapped[list["Executors"]] = relationship(back_populates="favorite_orders", secondary="favorite_orders")
+    executors_favorites: Mapped[list["Executors"]] = relationship(
+        secondary="favorite_orders",
+        back_populates="orders_favorites"
+    )
+
+    def __str__(self):
+        return f"{self.title} {self.price}"
 
 
 class FavoriteExecutors(Base):
@@ -163,6 +205,10 @@ class FavoriteExecutors(Base):
     client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), primary_key=True)
     executor_id: Mapped[int] = mapped_column(ForeignKey("executors.id", ondelete="CASCADE"), primary_key=True)
 
+    # Added
+    client: Mapped["Clients"] = relationship(backref="favorite_executors_associations")
+    executor: Mapped["Executors"] = relationship(backref="favorite_clients_associations")
+
 
 class FavoriteOrders(Base):
     """Many-to-many таблица для хранения избранных заказов для исполнителей"""
@@ -170,6 +216,10 @@ class FavoriteOrders(Base):
 
     executor_id: Mapped[int] = mapped_column(ForeignKey("executors.id", ondelete="CASCADE"), primary_key=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), primary_key=True)
+
+    # Added
+    executor: Mapped["Executors"] = relationship(backref="favorite_orders_associations")
+    order: Mapped["Orders"] = relationship(backref="favorite_executors_associations")
 
 
 class OrdersJobs(Base):
@@ -192,6 +242,7 @@ class TaskFiles(Base):
     file_id: Mapped[str] = mapped_column(nullable=False)
 
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"))
+    order: Mapped["Orders"] = relationship(back_populates="files")
 
 
 class BlockedUsers(Base):
@@ -201,4 +252,6 @@ class BlockedUsers(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     expire_date: Mapped[datetime.datetime] = mapped_column(nullable=True)
     user_tg_id: Mapped[str] = mapped_column(index=True)
+
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    user: Mapped["User"] = relationship(back_populates="blocked")
