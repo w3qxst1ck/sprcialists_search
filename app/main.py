@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from sqladmin.filters import BooleanFilter, ForeignKeyFilter
 
 from app.auth import authentication_backend
-from app.filters import AdminFilter, RoleFilter, BannedFilter, VerifiedFilter, AvailabilityFilter
+from app.filters import AdminFilter, RoleFilter, BannedFilter, VerifiedFilter, AvailabilityFilter, JobsForeignKeyFilter
 from database.database import async_engine
 from sqladmin import Admin, ModelView
 from database import tables as t
@@ -28,6 +28,12 @@ async def read_root():
 
 
 class UsersAdmin(ModelView, model=User):
+    # Templates
+    edit_template = "custom_edit.html"
+    list_template = "custom_list.html"
+    details_template = "custom_details.html"
+    create_template = "custom_create.html"
+
     name = f"Пользователь"
     name_plural = "Все пользователи"
     category = categories["accounts"][0]
@@ -77,6 +83,12 @@ class UsersAdmin(ModelView, model=User):
 
 
 class BlockedUsersAdmin(ModelView, model=BlockedUsers):
+    # Templates
+    edit_template = "custom_edit.html"
+    list_template = "custom_list.html"
+    details_template = "custom_details.html"
+    create_template = "custom_create.html"
+
     name = "Отмененная анкета"
     name_plural = "Отмененные анкеты"
     category = categories["accounts"][0]
@@ -109,6 +121,12 @@ class BlockedUsersAdmin(ModelView, model=BlockedUsers):
 
 
 class ExecutorsAdmin(ModelView, model=Executors):
+    # Templates
+    edit_template = "custom_edit.html"
+    list_template = "custom_list.html"
+    details_template = "custom_details.html"
+    create_template = "custom_create.html"
+
     name = "Исполнитель"
     name_plural = "Исполнители"
     category = categories["accounts"][0]
@@ -147,6 +165,12 @@ class ExecutorsAdmin(ModelView, model=Executors):
 
 
 class ClientsAdmin(ModelView, model=Clients):
+    # Templates
+    edit_template = "custom_edit.html"
+    list_template = "custom_list.html"
+    details_template = "custom_details.html"
+    create_template = "custom_create.html"
+
     name = "Заказчик"
     name_plural = "Заказчики"
     category = categories["accounts"][0]
@@ -174,6 +198,12 @@ class ClientsAdmin(ModelView, model=Clients):
 
 
 class ProfessionsAdmin(ModelView, model=t.Professions):
+    # Templates
+    edit_template = "custom_edit.html"
+    list_template = "custom_list.html"
+    details_template = "custom_details.html"
+    create_template = "custom_create.html"
+
     name = "Направление"
     name_plural = "Направления"
     category = categories["professions"][0]
@@ -200,7 +230,11 @@ class ProfessionsAdmin(ModelView, model=t.Professions):
 
 
 class JobsAdmin(ModelView, model=t.Jobs):
+    # Templates
     edit_template = "custom_edit.html"
+    list_template = "custom_list.html"
+    details_template = "custom_details.html"
+    create_template = "custom_create.html"
 
     name = "Категория"
     name_plural = "Категории"
@@ -221,10 +255,16 @@ class JobsAdmin(ModelView, model=t.Jobs):
     page_size = 25
     page_size_options = [10, 25, 50, 100]
 
-    column_filters = [ForeignKeyFilter(Jobs.profession_id, Professions.title, title="Направления")]
+    column_filters = [JobsForeignKeyFilter(Jobs.profession_id, Professions.title, title="Направления")]
 
 
 class RejectReasonsAdmin(ModelView, model=RejectReasons):
+    # Templates
+    edit_template = "custom_edit.html"
+    list_template = "custom_list.html"
+    details_template = "custom_details.html"
+    create_template = "custom_create.html"
+
     name = "Причина отказа"
     name_plural = "Причины отказа"
     category = categories["accounts"][0]
@@ -246,6 +286,12 @@ class RejectReasonsAdmin(ModelView, model=RejectReasons):
 
 
 class OrdersAdmin(ModelView, model=Orders):
+    # Templates
+    edit_template = "custom_edit.html"
+    list_template = "custom_list.html"
+    details_template = "custom_details.html"
+    create_template = "custom_create.html"
+
     name = "Заказ"
     name_plural = "Заказы"
 
@@ -292,6 +338,12 @@ class OrdersAdmin(ModelView, model=Orders):
 
 
 class OrdersResponsesAdmin(ModelView, model=OrdersResponses):
+    # Templates
+    edit_template = "custom_edit.html"
+    list_template = "custom_list.html"
+    details_template = "custom_details.html"
+    create_template = "custom_create.html"
+
     column_list = "__all__"
 
     category = categories["orders"][0]
