@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: 225fb52f6085
+Revision ID: bd14c0b7134b
 Revises:
-Create Date: 2025-11-23 17:31:35.036804
+Create Date: 2025-11-23 18:42:58.670053
 
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "225fb52f6085"
+revision: str = "bd14c0b7134b"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -138,6 +138,20 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("job_id", "executor_id"),
     )
     op.create_table(
+        "executors_views",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("executor_id", sa.Integer(), nullable=False),
+        sa.Column("client_id", sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["client_id"], ["clients.id"], ondelete="CASCADE"
+        ),
+        sa.ForeignKeyConstraint(
+            ["executor_id"], ["executors.id"], ondelete="CASCADE"
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table(
         "favorite_executors",
         sa.Column("client_id", sa.Integer(), nullable=False),
         sa.Column("executor_id", sa.Integer(), nullable=False),
@@ -231,6 +245,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_orders_tg_id"), table_name="orders")
     op.drop_table("orders")
     op.drop_table("favorite_executors")
+    op.drop_table("executors_views")
     op.drop_table("executors_jobs")
     op.drop_index(op.f("ix_jobs_title"), table_name="jobs")
     op.drop_table("jobs")

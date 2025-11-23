@@ -8,7 +8,7 @@ from database.database import async_engine
 from sqladmin import Admin, ModelView
 from database import tables as t
 from database.tables import User, Executors, Clients, BlockedUsers, RejectReasons, Orders, Professions, Jobs, \
-    OrdersResponses
+    OrdersResponses, ExecutorsViews
 from settings import settings
 
 
@@ -336,6 +336,46 @@ class OrdersResponsesAdmin(ModelView, model=OrdersResponses):
     page_size = 25
     page_size_options = [10, 25, 50, 100]
 
+
+class ExecutorsViewsAdmin(ModelView, model=ExecutorsViews):
+    name = "Просмотр исполнителя"
+    name_plural = "Просмотры исполнителей"
+    category = categories["orders"][0]
+    category_icon = categories["orders"][1]
+
+    column_list = [ExecutorsViews.executor, ExecutorsViews.client, ExecutorsViews.created_at]
+
+    column_details_list = [
+        ExecutorsViews.id, ExecutorsViews.executor, ExecutorsViews.client, ExecutorsViews.created_at
+    ]
+
+    column_labels = {
+        ExecutorsViews.executor: "исполнитель", ExecutorsViews.client: "заказчик", ExecutorsViews.created_at: "дата",
+    }
+
+    column_formatters = {
+        ExecutorsViews.created_at: lambda o, a: o.created_at.astimezone(
+            tz=pytz.timezone(settings.timezone)
+        ).strftime("%d.%m.%Y %H:%M"),
+    }
+    column_formatters_detail = {
+        ExecutorsViews.created_at: lambda o, a: o.created_at.astimezone(
+            tz=pytz.timezone(settings.timezone)
+        ).strftime("%d.%m.%Y %H:%M"),
+    }
+
+    column_filters = [
+        ForeignKeyFilter(ExecutorsViews.executor_id, Executors.name, title="Исполнители"),
+        ForeignKeyFilter(ExecutorsViews.client_id, Clients.name, title="Заказчики"),
+    ]
+
+    can_delete = False
+    can_edit = False
+    can_create = False
+
+    page_size = 25
+    page_size_options = [10, 25, 50, 100]
+
 # class TaskFilesAdmin(ModelView, model=t.TaskFiles):
 #     column_list = "__all__"
 #
@@ -384,6 +424,7 @@ admin.add_view(JobsAdmin)
 
 admin.add_view(OrdersAdmin)
 admin.add_view(OrdersResponsesAdmin)
+admin.add_view(ExecutorsViewsAdmin)
 
 # admin.add_view(TaskFilesAdmin)
 # admin.add_view(FavoriteExecutorsAdmin)
