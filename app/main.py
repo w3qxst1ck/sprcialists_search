@@ -1,15 +1,14 @@
 import pytz
 from fastapi import FastAPI
-from sqladmin.filters import BooleanFilter
+from sqladmin.filters import BooleanFilter, ForeignKeyFilter
 
+from app.auth import authentication_backend
 from app.filters import AdminFilter, RoleFilter, BannedFilter, VerifiedFilter, AvailabilityFilter
 from database.database import async_engine
 from sqladmin import Admin, ModelView
 from database import tables as t
-from database.tables import User, Executors, Clients, BlockedUsers
+from database.tables import User, Executors, Clients, BlockedUsers, Professions, Jobs
 from settings import settings
-
-app = FastAPI()
 
 
 categories = {
@@ -18,14 +17,13 @@ categories = {
     "orders": ("Заказы", "fa-solid fa-wallet"),
 }
 
+app = FastAPI()
+admin = Admin(app, async_engine, authentication_backend=authentication_backend, templates_dir="/templates/sqladmin")
+
 
 @app.get("/db")
 async def read_root():
     return {"hello": "world"}
-
-
-app = FastAPI()
-admin = Admin(app, async_engine)
 
 
 class UsersAdmin(ModelView, model=User):
@@ -167,23 +165,54 @@ class ClientsAdmin(ModelView, model=Clients):
 
 
 class ProfessionsAdmin(ModelView, model=t.Professions):
-    column_list = "__all__"
-
     name = "Направление"
     name_plural = "Направления"
-
     category = categories["professions"][0]
     category_icon = categories["professions"][1]
+
+    column_list = [Professions.id, Professions.title, Professions.emoji]
+    column_details_list = [Professions.id, Professions.title, Professions.emoji, Professions.jobs]
+    column_labels = {
+        Professions.id: "id",
+        Professions.title: "название",
+        Professions.emoji: "emoji",
+        Professions.jobs: "категории"
+    }
+
+    form_edit_rules = ["title", "emoji"]
+    form_create_rules = ["title", "emoji"]
+
+    can_create = True
+    can_delete = True
+    can_edit = True
+
+    page_size = 25
+    page_size_options = [10, 25, 50, 100]
 
 
 class JobsAdmin(ModelView, model=t.Jobs):
-    column_list = "__all__"
+    edit_template = "custom_edit.html"
 
     name = "Категория"
     name_plural = "Категории"
-
     category = categories["professions"][0]
     category_icon = categories["professions"][1]
+
+    column_list = [Jobs.id, Jobs.title, Jobs.profession]
+    column_details_list = [Jobs.id, Jobs.title, Jobs.profession]
+    column_labels = {Jobs.id: "id", Jobs.title: "название", Jobs.profession: "направление"}
+
+    form_edit_rules = ["title"]
+    form_create_rules = ["title", "profession"]
+
+    can_create = True
+    can_delete = True
+    can_edit = True
+
+    page_size = 25
+    page_size_options = [10, 25, 50, 100]
+
+    column_filters = [ForeignKeyFilter(Jobs.profession_id, Professions.title, title="Направления")]
 
 
 class RejectReasonsAdmin(ModelView, model=t.RejectReasons):

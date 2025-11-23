@@ -124,10 +124,10 @@ class Professions(Base):
     title: Mapped[str] = mapped_column(nullable=False, index=True, unique=True)
     emoji: Mapped[str] = mapped_column(nullable=True)
 
-    jobs: Mapped[list["Jobs"]] = relationship(back_populates="profession")
+    jobs: Mapped[list["Jobs"]] = relationship(back_populates="profession", cascade="all, delete")
 
     def __str__(self):
-        return f"{self.emoji} {self.title}"
+        return f"{self.title}"
 
 
 class Jobs(Base):

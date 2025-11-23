@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     clients_profile_path: str = "profiles/clients/"
     executors_cv_path: str = "cv/"
 
+    # admin panel
+    secret_key: str = Field(..., env='SECRET_KEY')
+    username: str = Field(..., env='USERNAME')
+    password: str = Field(..., env='PASSWORD')
+
     timezone: str = "Europe/Moscow"
 
     db: Database = Database()
