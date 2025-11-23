@@ -19,7 +19,7 @@ categories = {
 }
 
 app = FastAPI()
-admin = Admin(app, async_engine, authentication_backend=authentication_backend, templates_dir="app/templates/sqladmin")
+admin = Admin(app, async_engine, authentication_backend=authentication_backend, templates_dir="app/templates/sqladmin/")
 
 
 @app.get("/db")
