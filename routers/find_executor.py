@@ -326,6 +326,7 @@ async def add_executor_to_favorites(message: Message, state: FSMContext, session
 async def connect_with_executor(message: Message, state: FSMContext, session: Any) -> None:
     """Связаться с исполнителем"""
     data = await state.get_data()
+    client_tg_id = str(message.from_user.id)
 
     # Удаляем функциональные сообщения
     try:
@@ -337,12 +338,17 @@ async def connect_with_executor(message: Message, state: FSMContext, session: An
     executor: Executor = data["current_ex"]
     # Получаем username исполнителя для формирования ссылки
     username: str = await AsyncOrm.get_username(executor.tg_id, session)
+    # Получаем id клиента по tg_id
+    client_id: int = await AsyncOrm.get_client_id(client_tg_id, session)
 
     msg = ms.contact_with_executor(executor, username)
     keyboard = kb.contact_with_executor()
 
     functional_mess = await message.answer(msg, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
     await state.update_data(functional_mess=functional_mess)
+
+    # Сохраняем запись о просмотре контактов исполнителя
+    await AsyncOrm.create_executor_view(executor.id, client_id, session)
 
 
 # ОТМЕНА И ВОЗВРАЩЕНИЕ ИЗ РАЗНЫХ ТОЧЕК В ЛЕНТУ ИСПОЛНИТЕЛЕЙ

@@ -1723,4 +1723,27 @@ class AsyncOrm:
             return exists
 
         except Exception as e:
-            logger.error(f"Ошибка при проверке существования отклика пользователя {tg_id} на заказ {order_id}: {e}")
+            logger.error(f"Ошибка при проверке существования отклика пользователя {executor_tg_id} на заказ {order_id}: {e}")
+
+    @staticmethod
+    async def create_executor_view(executor_id: int, client_id: int, session: Any) -> None:
+        """Создает запись о просмотре контактов исполнителя"""
+        try:
+            created_at = datetime.datetime.now()
+            result = await session.execute(
+                """
+                INSERT INTO executors_views (created_at, executor_id, client_id)
+                SELECT $1, $2, $3
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM executors_views
+                    WHERE executor_id = $2 AND client_id = $3 
+                )
+                """,
+                created_at, executor_id, client_id
+            )
+            if result == "INSERT 0 1":
+                logger.info(f"Создана запись о просмотре контактов исполнителя {executor_id} заказчиком {client_id}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при создании записb о просмотре контактов исполнителя {executor_id} заказчиком "
+                         f"{client_id}: {e}")

@@ -77,7 +77,7 @@ def contact_with_executor() -> InlineKeyboardBuilder:
     """Клавиатура для связи с исполнителем"""
     keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(InlineKeyboardButton(text=f"{btn.CANCEL}", callback_data="cancel_executors_feed"))
+    keyboard.row(InlineKeyboardButton(text=f"{btn.BACK}", callback_data="cancel_executors_feed"))
     return keyboard
 
 
