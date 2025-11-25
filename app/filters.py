@@ -7,7 +7,8 @@ from sqlalchemy import Integer
 
 
 from database.tables import User, Executors, Availability, Jobs, Professions
-from sqladmin.filters import BooleanFilter, ForeignKeyFilter
+from sqladmin.filters import BooleanFilter, ForeignKeyFilter, get_column_obj, get_model_from_column, \
+    get_foreign_column_name
 
 
 class RoleFilter:
@@ -173,20 +174,3 @@ class JobsForeignKeyFilter(ForeignKeyFilter):
             value = int(value)
 
         return query.filter(foreign_key_obj == value)
-
-
-def get_column_obj(column: MODEL_ATTR, model: Any = None) -> Any:
-    if isinstance(column, str):
-        if model is None:
-            raise ValueError("model is required for string column filters")
-        return getattr(model, column)
-    return column
-
-
-def get_foreign_column_name(column_obj: Any) -> str:
-    fk = next(iter(column_obj.foreign_keys))
-    return fk.column.name
-
-
-def get_model_from_column(column: Any) -> Any:
-    return column.parent.class_

@@ -1,6 +1,9 @@
 import pytz
 from fastapi import FastAPI
+from sqladmin.authentication import login_required
 from sqladmin.filters import BooleanFilter, ForeignKeyFilter
+from starlette.requests import Request
+from starlette.responses import Response, RedirectResponse
 
 from app.auth import authentication_backend
 from app.filters import AdminFilter, RoleFilter, BannedFilter, VerifiedFilter, AvailabilityFilter, JobsForeignKeyFilter
@@ -18,8 +21,34 @@ categories = {
     "orders": ("Заказы", "fa-solid fa-wallet"),
 }
 
+
+class CustomAdmin(Admin):
+    @login_required
+    async def index(self, request: Request) -> Response:
+        """Index route which can be overridden to create dashboards."""
+
+        return await self.templates.TemplateResponse(request, "custom_index.html")
+
+    async def login(self, request: Request) -> Response:
+        assert self.authentication_backend is not None
+
+        context = {}
+        if request.method == "GET":
+            return await self.templates.TemplateResponse(request, "custom_login.html")
+
+        ok = await self.authentication_backend.login(request)
+        if not ok:
+            context["error"] = "Invalid credentials."
+            return await self.templates.TemplateResponse(
+                request, "custom_login.html", context, status_code=400
+            )
+
+        return RedirectResponse(request.url_for("admin:index"), status_code=302)
+
+
 app = FastAPI()
-admin = Admin(app, async_engine, authentication_backend=authentication_backend, templates_dir="app/templates/sqladmin/")
+admin = CustomAdmin(app, async_engine, authentication_backend=authentication_backend,
+                    templates_dir="app/templates/sqladmin/", title="PRUV ADMIN")
 
 
 @app.get("/db")
