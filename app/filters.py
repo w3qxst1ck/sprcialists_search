@@ -1,3 +1,4 @@
+import datetime
 from typing import Any, Callable, List, Tuple
 
 from sqladmin._types import MODEL_ATTR
@@ -190,3 +191,29 @@ def get_foreign_column_name(column_obj: Any) -> str:
 
 def get_model_from_column(column: Any) -> Any:
     return column.parent.class_
+
+
+class CreatedDateFilter:
+    title = "Дата рег-ии"
+    parameter_name = "created_at"
+
+    def lookups(self, request, model, get_filtered_query) -> list[tuple[str, str]]:
+        """
+        Returns a list of tuples with the filter key and the human-readable label.
+        """
+        return [
+            ("all", "все"),
+            (3, "3 дня"),
+            (7, "неделя"),
+            (30, "месяц"),
+        ]
+
+    async def get_filtered_query(self, query, value, model):
+        """
+        Returns a filtered query based on the filter value.
+        """
+        if value != "all":
+            date_from = datetime.datetime.now() - datetime.timedelta(days=int(value))
+            return query.filter(model.created_at > date_from)
+        else:
+            return query

@@ -3,7 +3,8 @@ from fastapi import FastAPI
 from sqladmin.filters import BooleanFilter, ForeignKeyFilter
 
 from app.auth import authentication_backend
-from app.filters import AdminFilter, RoleFilter, BannedFilter, VerifiedFilter, AvailabilityFilter, JobsForeignKeyFilter
+from app.filters import AdminFilter, RoleFilter, BannedFilter, VerifiedFilter, AvailabilityFilter, JobsForeignKeyFilter, \
+    CreatedDateFilter
 from database.database import async_engine
 from sqladmin import Admin, ModelView
 from database import tables as t
@@ -57,20 +58,24 @@ class UsersAdmin(ModelView, model=User):
     column_formatters = {
         User.username: lambda u, a: f"@{u.username}",
         User.created_at: lambda u, a: u.created_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M"),
-        User.updated_at: lambda u, a: u.updated_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M") if u.updated_at else None,
+        User.updated_at: lambda u, a: u.updated_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M") if u.updated_at else '',
     }
 
     column_formatters_detail = {
         User.username: lambda u, a: f"@{u.username}",
         User.created_at: lambda u, a: u.created_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M"),
-        User.updated_at: lambda u, a: u.updated_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M") if u.updated_at else None,
+        User.updated_at: lambda u, a: u.updated_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M") if u.updated_at else '',
     }
 
     column_filters = [
         AdminFilter(),
         BannedFilter(),
-        RoleFilter()
+        RoleFilter(),
+        CreatedDateFilter()
     ]
+
+    column_sortable_list = [User.id, User.role, User.created_at, User.is_banned, User.is_admin]
+    column_default_sort = [(User.created_at, True)]
 
     form_edit_rules = ["is_admin", "is_banned"]
 
@@ -152,7 +157,8 @@ class ExecutorsAdmin(ModelView, model=Executors):
 
     column_filters = [
         VerifiedFilter(),
-        AvailabilityFilter()
+        AvailabilityFilter(),
+        CreatedDateFilter()
     ]
 
     can_create = False
@@ -187,6 +193,9 @@ class ClientsAdmin(ModelView, model=Clients):
         Clients.tg_id: "телеграм id", Clients.name: "имя", Clients.orders: "заказы",
         Clients.executors_favorites: "избранные исполнители"
     }
+    column_filters = [
+        CreatedDateFilter()
+    ]
 
     can_create = False
     can_delete = False
@@ -273,7 +282,9 @@ class RejectReasonsAdmin(ModelView, model=RejectReasons):
     column_exclude_list = [RejectReasons.id]
 
     column_labels = {
-        RejectReasons.reason: "причина", RejectReasons.text: "описание", RejectReasons.period: "период блокировки",
+        RejectReasons.reason: "причина",
+        RejectReasons.text: "описание",
+        RejectReasons.period: "дней блокировки",
     }
 
     column_formatters = {
@@ -304,8 +315,6 @@ class OrdersAdmin(ModelView, model=Orders):
         Orders.requirements, Orders.files, Orders.created_at, Orders.is_active, Orders.executors_favorites
     ]
 
-    column_default_sort = [(Orders.created_at, True)]
-
     column_labels = {
         Orders.client: "заказчик", Orders.jobs: "категории", Orders.files: "файлы",
         Orders.executors_favorites: "в избранном", Orders.tg_id: "телеграм id", Orders.title: "название",
@@ -327,6 +336,9 @@ class OrdersAdmin(ModelView, model=Orders):
     column_filters = [
         ForeignKeyFilter(Orders.client_id, Clients.name, title="Заказчик")
     ]
+
+    column_sortable_list = [Orders.created_at]
+    column_default_sort = [(Orders.created_at, True)]
 
     can_delete = True
     can_edit = True
