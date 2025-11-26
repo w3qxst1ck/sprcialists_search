@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 from fastapi import FastAPI
@@ -176,7 +176,10 @@ class ExecutorsAdmin(ModelView, model=Executors):
         Executors.experience, Executors.availability, Executors.verified
     ]
 
-    column_details_exclude_list = [Executors.clients_favorites]
+    column_details_list = [Executors.id, Executors.tg_id, Executors.user, Executors.name, Executors.age,
+                                   Executors.jobs, Executors.description, Executors.rate, Executors.experience,
+                                   Executors.links, Executors.contacts, Executors.location, Executors.availability,
+                                   Executors.verified]
 
     column_labels = {Executors.tg_id: "телеграм id", Executors.name: "имя", Executors.age: "возраст",
                      Executors.description: "описание", Executors.rate: "ставка",
@@ -328,6 +331,7 @@ class RejectReasonsAdmin(ModelView, model=RejectReasons):
     can_edit = True
     can_create = True
     can_delete = True
+    can_export = False
 
 
 class OrdersAdmin(ModelView, model=Orders):
@@ -367,9 +371,9 @@ class OrdersAdmin(ModelView, model=Orders):
             tz=pytz.timezone(settings.timezone)
         ).strftime("%d.%m.%Y %H:%M"),
     }
-    column_filters = [
-        ForeignKeyFilter(Orders.client_id, Clients.name, title="Заказчик")
-    ]
+    # column_filters = [
+    #     ForeignKeyFilter(Orders.client_id, Clients.name, title="Заказчик")
+    # ]
 
     column_sortable_list = [Orders.created_at]
     column_default_sort = [(Orders.created_at, True)]
@@ -422,10 +426,10 @@ class OrdersResponsesAdmin(ModelView, model=OrdersResponses):
         OrdersResponses.text: lambda o, a: f"\"{o.text}\""
     }
 
-    column_filters = [
-        ForeignKeyFilter(OrdersResponses.executor_id, Executors.name, title="Исполнители"),
-        ForeignKeyFilter(OrdersResponses.order_id, Orders.title, title="Заказы"),
-    ]
+    # column_filters = [
+    #     ForeignKeyFilter(OrdersResponses.executor_id, Executors.name, title="Исполнители"),
+    #     ForeignKeyFilter(OrdersResponses.order_id, Orders.title, title="Заказы"),
+    # ]
 
     can_delete = False
     can_edit = False
@@ -436,6 +440,12 @@ class OrdersResponsesAdmin(ModelView, model=OrdersResponses):
 
 
 class ExecutorsViewsAdmin(ModelView, model=ExecutorsViews):
+    # Templates
+    edit_template = "custom_edit.html"
+    list_template = "custom_list.html"
+    details_template = "custom_details.html"
+    create_template = "custom_create.html"
+
     name = "Просмотр исполнителя"
     name_plural = "Просмотры исполнителей"
     category = categories["orders"][0]
@@ -462,10 +472,10 @@ class ExecutorsViewsAdmin(ModelView, model=ExecutorsViews):
         ).strftime("%d.%m.%Y %H:%M"),
     }
 
-    column_filters = [
-        ForeignKeyFilter(ExecutorsViews.executor_id, Executors.name, title="Исполнители"),
-        ForeignKeyFilter(ExecutorsViews.client_id, Clients.name, title="Заказчики"),
-    ]
+    # column_filters = [
+    #     ForeignKeyFilter(ExecutorsViews.executor_id, Executors.name, title="Исполнители"),
+    #     ForeignKeyFilter(ExecutorsViews.client_id, Clients.name, title="Заказчики"),
+    # ]
 
     can_delete = False
     can_edit = False
@@ -487,8 +497,8 @@ class MetricsView(BaseView):
     @expose("/metrics", methods=["POST"])
     async def metrics_period_page(self, request):
         form_data = await request.form()
-        start_date = datetime.strptime(form_data.get("start_date"), "%Y-%m-%d %H:%M:%S")
-        end_date = datetime.strptime(form_data.get("end_date"), "%Y-%m-%d %H:%M:%S")
+        start_date = datetime.strptime(form_data.get("start_date"), "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
+        end_date = datetime.strptime(form_data.get("end_date"), "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
 
         async with async_session_factory() as session:
             stmt = select(OrdersResponses, Orders, Executors)\

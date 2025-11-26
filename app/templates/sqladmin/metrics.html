@@ -91,8 +91,11 @@
 <!--                        <span class="me-1"><i class="fa-solid fa-eye"></i></span>-->
 <!--                      </a>-->
 <!--                    </td>-->
-                    <td><a href="http://0.0.0.0:8000/admin/orders/details/{{ resp.order_id }}">{{ resp.order.title }}</a></td>
-                    <td><a href="http://0.0.0.0:8000/admin/executors/details/{{ resp.executor_id }}">{{ resp.executor.name }}</a></td>
+                    <td><a href="http://0.0.0.0:8000/admin/orders/details/{{ resp.order_id }}" target="_blank">{{
+                        resp.order.title
+                        }}</a></td>
+                    <td><a href="http://0.0.0.0:8000/admin/executors/details/{{ resp.executor_id }}" target="_blank">{{
+                        resp.executor.name }}</a></td>
                     <td>{{ resp.text }}</td>
                     <td>{{ resp.created_at }}</td>
                   </tr>
