@@ -150,7 +150,7 @@ class BlockedUsersAdmin(ModelView, model=BlockedUsers):
     }
 
     # icon = "fa-solid fa-user"
-    can_create = True
+    can_create = False
     can_delete = True
     can_edit = True
     form_edit_rules = ["expire_date"]
@@ -194,8 +194,7 @@ class ExecutorsAdmin(ModelView, model=Executors):
 
     column_filters = [
         VerifiedFilter(),
-        AvailabilityFilter(),
-        CreatedDateFilter()
+        AvailabilityFilter()
     ]
 
     can_create = False
@@ -230,9 +229,9 @@ class ClientsAdmin(ModelView, model=Clients):
         Clients.tg_id: "телеграм id", Clients.name: "имя", Clients.orders: "заказы",
         Clients.executors_favorites: "избранные исполнители"
     }
-    column_filters = [
-        CreatedDateFilter()
-    ]
+    # column_filters = [
+    #     CreatedDateFilter()
+    # ]
 
     can_create = False
     can_delete = False
@@ -515,7 +514,6 @@ class MetricsView(BaseView):
             "orders_responses_count": len(orders_responses)
         }
         return await self.templates.TemplateResponse(request, "metrics.html", context={"data": data})
-
 
 
 # class TaskFilesAdmin(ModelView, model=t.TaskFiles):
