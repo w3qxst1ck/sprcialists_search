@@ -13,6 +13,7 @@ from schemas.client import ClientAdd, RejectReason, Client
 from schemas.executor import ExecutorAdd, Executor
 from schemas.order import OrderAdd, Order, TaskFile, TaskFileAdd
 from schemas.profession import Profession, Job, ProfessionAdd, JobAdd
+from schemas.responses import OrderResponse
 from schemas.user import UserAdd, User
 
 # для model_validate регистрируем возвращаемый из asyncpg.fetchrow класс Record
@@ -1726,6 +1727,24 @@ class AsyncOrm:
             logger.error(f"Ошибка при проверке существования отклика пользователя {executor_tg_id} на заказ {order_id}: {e}")
 
     @staticmethod
+    async def get_order_responses_for_order(order_id: int, session: Any) -> List[OrderResponse]:
+        """Получение откликов для заказа"""
+        try:
+            rows = session.fetch(
+                """
+                SELECT order_id, executor_id, text, created_at 
+                FROM order_responses
+                WHERE order_id = $1
+                """,
+                order_id
+            )
+            if rows:
+                return [OrderResponse.model_validate(row) for row in rows]
+            return []
+        except Exception as e:
+            logger.error(f"Ошибка при получении откликов на заказ id {order_id}: {e}")
+
+    @staticmethod
     async def create_executor_view(executor_id: int, client_id: int, session: Any) -> None:
         """Создает запись о просмотре контактов исполнителя"""
         try:
@@ -1745,5 +1764,5 @@ class AsyncOrm:
                 logger.info(f"Создана запись о просмотре контактов исполнителя {executor_id} заказчиком {client_id}")
 
         except Exception as e:
-            logger.error(f"Ошибка при создании записb о просмотре контактов исполнителя {executor_id} заказчиком "
+            logger.error(f"Ошибка при создании записи о просмотре контактов исполнителя {executor_id} заказчиком "
                          f"{client_id}: {e}")

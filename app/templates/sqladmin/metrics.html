@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex">
+        <div class="flex-grow-1 me-2">
+
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Укажите период</h3>
+            </div>
+        <!--    Форма с выбором дат-->
+            <div class="card-body border-bottom py-3">
+              <form action="http://0.0.0.0:8000/admin/metrics" method="POST" enctype="multipart/form-data">
+
+                <fieldset class="form-fieldset">
+                    <div class="mb-3 form-group row">
+                      <label class="form-label col-sm-2 col-form-label required-label" for="start_date"
+                             title="This is a required field">Начало периода</label>
+                      <div class="col-sm-10">
+                        <input class="form-control flatpickr-input" data-role="datetimepicker" id="start_date"
+                               name="start_date" required="" type="text" value="">
+                      </div>
+                    </div>
+
+                    <div class="mb-3 form-group row">
+                      <label class="form-label col-sm-2 col-form-label  required-label" for="end_date"
+                             title="This is a required field">Окончание периода</label>
+                      <div class="col-sm-10">
+                        <input class="form-control flatpickr-input" data-role="datetimepicker" id="end_date" name="end_date"
+                              required="" type="text" value="">
+                      </div>
+                    </div>
+                </fieldset>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="btn-group flex-wrap" data-toggle="buttons">
+                      <button type="submit" name="save" value="Save" class="btn" >Показать </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+
+          <!--  Результаты при POST запросе-->
+          {% if data %}
+          <div class="card">
+
+<!--            Заголовок-->
+            <div class="card-header">
+              <h3 class="card-title">Откликов за период: {{ data.orders_responses_count }}</h3>
+            </div>
+
+<!--            Заголовок таблицы-->
+            <div class="table-responsive">
+              <table class="table card-table table-vcenter text-nowrap">
+                <thead>
+                  <tr>
+<!--                    <th class="w-1"><input class="form-check-input m-0 align-middle" type="checkbox" aria-label="Select all" id="select-all"></th>-->
+                    <th class="w-1"></th>
+                    <th>
+                      заказ
+                    </th>
+                    <th>
+                      исполнитель
+                    </th>
+                    <th>
+                      текст
+                    </th>
+                    <th>
+                      дата
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <!--Строки таблицы-->
+                  {% for resp in data.orders_responses %}
+                  <tr>
+                    <td>
+                      {{ loop.index }}
+                    </td>
+<!--                    <td class="text-end">-->
+<!--                      <a href="http://0.0.0.0:8000/admin/orders-responses/details/{{ resp.id }}" data-bs-toggle="tooltip"-->
+<!--                         data-bs-placement="top" aria-label="View" data-bs-original-title="View">-->
+<!--                        <span class="me-1"><i class="fa-solid fa-eye"></i></span>-->
+<!--                      </a>-->
+<!--                    </td>-->
+                    <td><a href="http://0.0.0.0:8000/admin/orders/details/{{ resp.order_id }}">{{ resp.order.title }}</a></td>
+                    <td><a href="http://0.0.0.0:8000/admin/executors/details/{{ resp.executor_id }}">{{ resp.executor.name }}</a></td>
+                    <td>{{ resp.text }}</td>
+                    <td>{{ resp.created_at }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+
+              </table>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

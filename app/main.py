@@ -1,15 +1,20 @@
+from datetime import datetime
+
 import pytz
 from fastapi import FastAPI
 from sqladmin.authentication import login_required
 from sqladmin.filters import BooleanFilter, ForeignKeyFilter
+from sqlalchemy import select, func, and_
+from sqlalchemy.orm import joinedload
 from starlette.requests import Request
 from starlette.responses import Response, RedirectResponse
+from database.database import async_session_factory
 
 from app.auth import authentication_backend
 from app.filters import AdminFilter, RoleFilter, BannedFilter, VerifiedFilter, AvailabilityFilter, JobsForeignKeyFilter, \
     CreatedDateFilter
 from database.database import async_engine
-from sqladmin import Admin, ModelView
+from sqladmin import Admin, ModelView, BaseView, expose
 from database import tables as t
 from database.tables import User, Executors, Clients, BlockedUsers, RejectReasons, Orders, Professions, Jobs, \
     OrdersResponses, ExecutorsViews
@@ -469,6 +474,40 @@ class ExecutorsViewsAdmin(ModelView, model=ExecutorsViews):
     page_size = 25
     page_size_options = [10, 25, 50, 100]
 
+
+class MetricsView(BaseView):
+    """Метрики"""
+    name = "Метрики"
+    icon = "fa-solid fa-chart-line"
+
+    @expose("/metrics", methods=["GET"])
+    async def select_metrics_dates(self, request):
+        return await self.templates.TemplateResponse(request, "metrics.html", context={"data": None})
+
+    @expose("/metrics", methods=["POST"])
+    async def metrics_period_page(self, request):
+        form_data = await request.form()
+        start_date = datetime.strptime(form_data.get("start_date"), "%Y-%m-%d %H:%M:%S")
+        end_date = datetime.strptime(form_data.get("end_date"), "%Y-%m-%d %H:%M:%S")
+
+        async with async_session_factory() as session:
+            stmt = select(OrdersResponses, Orders, Executors)\
+                .join(OrdersResponses.order)\
+                .join(OrdersResponses.executor)\
+                .where(and_(OrdersResponses.created_at > start_date, OrdersResponses.created_at < end_date))\
+                .options(joinedload(OrdersResponses.order))\
+                .options(joinedload(OrdersResponses.executor))
+            result = await session.execute(stmt)
+            orders_responses = result.scalars().all()
+
+        data = {
+            "orders_responses": orders_responses,
+            "orders_responses_count": len(orders_responses)
+        }
+        return await self.templates.TemplateResponse(request, "metrics.html", context={"data": data})
+
+
+
 # class TaskFilesAdmin(ModelView, model=t.TaskFiles):
 #     column_list = "__all__"
 #
@@ -518,6 +557,8 @@ admin.add_view(JobsAdmin)
 admin.add_view(OrdersAdmin)
 admin.add_view(OrdersResponsesAdmin)
 admin.add_view(ExecutorsViewsAdmin)
+
+admin.add_view(MetricsView)
 
 # admin.add_view(TaskFilesAdmin)
 # admin.add_view(FavoriteExecutorsAdmin)
