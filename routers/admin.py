@@ -16,8 +16,8 @@ from schemas.profession import Profession, ProfessionAdd, Job, JobAdd
 
 # Роутер для использования в ЛС
 router = Router()
-router.message.middleware.register(DatabaseMiddleware())
-router.callback_query.middleware.register(DatabaseMiddleware())
+# router.message.middleware.register(DatabaseMiddleware())
+# router.callback_query.middleware.register(DatabaseMiddleware())
 router.message.middleware.register(AdminMiddleware())
 router.callback_query.middleware.register(AdminMiddleware())
 router.message.middleware.register(CheckPrivateMessageMiddleware())

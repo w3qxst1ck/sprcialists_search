@@ -25,8 +25,8 @@ from schemas.order import Order
 
 router = Router()
 
-router.message.middleware.register(DatabaseMiddleware())
-router.callback_query.middleware.register(DatabaseMiddleware())
+# router.message.middleware.register(DatabaseMiddleware())
+# router.callback_query.middleware.register(DatabaseMiddleware())
 
 router.message.middleware.register(RegisteredMiddleware())
 router.callback_query.middleware.register(RegisteredMiddleware())

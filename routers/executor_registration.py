@@ -30,8 +30,8 @@ from utils.validations import is_valid_age, is_valid_url
 router = Router()
 router.message.middleware.register(CheckPrivateMessageMiddleware())
 router.callback_query.middleware.register(CheckPrivateMessageMiddleware())
-router.message.middleware.register(DatabaseMiddleware())
-router.callback_query.middleware.register(DatabaseMiddleware())
+# router.message.middleware.register(DatabaseMiddleware())
+# router.callback_query.middleware.register(DatabaseMiddleware())
 
 
 @router.callback_query(and_f(F.data.split("|")[0] == "choose_role", F.data.split("|")[1] == "executor"))
