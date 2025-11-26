@@ -19,8 +19,8 @@ from utils.validations import is_valid_price, is_valid_deadline
 
 router = Router()
 
-router.message.middleware.register(DatabaseMiddleware())
-router.callback_query.middleware.register(DatabaseMiddleware())
+# router.message.middleware.register(DatabaseMiddleware())
+# router.callback_query.middleware.register(DatabaseMiddleware())
 
 router.message.middleware.register(RegisteredMiddleware())
 router.callback_query.middleware.register(RegisteredMiddleware())

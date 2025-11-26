@@ -182,21 +182,22 @@ class AsyncOrm:
             logger.error(f"Ошибка при удалении роли пользователя {tg_id}: {e}")
 
     @staticmethod
-    async def get_username(tg_id: str, session: Any) -> str:
-        """Получение username по tg_id"""
+    async def user_is_banned(tg_id: str, session: Any) -> bool:
+        """Проверка бана у пользователя"""
         try:
-            value = await session.fetchval(
+            query = await session.fetchrow(
                 """
-                SELECT username 
-                FROM users
+                SELECT is_banned
+                FROM users 
                 WHERE tg_id = $1
                 """,
                 tg_id
             )
-            return value
+            return query["is_banned"]
 
         except Exception as e:
-            logger.error(f"Ошибка при получении username у user {tg_id}: {e}")
+            logger.error(f"Ошибка при проверке бана у пользователя {tg_id}: {e}")
+            raise
 
     @staticmethod
     async def create_profession(profession: ProfessionAdd, session: Any) -> None:

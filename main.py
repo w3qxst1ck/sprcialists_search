@@ -8,6 +8,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault
 
+from middlewares.banned import BanedMiddleware
 from middlewares.database import DatabaseMiddleware
 from middlewares.admin import AdminMiddleware
 from settings import settings
@@ -55,10 +56,11 @@ async def start_bot() -> None:
     dp.include_router(main_router)
 
     # MIDDLEWARES
-    # dp.message.middleware(DatabaseMiddleware())
-    # dp.callback_query.middleware(DatabaseMiddleware())
-    # dp.message.middleware(AdminMiddleware())
-    # dp.callback_query.middleware(AdminMiddleware())
+    dp.message.middleware(DatabaseMiddleware())
+    dp.callback_query.middleware(DatabaseMiddleware())
+
+    dp.message.middleware(BanedMiddleware())
+    dp.callback_query.middleware(BanedMiddleware())
 
     # TODO create tables DEV
     # await AsyncOrm.create_tables()

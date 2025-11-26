@@ -29,8 +29,8 @@ from utils.download_files import get_photo_path, get_cv_path, check_cv_file, loa
 
 router = Router()
 
-router.message.middleware.register(DatabaseMiddleware())
-router.callback_query.middleware.register(DatabaseMiddleware())
+# router.message.middleware.register(DatabaseMiddleware())
+# router.callback_query.middleware.register(DatabaseMiddleware())
 
 router.message.middleware.register(RegisteredMiddleware())
 router.callback_query.middleware.register(RegisteredMiddleware())

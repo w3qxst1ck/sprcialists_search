@@ -22,8 +22,8 @@ from utils.datetime_service import convert_date_and_time_to_str
 
 # Роутер для использования в группе
 group_router = Router()
-group_router.message.middleware.register(DatabaseMiddleware())
-group_router.callback_query.middleware.register(DatabaseMiddleware())
+# group_router.message.middleware.register(DatabaseMiddleware())
+# group_router.callback_query.middleware.register(DatabaseMiddleware())
 group_router.message.middleware.register(AdminMiddleware())
 group_router.callback_query.middleware.register(AdminMiddleware())
 group_router.message.middleware.register(CheckGroupMessageMiddleware())
