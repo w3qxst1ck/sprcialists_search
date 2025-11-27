@@ -54,7 +54,7 @@ class User(Base):
     blocked: Mapped["BlockedUsers"] = relationship(uselist=False, back_populates="user")
 
     def __str__(self):
-        return f"id {self.id}. {self.tg_id} {self.username + ' ' if self.username else ''}"
+        return f"{self.tg_id} {self.username + ' ' if self.username else ''}"
 
 
 class Clients(Base):

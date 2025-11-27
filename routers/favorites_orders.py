@@ -15,7 +15,7 @@ from database.orm import AsyncOrm
 from routers.buttons import buttons as btn
 from routers.keyboards import favorites as kb
 from routers.keyboards.client_reg import to_main_menu
-from routers.messages.find_order import contact_with_client, response_on_order_message
+from routers.messages.find_order import response_on_order_message
 from routers.messages.orders import order_card_to_show
 from routers.states.favorites import FavoriteOrders
 from schemas.client import Client
@@ -121,22 +121,29 @@ async def show_order(callback: CallbackQuery, state: FSMContext) -> None:
 
 # Написать заказчику
 @router.callback_query(F.data.split("|")[0] == "write_fav_order", FavoriteOrders.feed)
-async def write_to_client_from_favorite(callback: CallbackQuery, state: FSMContext) -> None:
+async def write_to_client_from_favorite(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Написать заказчику из избранного"""
     data = await state.get_data()
+    executor_tg_id = str(callback.from_user.id)
 
     orders: list[Order] = data["orders"]
     order: Order = orders[data["current_index"]]
 
-    await state.set_state(FavoriteOrders.contact)
+    # Проверяем есть ли уже такой отклик
+    response_exists: bool = await AsyncOrm.check_order_response_already_exists(executor_tg_id, order.id, session)
 
-    msg = f"Заказ <b>\"{order.title}\"</b>\n\nОтправь в чат сопроводительный текст, который будет отправлен заказчику " \
-          f"вместе с твоим откликом"
+    if not response_exists:
+        await state.set_state(FavoriteOrders.contact)
+        msg = f"Заказ <b>\"{order.title}\"</b>\n\nНапиши сообщение заказчику, которое мы приложим к твоему отклику"
+    else:
+        await state.set_state(FavoriteOrders.feed)
+        msg = f"{btn.INFO} Ты уже откликался на заказ <b>\"{order.title}\"</b>\n\nПосмотри другие заказы"
+
     keyboard = kb.back_to_feed_keyboard()
 
     await callback.answer()
-    prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup(),
-                                                       disable_web_page_preview=True)
+
+    prev_mess = await callback.message.edit_text(msg, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
     await state.update_data(prev_mess=prev_mess)
 
 
@@ -178,25 +185,34 @@ async def send_cover_letter(callback: CallbackQuery, state: FSMContext, session:
     await callback.answer()
 
     data = await state.get_data()
+    executor_tg_id = str(callback.from_user.id)
 
     # Данные исполнителя
-    executor_tg_id = str(callback.from_user.id)
     ex_tg_username = await AsyncOrm.get_username(executor_tg_id, session)
-    ex_name = await AsyncOrm.get_executor_name(executor_tg_id, session)
+    executor = await AsyncOrm.get_executor_by_tg_id(executor_tg_id, session)
 
     # Получаем заказ и сопроводительное письмо
     orders: list[Order] = data["orders"]
     order: Order = orders[data["current_index"]]
     cover_letter = data["cover_letter"]
 
-    msg = f"{btn.SUCCESS} Твой отклик по заказу \"<i>{order.title}</i>\" отправлен заказчику!"
     keyboard = kb.back_to_feed_keyboard()
+
+    # Сохраняем отклик в БД
+    try:
+        await AsyncOrm.create_order_response(cover_letter, order.id, executor.id, session)
+    except:
+        error_msg = f"{btn.INFO} Ошибка при отправке отклика, попробуй позже"
+        await callback.message.edit_text(error_msg, reply_markup=keyboard.as_markup())
+        return
+
+    msg = f"{btn.SUCCESS} Твой отклик по заказу \"<i>{order.title}</i>\" отправлен заказчику!"
 
     # Отвечаем исполнителю
     await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
 
     # Отправляем сообщение клиенту
-    msg_to_client = response_on_order_message(cover_letter, order, ex_tg_username, ex_name)
+    msg_to_client = response_on_order_message(cover_letter, order, ex_tg_username, executor.name)
     try:
         await bot.send_message(order.tg_id, msg_to_client,
                                message_effect_id="5104841245755180586",     # 🔥

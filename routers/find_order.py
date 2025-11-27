@@ -304,9 +304,6 @@ async def connect_with_client(message: Message, state: FSMContext, session: Any)
     data = await state.get_data()
     executor_tg_id = str(message.from_user.id)
 
-    # Меняем стейт для связи с заказчиком
-    await state.set_state(OrdersFeed.contact)
-
     # Удаляем функциональные сообщения
     try:
         await data["functional_mess"].delete()
@@ -320,9 +317,12 @@ async def connect_with_client(message: Message, state: FSMContext, session: Any)
     response_exists: bool = await AsyncOrm.check_order_response_already_exists(executor_tg_id, order.id, session)
 
     if not response_exists:
+        # Меняем стейт для связи с заказчиком
+        await state.set_state(OrdersFeed.contact)
         msg = f"Заказ <b>\"{order.title}\"</b>\n\nНапиши сообщение заказчику, которое мы приложим к твоему отклику"
-
     else:
+        # Меняем стейт для связи с заказчиком
+        await state.set_state(OrdersFeed.show)
         msg = f"{btn.INFO} Ты уже откликался на заказ <b>\"{order.title}\"</b>\n\nПосмотри другие заказы"
 
     keyboard = kb.back_to_orders_feed()

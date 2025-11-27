@@ -1,9 +1,14 @@
+from datetime import datetime, timedelta
+
 import pytz
+from sqlalchemy import select, and_, desc
+from sqlalchemy.orm import joinedload
 
 from app.filters import AdminFilter, RoleFilter, BannedFilter, VerifiedFilter, AvailabilityFilter, JobsForeignKeyFilter, \
     CreatedDateFilter
-from sqladmin import ModelView
+from sqladmin import ModelView, BaseView, expose
 from database import tables as t
+from database.database import async_session_factory
 from database.tables import User, Executors, Clients, BlockedUsers, RejectReasons, Orders, Professions, Jobs, \
     OrdersResponses, ExecutorsViews
 from settings import settings
@@ -144,7 +149,11 @@ class ExecutorsAdmin(ModelView, model=Executors):
                      Executors.orders_favorites: "избранные заказы"}
 
     column_formatters = {
-        Executors.description: lambda e, a: e.description[:15] + "...",
+        Executors.description: lambda e, a: e.description[:15] + "..."
+    }
+
+    column_formatters_detail = {
+        Executors.links: lambda e, a: '    '.join(e.links.split("|"))
     }
 
     column_filters = [
@@ -301,7 +310,9 @@ class OrdersAdmin(ModelView, model=Orders):
     category = categories["orders"][0]
     category_icon = categories["orders"][1]
 
-    column_list = [Orders.client, Orders.title, Orders.jobs, Orders.price, Orders.period, Orders.created_at]
+    column_list = [
+        Orders.client, Orders.title, Orders.created_at, Orders.is_active, Orders.price, Orders.period, Orders.jobs
+    ]
     column_details_list = [
         Orders.id, Orders.client, Orders.jobs, Orders.title, Orders.task, Orders.price, Orders.period,
         Orders.requirements, Orders.files, Orders.created_at, Orders.is_active, Orders.executors_favorites
@@ -438,6 +449,245 @@ class ExecutorsViewsAdmin(ModelView, model=ExecutorsViews):
     page_size = 25
     page_size_options = [10, 25, 50, 100]
 
+
+class OrderResponseMetricView(BaseView):
+    """Метрики откликов на заказы"""
+    name = "Отклики на заказы"
+    category = categories["metrics"][0]
+    category_icon = categories["metrics"][1]
+
+    # URL для POST запроса формы
+    form_url = f"{settings.domain}/admin/orders-responses-metric"
+    order_details_url = f"{settings.domain}/admin/orders/details/"
+    executor_details_url = f"{settings.domain}/admin/executors/details/"
+
+    @expose("/orders-responses-metric", methods=["GET"])
+    async def select_metrics_dates(self, request):
+        context = {
+            "data": None,
+            "form_url": self.form_url
+        }
+        return await self.templates.TemplateResponse(request, "orders_responses_metric.html", context=context)
+
+    @expose("/orders-responses-metric", methods=["POST"])
+    async def metrics_period_page(self, request):
+        # Получаем данные из request
+        form_data = await request.form()
+        start_date = form_data.get("start_date")
+        end_date = form_data.get("end_date")
+
+        # Переводим даты из строк в datetime и вычитаем три часа для нормального сравнения в БД
+        start_date_formatted = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
+        end_date_formatted = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
+
+        async with async_session_factory() as session:
+            stmt = select(OrdersResponses, Orders, Executors)\
+                .join(OrdersResponses.order)\
+                .join(OrdersResponses.executor)\
+                .where(and_(OrdersResponses.created_at > start_date_formatted, OrdersResponses.created_at < end_date_formatted))\
+                .order_by(desc(OrdersResponses.created_at))\
+                .options(joinedload(OrdersResponses.order))\
+                .options(joinedload(OrdersResponses.executor))
+            result = await session.execute(stmt)
+            orders_responses = result.scalars().all()
+
+        # Переводим время на МСК
+        for item in orders_responses:
+            item.created_at = item.created_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M")
+
+        # Готовим путь для скачивания CSV
+        export_csv_path = f"{settings.domain}/export-csv/orders-responses/?start_date={start_date}&end_date={end_date}"
+
+        data = {
+            "orders_responses": orders_responses,
+            "orders_responses_count": len(orders_responses),
+        }
+        context = {
+            "data": data,
+            "form_url": self.form_url,
+            "order_details_url": self.order_details_url,
+            "executor_details_url": self.executor_details_url,
+            "export_csv_path": export_csv_path
+        }
+        return await self.templates.TemplateResponse(request, "orders_responses_metric.html", context=context)
+
+
+class ExecutorsViewsMetricView(BaseView):
+    """Метрики просмотров исполнителей"""
+    name = "Просмотры исполнителей"
+    category = categories["metrics"][0]
+    category_icon = categories["metrics"][1]
+
+    # URL для POST запроса формы
+    form_url = f"{settings.domain}/admin/executors-views-metric"
+    executor_details_url = f"{settings.domain}/admin/executors/details/"
+    client_details_url = f"{settings.domain}/admin/clients/details/"
+
+    @expose("/executors-views-metric", methods=["GET"])
+    async def select_dates(self, request):
+        context = {
+            "data": None,
+            "form_url": self.form_url
+        }
+        return await self.templates.TemplateResponse(request, "executors_views_metric.html", context=context)
+
+    @expose("/executors-views-metric", methods=["POST"])
+    async def metrics(self, request):
+        form_data = await request.form()
+        start_date = form_data.get("start_date")
+        end_date = form_data.get("end_date")
+
+        # Переводим даты из строк в datetime и вычитаем три часа для нормального сравнения в БД
+        start_date_formatted = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
+        end_date_formatted = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
+
+        async with async_session_factory() as session:
+            stmt = select(ExecutorsViews, Executors, Clients) \
+                .join(ExecutorsViews.executor) \
+                .join(ExecutorsViews.client) \
+                .where(and_(ExecutorsViews.created_at > start_date_formatted, ExecutorsViews.created_at < end_date_formatted)) \
+                .order_by(desc(ExecutorsViews.created_at))\
+                .options(joinedload(ExecutorsViews.executor)) \
+                .options(joinedload(ExecutorsViews.client))
+
+            result = await session.execute(stmt)
+            executors_views = result.scalars().all()
+
+        # Переводим время на МСК
+        for item in executors_views:
+            item.created_at = item.created_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M")
+
+        # Готовим путь для скачивания CSV
+        export_csv_path = f"{settings.domain}/export-csv/executors-views/?start_date={start_date}&end_date={end_date}"
+
+        data = {
+            "executors_views": executors_views,
+            "executors_views_count": len(executors_views),
+        }
+        context = {
+            "data": data,
+            "form_url": self.form_url,
+            "executor_details_url": self.executor_details_url,
+            "client_details_url": self.client_details_url,
+            "export_csv_path": export_csv_path
+        }
+        return await self.templates.TemplateResponse(request, "executors_views_metric.html", context=context)
+
+
+class ExecutorsRegistrationMetricView(BaseView):
+    """Метрики регистрации исполнителей"""
+    name = "Регистрация исполнителей"
+    category = categories["metrics"][0]
+    category_icon = categories["metrics"][1]
+
+    # URL для POST запроса формы
+    form_url = f"{settings.domain}/admin/executors-registration-metric"
+    executor_details_url = f"{settings.domain}/admin/executors/details/"
+
+    @expose("/executors-registration-metric", methods=["GET"])
+    async def select_dates_ex_registration(self, request):
+        context = {
+            "data": None,
+            "form_url": self.form_url,
+        }
+        return await self.templates.TemplateResponse(request, "executors_registration_metric.html", context=context)
+
+    @expose("/executors-registration-metric", methods=["POST"])
+    async def metrics_ex_registration(self, request):
+        form_data = await request.form()
+        start_date = form_data.get("start_date")
+        end_date = form_data.get("end_date")
+
+        # Переводим даты из строк в datetime и вычитаем три часа для нормального сравнения в БД
+        start_date_formatted = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
+        end_date_formatted = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
+
+        async with async_session_factory() as session:
+            stmt = select(Executors, User) \
+                .join(Executors.user) \
+                .where(and_(Executors.created_at > start_date_formatted, Executors.created_at < end_date_formatted)) \
+                .order_by(desc(Executors.created_at))\
+                .options(joinedload(Executors.user))
+
+            result = await session.execute(stmt)
+            executors = result.scalars().all()
+
+        # Переводим время на МСК
+        for item in executors:
+            item.created_at = item.created_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M")
+
+        # Готовим путь для скачивания CSV
+        export_csv_path = f"{settings.domain}/export-csv/executors-registration/?start_date={start_date}&end_date={end_date}"
+
+        data = {
+            "executors": executors,
+            "executors_count": len(executors),
+        }
+        context = {
+            "data": data,
+            "form_url": self.form_url,
+            "executor_details_url": self.executor_details_url,
+            "export_csv_path": export_csv_path
+        }
+        return await self.templates.TemplateResponse(request, "executors_registration_metric.html", context=context)
+
+
+class ClientsRegistrationMetricView(BaseView):
+    """Метрики регистрации клиентов"""
+    name = "Регистрация клиентов"
+    category = categories["metrics"][0]
+    category_icon = categories["metrics"][1]
+
+    # URL для POST запроса формы
+    form_url = f"{settings.domain}/admin/clients-registration-metric"
+    clients_details_url = f"{settings.domain}/admin/clients/details/"
+
+    @expose("/clients-registration-metric", methods=["GET"])
+    async def select_dates_cli_registration(self, request):
+        context = {
+            "data": None,
+            "form_url": self.form_url,
+        }
+        return await self.templates.TemplateResponse(request, "clients_registration_metric.html", context=context)
+
+    @expose("/clients-registration-metric", methods=["POST"])
+    async def metrics_cli_registration(self, request):
+        form_data = await request.form()
+        start_date = form_data.get("start_date")
+        end_date = form_data.get("end_date")
+
+        # Переводим даты из строк в datetime и вычитаем три часа для нормального сравнения в БД
+        start_date_formatted = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
+        end_date_formatted = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
+
+        async with async_session_factory() as session:
+            stmt = select(Clients, User) \
+                .join(Clients.user) \
+                .where(and_(Clients.created_at > start_date_formatted, Clients.created_at < end_date_formatted)) \
+                .order_by(desc(Clients.created_at))\
+                .options(joinedload(Clients.user))
+
+            result = await session.execute(stmt)
+            clients = result.scalars().all()
+
+        # Переводим время на МСК
+        for item in clients:
+            item.created_at = item.created_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M")
+
+        # Готовим путь для скачивания CSV
+        export_csv_path = f"{settings.domain}/export-csv/clients-registration/?start_date={start_date}&end_date={end_date}"
+
+        data = {
+            "clients": clients,
+            "clients_count": len(clients),
+        }
+        context = {
+            "data": data,
+            "form_url": self.form_url,
+            "client_details_url": self.clients_details_url,
+            "export_csv_path": export_csv_path
+        }
+        return await self.templates.TemplateResponse(request, "clients_registration_metric.html", context=context)
 
 # class TaskFilesAdmin(ModelView, model=t.TaskFiles):
 #     column_list = "__all__"

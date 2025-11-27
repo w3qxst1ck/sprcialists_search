@@ -9,7 +9,7 @@ def contact_with_executor(executor: Executor, username: str | None) -> str:
     if not username:
         return f"В настоящий момент невозможно связаться с исполнителем <i>{executor.name}</i>"
 
-    start_dialog_text = "Привет! Я с HireBot ✨\n"
+    start_dialog_text = "Привет! Я с PRUV bot ✨\n"
     encoded_text = urllib.parse.quote(start_dialog_text)
 
     msg = f"Обсуди детали заказа в чате с исполнителем!\n" \

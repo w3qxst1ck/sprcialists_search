@@ -3,14 +3,15 @@ from starlette.requests import Request
 from starlette.responses import Response, RedirectResponse
 
 from app.auth import authentication_backend
+from fastapi import FastAPI
 from database.database import async_engine
 from sqladmin import Admin
 
 from app.views import UsersAdmin, ExecutorsAdmin, ClientsAdmin, BlockedUsersAdmin, RejectReasonsAdmin, \
-    ProfessionsAdmin, JobsAdmin, OrdersAdmin, OrdersResponsesAdmin, ExecutorsViewsAdmin
-from app.custom_views import OrderResponseMetricView, ExecutorsViewsMetricView, ExecutorsRegistrationMetricView, \
-    ClientsRegistrationMetricView
-from app.fastapi_app import app as fastapi_app
+    ProfessionsAdmin, JobsAdmin, OrdersAdmin, OrdersResponsesAdmin, ExecutorsViewsAdmin, OrderResponseMetricView, \
+    ExecutorsViewsMetricView, ExecutorsRegistrationMetricView, ClientsRegistrationMetricView
+
+from app.routers import app
 
 
 class CustomAdmin(Admin):
@@ -37,8 +38,12 @@ class CustomAdmin(Admin):
         return RedirectResponse(request.url_for("admin:index"), status_code=302)
 
 
-admin = CustomAdmin(fastapi_app, async_engine, authentication_backend=authentication_backend,
-                    templates_dir="app/templates/sqladmin/", title="PRUV ADMIN")
+admin = CustomAdmin(
+    app, async_engine, authentication_backend=authentication_backend,
+    templates_dir="app/templates/sqladmin/",
+    title="PRUV ADMIN",
+)
+
 
 admin.add_view(UsersAdmin)
 admin.add_view(ExecutorsAdmin)

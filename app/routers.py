@@ -10,14 +10,10 @@ from app.utils import write_csv_file
 from database.database import async_session_factory
 from database.tables import Executors, Clients, Orders, OrdersResponses, ExecutorsViews, User
 from settings import settings
+# from app.main import app
 
 
 app = FastAPI()
-
-
-@app.get("/db")
-async def read_root():
-    return {"hello": "world"}
 
 
 # Отправка CSV
