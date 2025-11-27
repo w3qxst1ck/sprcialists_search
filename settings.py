@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     secret_key: str = Field(..., env='SECRET_KEY')
     username: str = Field(..., env='USERNAME')
     password: str = Field(..., env='PASSWORD')
+    domain: str = Field(..., env='DOMAIN')
 
     timezone: str = "Europe/Moscow"
 

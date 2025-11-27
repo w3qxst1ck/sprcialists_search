@@ -9,11 +9,13 @@
 
           <div class="card">
             <div class="card-header">
+<!--              Заголовок выбора периода-->
               <h3 class="card-title">Укажите период</h3>
             </div>
+
         <!--    Форма с выбором дат-->
             <div class="card-body border-bottom py-3">
-              <form action="http://0.0.0.0:8000/admin/metrics" method="POST" enctype="multipart/form-data">
+              <form action="{{ form_url }}" method="POST" enctype="multipart/form-data">
 
                 <fieldset class="form-fieldset">
                     <div class="mb-3 form-group row">
@@ -54,6 +56,20 @@
 <!--            Заголовок-->
             <div class="card-header">
               <h3 class="card-title">Откликов за период: {{ data.orders_responses_count }}</h3>
+
+<!--          Кнопка экспорта, если есть результаты-->
+              {% if data.orders_responses_count %}
+              <div class="ms-auto">
+                <div class="ms-3 d-inline-block dropdown">
+                  <a href="#" class="btn btn-secondary dropdown-toggle" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                    Экспорт
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                    <li><a class="dropdown-item" href="{{ export_csv_path }}">CSV</a></li>
+                  </ul>
+                </div>
+              </div>
+              {% endif %}
             </div>
 
 <!--            Заголовок таблицы-->
@@ -61,7 +77,6 @@
               <table class="table card-table table-vcenter text-nowrap">
                 <thead>
                   <tr>
-<!--                    <th class="w-1"><input class="form-check-input m-0 align-middle" type="checkbox" aria-label="Select all" id="select-all"></th>-->
                     <th class="w-1"></th>
                     <th>
                       заказ
@@ -85,18 +100,12 @@
                     <td>
                       {{ loop.index }}
                     </td>
-<!--                    <td class="text-end">-->
-<!--                      <a href="http://0.0.0.0:8000/admin/orders-responses/details/{{ resp.id }}" data-bs-toggle="tooltip"-->
-<!--                         data-bs-placement="top" aria-label="View" data-bs-original-title="View">-->
-<!--                        <span class="me-1"><i class="fa-solid fa-eye"></i></span>-->
-<!--                      </a>-->
-<!--                    </td>-->
-                    <td><a href="http://0.0.0.0:8000/admin/orders/details/{{ resp.order_id }}" target="_blank">{{
+                    <td><a href="{{ order_details_url }}{{ resp.order_id }}" target="_blank">{{
                         resp.order.title
                         }}</a></td>
-                    <td><a href="http://0.0.0.0:8000/admin/executors/details/{{ resp.executor_id }}" target="_blank">{{
+                    <td><a href="{{ executor_details_url }}{{ resp.executor_id }}" target="_blank">{{
                         resp.executor.name }}</a></td>
-                    <td>{{ resp.text }}</td>
+                    <td>{{ resp.text|truncate(60, False, '...') }}</td>
                     <td>{{ resp.created_at }}</td>
                   </tr>
                   {% endfor %}

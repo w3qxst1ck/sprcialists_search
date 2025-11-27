@@ -1,0 +1,119 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex">
+        <div class="flex-grow-1 me-2">
+
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Укажите период</h3>
+            </div>
+        <!--    Форма с выбором дат-->
+            <div class="card-body border-bottom py-3">
+              <form action="{{ form_url }}" method="POST" enctype="multipart/form-data">
+
+                <fieldset class="form-fieldset">
+                    <div class="mb-3 form-group row">
+                      <label class="form-label col-sm-2 col-form-label required-label" for="start_date"
+                             title="This is a required field">Начало периода</label>
+                      <div class="col-sm-10">
+                        <input class="form-control flatpickr-input" data-role="datetimepicker" id="start_date"
+                               name="start_date" required="" type="text" value="">
+                      </div>
+                    </div>
+
+                    <div class="mb-3 form-group row">
+                      <label class="form-label col-sm-2 col-form-label  required-label" for="end_date"
+                             title="This is a required field">Окончание периода</label>
+                      <div class="col-sm-10">
+                        <input class="form-control flatpickr-input" data-role="datetimepicker" id="end_date" name="end_date"
+                              required="" type="text" value="">
+                      </div>
+                    </div>
+                </fieldset>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="btn-group flex-wrap" data-toggle="buttons">
+                      <button type="submit" name="save" value="Save" class="btn" >Показать </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+
+          <!--  Результаты при POST запросе-->
+          {% if data %}
+          <div class="card">
+
+<!--            Заголовок-->
+            <div class="card-header">
+              <h3 class="card-title">Просмотров за период: {{ data.executors_views_count }}</h3>
+
+<!--          Кнопка экспорта, если есть результаты-->
+              {% if data.executors_views_count %}
+              <div class="ms-auto">
+                <div class="ms-3 d-inline-block dropdown">
+                  <a href="#" class="btn btn-secondary dropdown-toggle" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                    Экспорт
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                    <li><a class="dropdown-item" href="{{ export_csv_path }}">CSV</a></li>
+                  </ul>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+
+<!--            Заголовок таблицы-->
+            <div class="table-responsive">
+              <table class="table card-table table-vcenter text-nowrap">
+                <thead>
+                  <tr>
+                    <th class="w-1"></th>
+                    <th>
+                      исполнитель
+                    </th>
+                    <th>
+                      заказчик
+                    </th>
+                    <th>
+                      дата
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <!--Строки таблицы-->
+                  {% for view in data.executors_views %}
+                  <tr>
+                    <td>
+                      {{ loop.index }}
+                    </td>
+                    <td><a href="{{ executor_details_url }}{{ view.executor_id }}" target="_blank">{{
+                        view.executor.name
+                        }}</a></td>
+                    <td><a href="{{ client_details_url }}{{ view.client_id }}" target="_blank">{{
+                        view.client.name }}</a></td>
+                    <td>{{ view.created_at }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+
+              </table>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
