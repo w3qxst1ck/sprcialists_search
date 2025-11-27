@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: bd14c0b7134b
+Revision ID: 2f02f9e1e136
 Revises:
-Create Date: 2025-11-23 18:42:58.670053
+Create Date: 2025-11-27 13:39:07.412752
 
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "bd14c0b7134b"
+revision: str = "2f02f9e1e136"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -86,6 +86,7 @@ def upgrade() -> None:
             nullable=False,
             comment="Имя пользователя должно содержать не более 50 символов",
         ),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(
             ["tg_id"], ["users.tg_id"], ondelete="CASCADE"
         ),
@@ -111,6 +112,7 @@ def upgrade() -> None:
         sa.Column("location", sa.String(), nullable=True),
         sa.Column("photo", sa.Boolean(), nullable=False),
         sa.Column("verified", sa.Boolean(), nullable=False),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(
             ["tg_id"], ["users.tg_id"], ondelete="CASCADE"
         ),

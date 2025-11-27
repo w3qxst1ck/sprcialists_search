@@ -64,6 +64,7 @@ class Clients(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     tg_id: Mapped[str] = mapped_column(ForeignKey("users.tg_id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(50), nullable=False, comment="Имя пользователя должно содержать не более 50 символов")
+    created_at: Mapped[datetime.datetime] = mapped_column(nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="client_profile")
 
@@ -98,6 +99,7 @@ class Executors(Base):
     location: Mapped[str] = mapped_column(nullable=True, default=None)
     photo: Mapped[bool] = mapped_column(nullable=False, default=False)
     verified: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="executor_profile")
 

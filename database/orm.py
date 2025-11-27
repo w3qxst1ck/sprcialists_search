@@ -193,6 +193,10 @@ class AsyncOrm:
                 """,
                 tg_id
             )
+            # Если пользователь не зарегистрирован
+            if not query:
+                return False
+
             return query["is_banned"]
 
         except Exception as e:
@@ -346,18 +350,19 @@ class AsyncOrm:
         """Создание профиля исполнителя"""
         links = "|".join(e.links)
         updated_at = datetime.datetime.now()
+        created_at = datetime.datetime.now()
         try:
             async with session.transaction():
                 # Создание профиля исполнителя
                 executor_id = await session.fetchval(
                     """
                     INSERT INTO executors (tg_id, name, age, description, rate, experience, links, availability, contacts, 
-                    location, photo, verified) 
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    location, photo, verified, created_at) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                     RETURNING id
                     """,
                     e.tg_id, e.name, e.age, e.description, e.rate, e.experience, links, e.availability, e.contacts,
-                    e.location, e.photo, e.verified
+                    e.location, e.photo, e.verified, created_at
                 )
 
                 # Создание связи ExecutorsJobs
@@ -642,17 +647,18 @@ class AsyncOrm:
     async def create_client(client: ClientAdd, session: Any) -> None:
         """Запись в таблицу клиентов"""
         updated_at = datetime.datetime.now()
+        created_at = datetime.datetime.now()
 
         try:
             async with session.transaction():
                 # Создаем профиль клиента
                 client_id = await session.fetchval(
                     """
-                    INSERT INTO clients (tg_id, name)
-                    VALUES($1, $2)
+                    INSERT INTO clients (tg_id, name, created_at)
+                    VALUES($1, $2, $3)
                     RETURNING id
                     """,
-                    client.tg_id, client.name
+                    client.tg_id, client.name, created_at
                 )
                 # Указываем роль у пользователя
                 await session.execute(

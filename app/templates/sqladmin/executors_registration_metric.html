@@ -53,10 +53,10 @@
 
 <!--            Заголовок-->
             <div class="card-header">
-              <h3 class="card-title">Просмотров за период: {{ data.executors_views_count }}</h3>
+              <h3 class="card-title">Зарегистрировано исполнителей за период: {{ data.executors_count }}</h3>
 
 <!--          Кнопка экспорта, если есть результаты-->
-              {% if data.executors_views_count %}
+              {% if data.executors_count %}
               <div class="ms-auto">
                 <div class="ms-3 d-inline-block dropdown">
                   <a href="#" class="btn btn-secondary dropdown-toggle" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
@@ -77,30 +77,80 @@
                   <tr>
                     <th class="w-1">#</th>
                     <th>
-                      исполнитель
+                      id
                     </th>
                     <th>
-                      заказчик
+                      телеграмм id
                     </th>
                     <th>
-                      дата
+                      имя
+                    </th>
+                    <th>
+                      возраст
+                    </th>
+                    <th>
+                      описание
+                    </th>
+<!--                    <th>-->
+<!--                      ставка-->
+<!--                    </th>-->
+<!--                    <th>-->
+<!--                      опыт-->
+<!--                    </th>-->
+<!--                    <th>-->
+<!--                      занятость-->
+<!--                    </th>-->
+                    <th>
+                      верифицирован
+                    </th>
+                    <th>
+                      Дата регистрации
                     </th>
                   </tr>
                 </thead>
 
                 <tbody>
                   <!--Строки таблицы-->
-                  {% for view in data.executors_views %}
+                  {% for ex in data.executors %}
                   <tr>
                     <td>
                       {{ loop.index }}
                     </td>
-                    <td><a href="{{ executor_details_url }}{{ view.executor_id }}" target="_blank">{{
-                        view.executor.name
-                        }}</a></td>
-                    <td><a href="{{ client_details_url }}{{ view.client_id }}" target="_blank">{{
-                        view.client.name }}</a></td>
-                    <td>{{ view.created_at }}</td>
+                    <td>
+                      {{ ex.id }}
+                    </td>
+                    <td>
+                      {{ ex.tg_id }}
+                    </td>
+                    <td><a href="{{ executor_details_url }}{{ ex.id }}" target="_blank">{{
+                        ex.name
+                        }}</a>
+                    </td>
+                    <td>
+                      {{ ex.age }}
+                    </td>
+                    <td>
+                      {{ ex.description|truncate(20, False, '...') }}
+                    </td>
+<!--                    <td>-->
+<!--                      {{ ex.rate }}-->
+<!--                    </td>-->
+<!--                    <td>-->
+<!--                      {{ ex.experience }}-->
+<!--                    </td>-->
+<!--                    <td>-->
+<!--                      {{ ex.availability }}-->
+<!--                    </td>-->
+                    <td>
+                      {% if ex.verified %}
+                        <i class="fa fa-check text-success"></i>
+                      {% else %}
+                        <i class="fa fa-times text-danger"></i>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {{ ex.created_at }}
+                    </td>
                   </tr>
                   {% endfor %}
                 </tbody>

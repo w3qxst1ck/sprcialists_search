@@ -53,10 +53,10 @@
 
 <!--            Заголовок-->
             <div class="card-header">
-              <h3 class="card-title">Просмотров за период: {{ data.executors_views_count }}</h3>
+              <h3 class="card-title">Зарегистрировано клиентов за период: {{ data.clients_count }}</h3>
 
 <!--          Кнопка экспорта, если есть результаты-->
-              {% if data.executors_views_count %}
+              {% if data.clients_count %}
               <div class="ms-auto">
                 <div class="ms-3 d-inline-block dropdown">
                   <a href="#" class="btn btn-secondary dropdown-toggle" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
@@ -77,30 +77,39 @@
                   <tr>
                     <th class="w-1">#</th>
                     <th>
-                      исполнитель
+                      id
                     </th>
                     <th>
-                      заказчик
+                      телеграмм id
                     </th>
                     <th>
-                      дата
+                      имя
+                    </th>
+                    <th>
+                      Дата регистрации
                     </th>
                   </tr>
                 </thead>
 
                 <tbody>
                   <!--Строки таблицы-->
-                  {% for view in data.executors_views %}
+                  {% for cli in data.clients %}
                   <tr>
                     <td>
                       {{ loop.index }}
                     </td>
-                    <td><a href="{{ executor_details_url }}{{ view.executor_id }}" target="_blank">{{
-                        view.executor.name
-                        }}</a></td>
-                    <td><a href="{{ client_details_url }}{{ view.client_id }}" target="_blank">{{
-                        view.client.name }}</a></td>
-                    <td>{{ view.created_at }}</td>
+                    <td>
+                      {{ cli.id }}
+                    </td>
+                    <td>
+                      {{ cli.tg_id }}
+                    </td>
+                    <td>
+                      <a href="{{ client_details_url }}{{ cli.id }}" target="_blank">{{ cli.name }}</a>
+                    </td>
+                    <td>
+                      {{ cli.created_at }}
+                    </td>
                   </tr>
                   {% endfor %}
                 </tbody>

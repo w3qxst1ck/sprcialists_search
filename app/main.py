@@ -8,7 +8,8 @@ from sqladmin import Admin
 
 from app.views import UsersAdmin, ExecutorsAdmin, ClientsAdmin, BlockedUsersAdmin, RejectReasonsAdmin, \
     ProfessionsAdmin, JobsAdmin, OrdersAdmin, OrdersResponsesAdmin, ExecutorsViewsAdmin
-from app.custom_views import OrderResponseMetricView, ExecutorsViewsMetricView
+from app.custom_views import OrderResponseMetricView, ExecutorsViewsMetricView, ExecutorsRegistrationMetricView, \
+    ClientsRegistrationMetricView
 from app.fastapi_app import app as fastapi_app
 
 
@@ -54,6 +55,8 @@ admin.add_view(ExecutorsViewsAdmin)
 
 admin.add_view(OrderResponseMetricView)
 admin.add_view(ExecutorsViewsMetricView)
+admin.add_view(ExecutorsRegistrationMetricView)
+admin.add_view(ClientsRegistrationMetricView)
 
 # admin.add_view(TaskFilesAdmin)
 # admin.add_view(FavoriteExecutorsAdmin)
