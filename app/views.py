@@ -450,11 +450,13 @@ class ExecutorsViewsAdmin(ModelView, model=ExecutorsViews):
     page_size_options = [10, 25, 50, 100]
 
 
+# CUSTOM VIEWS
 class OrderResponseMetricView(BaseView):
     """Метрики откликов на заказы"""
     name = "Отклики на заказы"
     category = categories["metrics"][0]
     category_icon = categories["metrics"][1]
+    title = "Отклики на заказы"
 
     # URL для POST запроса формы
     form_url = f"{settings.domain}/admin/orders-responses-metric"
@@ -465,7 +467,8 @@ class OrderResponseMetricView(BaseView):
     async def select_metrics_dates(self, request):
         context = {
             "data": None,
-            "form_url": self.form_url
+            "form_url": self.form_url,
+            "title": self.title,
         }
         return await self.templates.TemplateResponse(request, "orders_responses_metric.html", context=context)
 
@@ -498,6 +501,10 @@ class OrderResponseMetricView(BaseView):
         # Готовим путь для скачивания CSV
         export_csv_path = f"{settings.domain}/export-csv/orders-responses/?start_date={start_date}&end_date={end_date}"
 
+        # Даты для вывода в subtitle
+        start_date_str = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y %H:%M")
+        end_date_str = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y %H:%M")
+
         data = {
             "orders_responses": orders_responses,
             "orders_responses_count": len(orders_responses),
@@ -507,7 +514,9 @@ class OrderResponseMetricView(BaseView):
             "form_url": self.form_url,
             "order_details_url": self.order_details_url,
             "executor_details_url": self.executor_details_url,
-            "export_csv_path": export_csv_path
+            "export_csv_path": export_csv_path,
+            "title": self.title,
+            "subtitle": f"{start_date_str} - {end_date_str}"
         }
         return await self.templates.TemplateResponse(request, "orders_responses_metric.html", context=context)
 
@@ -517,6 +526,7 @@ class ExecutorsViewsMetricView(BaseView):
     name = "Просмотры исполнителей"
     category = categories["metrics"][0]
     category_icon = categories["metrics"][1]
+    title = "Просмотры исполнителей"
 
     # URL для POST запроса формы
     form_url = f"{settings.domain}/admin/executors-views-metric"
@@ -527,7 +537,8 @@ class ExecutorsViewsMetricView(BaseView):
     async def select_dates(self, request):
         context = {
             "data": None,
-            "form_url": self.form_url
+            "form_url": self.form_url,
+            "title": self.title,
         }
         return await self.templates.TemplateResponse(request, "executors_views_metric.html", context=context)
 
@@ -560,6 +571,10 @@ class ExecutorsViewsMetricView(BaseView):
         # Готовим путь для скачивания CSV
         export_csv_path = f"{settings.domain}/export-csv/executors-views/?start_date={start_date}&end_date={end_date}"
 
+        # Даты для вывода в subtitle
+        start_date_str = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y %H:%M")
+        end_date_str = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y %H:%M")
+
         data = {
             "executors_views": executors_views,
             "executors_views_count": len(executors_views),
@@ -569,7 +584,9 @@ class ExecutorsViewsMetricView(BaseView):
             "form_url": self.form_url,
             "executor_details_url": self.executor_details_url,
             "client_details_url": self.client_details_url,
-            "export_csv_path": export_csv_path
+            "export_csv_path": export_csv_path,
+            "title": self.title,
+            "subtitle": f"{start_date_str} - {end_date_str}"
         }
         return await self.templates.TemplateResponse(request, "executors_views_metric.html", context=context)
 
@@ -579,6 +596,7 @@ class ExecutorsRegistrationMetricView(BaseView):
     name = "Регистрация исполнителей"
     category = categories["metrics"][0]
     category_icon = categories["metrics"][1]
+    title = "Регистрация исполнителей"
 
     # URL для POST запроса формы
     form_url = f"{settings.domain}/admin/executors-registration-metric"
@@ -589,6 +607,7 @@ class ExecutorsRegistrationMetricView(BaseView):
         context = {
             "data": None,
             "form_url": self.form_url,
+            "title": self.title
         }
         return await self.templates.TemplateResponse(request, "executors_registration_metric.html", context=context)
 
@@ -619,6 +638,10 @@ class ExecutorsRegistrationMetricView(BaseView):
         # Готовим путь для скачивания CSV
         export_csv_path = f"{settings.domain}/export-csv/executors-registration/?start_date={start_date}&end_date={end_date}"
 
+        # Даты для вывода в subtitle
+        start_date_str = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y %H:%M")
+        end_date_str = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y %H:%M")
+
         data = {
             "executors": executors,
             "executors_count": len(executors),
@@ -627,7 +650,9 @@ class ExecutorsRegistrationMetricView(BaseView):
             "data": data,
             "form_url": self.form_url,
             "executor_details_url": self.executor_details_url,
-            "export_csv_path": export_csv_path
+            "export_csv_path": export_csv_path,
+            "title": self.title,
+            "subtitle": f"{start_date_str} - {end_date_str}"
         }
         return await self.templates.TemplateResponse(request, "executors_registration_metric.html", context=context)
 
@@ -637,6 +662,7 @@ class ClientsRegistrationMetricView(BaseView):
     name = "Регистрация клиентов"
     category = categories["metrics"][0]
     category_icon = categories["metrics"][1]
+    title = "Регистрация клиентов"
 
     # URL для POST запроса формы
     form_url = f"{settings.domain}/admin/clients-registration-metric"
@@ -647,6 +673,7 @@ class ClientsRegistrationMetricView(BaseView):
         context = {
             "data": None,
             "form_url": self.form_url,
+            "title": self.title
         }
         return await self.templates.TemplateResponse(request, "clients_registration_metric.html", context=context)
 
@@ -677,6 +704,10 @@ class ClientsRegistrationMetricView(BaseView):
         # Готовим путь для скачивания CSV
         export_csv_path = f"{settings.domain}/export-csv/clients-registration/?start_date={start_date}&end_date={end_date}"
 
+        # Даты для вывода в subtitle
+        start_date_str = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y %H:%M")
+        end_date_str = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y %H:%M")
+
         data = {
             "clients": clients,
             "clients_count": len(clients),
@@ -685,7 +716,9 @@ class ClientsRegistrationMetricView(BaseView):
             "data": data,
             "form_url": self.form_url,
             "client_details_url": self.clients_details_url,
-            "export_csv_path": export_csv_path
+            "export_csv_path": export_csv_path,
+            "title": self.title,
+            "subtitle": f"{start_date_str} - {end_date_str}"
         }
         return await self.templates.TemplateResponse(request, "clients_registration_metric.html", context=context)
 

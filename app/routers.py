@@ -39,8 +39,12 @@ async def export_csv_orders_responses(start_date: str, end_date: str):
     for item in orders_responses:
         item.created_at = item.created_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M")
 
+    # Форматируем даты для названия csv файла
+    start_date_for_filename, end_date_for_filename = generate_dates_for_filename(start_date_formatted, end_date_formatted)
+
     # Записываем файл
-    filename = write_csv_file(orders_responses, model="orders_responses", start_date=start_date, end_date=end_date)
+    filename = write_csv_file(orders_responses, model="orders_responses", start_date=start_date_for_filename,
+                              end_date=end_date_for_filename)
 
     # Отправляем файл
     return FileResponse(path=f"app/files/{filename}", filename=filename, media_type='multipart/form-data')
@@ -69,8 +73,11 @@ async def export_csv_executors_views(start_date: str, end_date: str):
     for item in executors_views:
         item.created_at = item.created_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M")
 
+    # Форматируем даты для названия csv файла
+    start_date_for_filename, end_date_for_filename = generate_dates_for_filename(start_date_formatted, end_date_formatted)
+
     # Записываем файл
-    filename = write_csv_file(executors_views, model="executors_views", start_date=start_date, end_date=end_date)
+    filename = write_csv_file(executors_views, model="executors_views", start_date=start_date_for_filename, end_date=end_date_for_filename)
 
     # Отправляем файл
     return FileResponse(path=f"app/files/{filename}", filename=filename, media_type='multipart/form-data')
@@ -97,8 +104,11 @@ async def export_csv_executors_registration(start_date: str, end_date: str):
     for item in executors:
         item.created_at = item.created_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M")
 
+    # Форматируем даты для названия csv файла
+    start_date_for_filename, end_date_for_filename = generate_dates_for_filename(start_date_formatted, end_date_formatted)
+
     # Записываем файл
-    filename = write_csv_file(executors, model="executors_registration", start_date=start_date, end_date=end_date)
+    filename = write_csv_file(executors, model="executors_registration", start_date=start_date_for_filename, end_date=end_date_for_filename)
 
     # Отправляем файл
     return FileResponse(path=f"app/files/{filename}", filename=filename, media_type='multipart/form-data')
@@ -125,8 +135,19 @@ async def export_csv_clients_registration(start_date: str, end_date: str):
     for item in clients:
         item.created_at = item.created_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M")
 
+    # Форматируем даты для названия csv файла
+    start_date_for_filename, end_date_for_filename = generate_dates_for_filename(start_date_formatted, end_date_formatted)
+
     # Записываем файл
-    filename = write_csv_file(clients, model="clients_registration", start_date=start_date, end_date=end_date)
+    filename = write_csv_file(clients, model="clients_registration", start_date=start_date_for_filename, end_date=end_date_for_filename)
 
     # Отправляем файл
     return FileResponse(path=f"app/files/{filename}", filename=filename, media_type='multipart/form-data')
+
+
+def generate_dates_for_filename(start_date: datetime, end_date: datetime) -> (str, str):
+    """Генерация дат для имен csv файлов по периоду"""
+    start_date_for_filename = (start_date - timedelta(hours=3)).date().strftime("%d-%m-%Y")
+    end_date_for_filename = (end_date - timedelta(hours=3)).date().strftime("%d-%m-%Y")
+
+    return start_date_for_filename, end_date_for_filename
