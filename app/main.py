@@ -3,7 +3,6 @@ from starlette.requests import Request
 from starlette.responses import Response, RedirectResponse
 
 from app.auth import authentication_backend
-from fastapi import FastAPI
 from database.database import async_engine
 from sqladmin import Admin
 
@@ -41,7 +40,7 @@ class CustomAdmin(Admin):
 admin = CustomAdmin(
     app, async_engine, authentication_backend=authentication_backend,
     templates_dir="app/templates/sqladmin/",
-    title="PRUV ADMIN",
+    title="PRUV ADMIN"
 )
 
 

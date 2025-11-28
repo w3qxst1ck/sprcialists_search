@@ -1,7 +1,8 @@
+import os
 from datetime import datetime, timedelta
 
 import pytz
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from sqlalchemy import select, and_, desc
 from sqlalchemy.orm import joinedload
 from starlette.responses import FileResponse
@@ -18,7 +19,7 @@ app = FastAPI()
 
 # Отправка CSV
 @app.get("/export-csv/orders-responses/")
-async def export_csv_orders_responses(start_date: str, end_date: str):
+async def export_csv_orders_responses(start_date: str, end_date: str, background_tasks: BackgroundTasks):
     """Отправка метрик откликов на заказы в сsv формате """
     # Переводим время в datetime
     start_date_formatted = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
@@ -46,12 +47,15 @@ async def export_csv_orders_responses(start_date: str, end_date: str):
     filename = write_csv_file(orders_responses, model="orders_responses", start_date=start_date_for_filename,
                               end_date=end_date_for_filename)
 
+    # Отложенное удаление файла после отправки
+    background_tasks.add_task(os.remove, f"app/files/{filename}")
+
     # Отправляем файл
     return FileResponse(path=f"app/files/{filename}", filename=filename, media_type='multipart/form-data')
 
 
 @app.get("/export-csv/executors-views/")
-async def export_csv_executors_views(start_date: str, end_date: str):
+async def export_csv_executors_views(start_date: str, end_date: str, background_tasks: BackgroundTasks):
     """Отправка метрик просмотра исполнителей в сsv формате"""
     # Переводим время в datetime
     start_date_formatted = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
@@ -79,12 +83,15 @@ async def export_csv_executors_views(start_date: str, end_date: str):
     # Записываем файл
     filename = write_csv_file(executors_views, model="executors_views", start_date=start_date_for_filename, end_date=end_date_for_filename)
 
+    # Отложенное удаление файла после отправки
+    background_tasks.add_task(os.remove, f"app/files/{filename}")
+
     # Отправляем файл
     return FileResponse(path=f"app/files/{filename}", filename=filename, media_type='multipart/form-data')
 
 
 @app.get("/export-csv/executors-registration/")
-async def export_csv_executors_registration(start_date: str, end_date: str):
+async def export_csv_executors_registration(start_date: str, end_date: str, background_tasks: BackgroundTasks):
     """Отправка метрик регистрации исполнителей в сsv формате """
     # Переводим время в datetime
     start_date_formatted = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
@@ -110,12 +117,15 @@ async def export_csv_executors_registration(start_date: str, end_date: str):
     # Записываем файл
     filename = write_csv_file(executors, model="executors_registration", start_date=start_date_for_filename, end_date=end_date_for_filename)
 
+    # Отложенное удаление файла после отправки
+    background_tasks.add_task(os.remove, f"app/files/{filename}")
+
     # Отправляем файл
     return FileResponse(path=f"app/files/{filename}", filename=filename, media_type='multipart/form-data')
 
 
 @app.get("/export-csv/clients-registration/")
-async def export_csv_clients_registration(start_date: str, end_date: str):
+async def export_csv_clients_registration(start_date: str, end_date: str, background_tasks: BackgroundTasks):
     """Отправка метрик регистрации клиентов в сsv формате """
     # Переводим время в datetime
     start_date_formatted = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S") - timedelta(hours=3)
@@ -140,6 +150,9 @@ async def export_csv_clients_registration(start_date: str, end_date: str):
 
     # Записываем файл
     filename = write_csv_file(clients, model="clients_registration", start_date=start_date_for_filename, end_date=end_date_for_filename)
+
+    # Отложенное удаление файла после отправки
+    background_tasks.add_task(os.remove, f"app/files/{filename}")
 
     # Отправляем файл
     return FileResponse(path=f"app/files/{filename}", filename=filename, media_type='multipart/form-data')

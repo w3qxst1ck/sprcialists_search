@@ -722,6 +722,7 @@ class ClientsRegistrationMetricView(BaseView):
         }
         return await self.templates.TemplateResponse(request, "clients_registration_metric.html", context=context)
 
+
 # class TaskFilesAdmin(ModelView, model=t.TaskFiles):
 #     column_list = "__all__"
 #
