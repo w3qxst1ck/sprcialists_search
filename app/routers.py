@@ -16,7 +16,7 @@ from settings import settings
 
 
 app = FastAPI()
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["pruv2025.ru", "localhost", "www.pruv2025.ru"])
 
 
 # Отправка CSV
