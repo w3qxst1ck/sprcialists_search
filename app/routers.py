@@ -5,6 +5,7 @@ import pytz
 from fastapi import FastAPI, BackgroundTasks
 from sqlalchemy import select, and_, desc
 from sqlalchemy.orm import joinedload
+from starlette.requests import Request
 from starlette.responses import FileResponse
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
@@ -12,11 +13,19 @@ from app.utils import write_csv_file
 from database.database import async_session_factory
 from database.tables import Executors, Clients, Orders, OrdersResponses, ExecutorsViews, User
 from settings import settings
-# from app.main import app
 
 
 app = FastAPI()
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["127.0.0.1", "pruv2025.ru", "localhost"])
+
+
+@app.get("/debug-host")
+async def debug_host(request: Request):
+    return {
+        "host_header": request.headers.get("host"),
+        "x_forwarded_proto": request.headers.get("x-forwarded-proto")
+    }
+
 
 
 # Отправка CSV
