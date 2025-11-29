@@ -6,6 +6,7 @@ from fastapi import FastAPI, BackgroundTasks
 from sqlalchemy import select, and_, desc
 from sqlalchemy.orm import joinedload
 from starlette.responses import FileResponse
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.utils import write_csv_file
 from database.database import async_session_factory
@@ -15,6 +16,7 @@ from settings import settings
 
 
 app = FastAPI()
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 
 # Отправка CSV
