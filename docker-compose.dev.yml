@@ -24,7 +24,7 @@ services:
     ports:
       - 80:80
     volumes:
-      - /etc/letsencrypt/live/pruv2025.ru:/etc/letsencrypt/live/pruv2025.ru
+      - /etc/letsencrypt/live/pruv2025.ru:/etc/nginx/certs/
 
   app:
       build:
