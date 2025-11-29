@@ -16,16 +16,7 @@ from settings import settings
 
 
 app = FastAPI()
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["127.0.0.1", "pruv2025.ru", "localhost"])
-
-
-@app.get("/debug-host")
-async def debug_host(request: Request):
-    return {
-        "host_header": request.headers.get("host"),
-        "x_forwarded_proto": request.headers.get("x-forwarded-proto")
-    }
-
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=None)
 
 
 # Отправка CSV
