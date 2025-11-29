@@ -23,6 +23,8 @@ services:
       - app
     ports:
       - 80:80
+    volumes:
+      - /etc/letsencrypt/live/pruv2025.ru:/etc/letsencrypt/live/pruv2025.ru
 
   app:
       build:
