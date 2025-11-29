@@ -15,6 +15,15 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  nginx:
+    container_name: "nginx"
+    build: ./nginx
+    restart: on-failure
+    depends_on:
+      - app
+    ports:
+      - 80:80
+
   app:
       build:
         context: .

@@ -100,6 +100,7 @@ async def show_executor(callback: CallbackQuery, state: FSMContext) -> None:
 @router.callback_query(F.data.split("|")[0] == "write_fav_ex", FavoriteExecutors.feed)
 async def write_to_fav_executor(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     data = await state.get_data()
+    client_tg_id = str(callback.from_user.id)
 
     # Получаем данные для формирования сообщения
     current_index = data["current_index"]
@@ -107,6 +108,7 @@ async def write_to_fav_executor(callback: CallbackQuery, state: FSMContext, sess
     executor = executors[current_index]
 
     ex_username = await AsyncOrm.get_username(executor.tg_id, session)
+    client_id = await AsyncOrm.get_client_id(client_tg_id, session)
 
     ms = contact_with_executor(executor, ex_username)
     keyboard = kb.back_to_feed_keyboard()
@@ -114,12 +116,15 @@ async def write_to_fav_executor(callback: CallbackQuery, state: FSMContext, sess
     # Удаляем предыдудщее сообщение
     try:
         await data["prev_mess"].delete()
-    except Exception as e:
-        print(e)
+    except:
+        pass
 
     prev_mess = await callback.message.answer(ms, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
 
     await state.update_data(prev_mess=prev_mess)
+
+    # Сохраняем запись о просмотре контактов исполнителя
+    await AsyncOrm.create_executor_view(executor.id, client_id, session)
 
 
 @router.callback_query(F.data == "back_to_fav_feed", FavoriteExecutors.feed)

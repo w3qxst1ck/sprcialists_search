@@ -1702,14 +1702,19 @@ class AsyncOrm:
         """Создание отклика исполнителя на заказ"""
         try:
             created_at = datetime.datetime.now()
-            await session.execute(
+            result = await session.execute(
                 """
                 INSERT INTO orders_responses (created_at, text, order_id, executor_id)
-                VALUES($1, $2, $3, $4)
+                SELECT $1, $2, $3, $4
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM orders_responses 
+                    WHERE order_id = $3 AND executor_id = $4
+                )
                 """,
                 created_at, text, order_id, executor_id
             )
-            logger.info(f"Создан отклик на заказ {order_id} от исполнителя {executor_id}")
+            if result == "INSERT 0 1":
+                logger.info(f"Создан отклик на заказ {order_id} от исполнителя {executor_id}")
 
         except Exception as e:
             logger.error(f"Ошибка при создании отклика на заказ {order_id} от исполнителя {executor_id}: {e}")
