@@ -50,7 +50,7 @@ class UsersAdmin(ModelView, model=User):
                      User.blocked: "блокировка на регистрацию"}
 
     column_formatters = {
-        User.username: lambda u, a: f"@{u.username}",
+        User.username: lambda u, a: f"@{u.username}" if u.username else "",
         User.created_at: lambda u, a: u.created_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M"),
         User.updated_at: lambda u, a: u.updated_at.astimezone(tz=pytz.timezone(settings.timezone)).strftime("%d.%m.%Y %H:%M") if u.updated_at else '',
     }
