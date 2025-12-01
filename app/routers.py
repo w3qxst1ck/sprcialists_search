@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 
 import pytz
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, Request
 from sqlalchemy import select, and_, desc
 from sqlalchemy.orm import joinedload
 from starlette.responses import FileResponse
@@ -16,6 +16,25 @@ from settings import settings
 
 app = FastAPI()
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"Incoming request from: {request.client.host}")
+    print(f"X-Forwarded-For: {request.headers.get('x-forwarded-for')}")
+    print(f"X-Real-IP: {request.headers.get('x-real-ip')}")
+    response = await call_next(request)
+    return response
+
+
+@app.get("/test")
+async def test_route(request: Request):
+    return {
+        "direct_client_ip": request.client.host,
+        "x_forwarded_for": request.headers.get("x-forwarded-for"),
+        "x_real_ip": request.headers.get("x-real-ip"),
+        "remote_addr": request.headers.get("remote-addr")
+    }
 
 
 # Отправка CSV
