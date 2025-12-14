@@ -32,10 +32,12 @@ group_router.callback_query.middleware.register(CheckGroupMessageMiddleware())
 
 # Подтверждение верификации исполнителя
 @group_router.callback_query(F.data.split("|")[0] == "executor_confirm")
-async def confirm_executor_registration(callback: CallbackQuery, session: Any, bot: Bot, admin: bool) -> None:
+async def confirm_executor_registration(callback: CallbackQuery, session: Any, bot: Bot) -> None:
     """Верификация новой анкеты исполнителя в группе"""
+    is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
+
     # Проверяем админа
-    if not admin:
+    if not is_admin:
         await callback.message.answer("⚠️ Функция доступна только администраторам")
         return
 
