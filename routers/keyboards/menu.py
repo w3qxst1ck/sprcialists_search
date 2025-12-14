@@ -29,7 +29,7 @@ def main_menu(user_role: str, is_admin: bool = False) -> InlineKeyboardBuilder:
 
         keyboard.adjust(2)
 
-    if is_admin:
-        keyboard.row(InlineKeyboardButton(text=f"{btn.ADMIN}", callback_data=f"main_menu|admin_menu"))
+    # if is_admin:
+    #     keyboard.row(InlineKeyboardButton(text=f"{btn.ADMIN}", callback_data=f"main_menu|admin_menu"))
 
     return keyboard
