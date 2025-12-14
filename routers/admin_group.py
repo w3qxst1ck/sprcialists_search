@@ -24,8 +24,8 @@ from utils.datetime_service import convert_date_and_time_to_str
 group_router = Router()
 # group_router.message.middleware.register(DatabaseMiddleware())
 # group_router.callback_query.middleware.register(DatabaseMiddleware())
-group_router.message.middleware.register(AdminMiddleware())
-group_router.callback_query.middleware.register(AdminMiddleware())
+# group_router.message.middleware.register(AdminMiddleware())
+# group_router.callback_query.middleware.register(AdminMiddleware())
 group_router.message.middleware.register(CheckGroupMessageMiddleware())
 group_router.callback_query.middleware.register(CheckGroupMessageMiddleware())
 
@@ -82,7 +82,10 @@ async def cancel_verification(callback: CallbackQuery, session: Any, admin: bool
     await callback.message.edit_reply_markup(reply_markup=None)
 
     # Проверяем админа
-    if not admin:
+    is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
+
+    # Проверяем админа
+    if not is_admin:
         await callback.message.answer("⚠️ Функция доступна только администраторам")
         return
 
@@ -110,10 +113,13 @@ async def cancel_verification(callback: CallbackQuery, session: Any, admin: bool
 
 
 @group_router.callback_query(F.data.split("|")[0] == "reject_reason", Reject.reason)
-async def select_reasons(callback: CallbackQuery, state: FSMContext, admin: bool) -> None:
+async def select_reasons(callback: CallbackQuery, state: FSMContext, admin: bool, session: Any) -> None:
     """Вспомогательный хендлер для мультиселекта"""
     # Проверяем админа
-    if not admin:
+    is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
+
+    # Проверяем админа
+    if not is_admin:
         await callback.message.answer("⚠️ Функция доступна только администраторам")
         return
 
@@ -151,7 +157,10 @@ async def select_reasons(callback: CallbackQuery, state: FSMContext, admin: bool
 async def send_reject_to_user(callback: CallbackQuery, state: FSMContext, session: Any, bot: Bot, admin: bool) -> None:
     """Отправка сообщения об отказе в верификации"""
     # Проверяем админа
-    if not admin:
+    is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
+
+    # Проверяем админа
+    if not is_admin:
         await callback.message.answer("⚠️ Функция доступна только администраторам")
         return
 
@@ -219,8 +228,10 @@ async def send_reject_to_user(callback: CallbackQuery, state: FSMContext, sessio
 @group_router.callback_query(F.data.split("|")[0] == "executor_edit_confirm")
 async def confirm_executor_registration(callback: CallbackQuery, session: Any, bot: Bot, admin: bool) -> None:
     """Верификация новой анкеты исполнителя в группе"""
+    is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
+
     # Проверяем админа
-    if not admin:
+    if not is_admin:
         await callback.message.answer("⚠️ Функция доступна только администраторам")
         return
 
@@ -253,8 +264,10 @@ async def cancel_executor_registration(callback: CallbackQuery, session: Any, ad
     # Убираем клавиатуру сразу после нажатия
     await callback.message.edit_reply_markup(reply_markup=None)
 
+    is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
+
     # Проверяем админа
-    if not admin:
+    if not is_admin:
         await callback.message.answer("⚠️ Функция доступна только администраторам")
         return
 
@@ -282,10 +295,12 @@ async def cancel_executor_registration(callback: CallbackQuery, session: Any, ad
 
 
 @group_router.callback_query(F.data.split("|")[0] == "reject_reason", RejectEdit.reason)
-async def select_reasons(callback: CallbackQuery, state: FSMContext, admin: bool) -> None:
+async def select_reasons(callback: CallbackQuery, state: FSMContext, admin: bool, session: Any) -> None:
     """Вспомогательный хендлер для мультиселекта"""
+    is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
+
     # Проверяем админа
-    if not admin:
+    if not is_admin:
         await callback.message.answer("⚠️ Функция доступна только администраторам")
         return
 
@@ -322,8 +337,10 @@ async def select_reasons(callback: CallbackQuery, state: FSMContext, admin: bool
 @group_router.callback_query(F.data.split("|")[0] == "reject_reasons_done", RejectEdit.reason)
 async def send_reject_to_user(callback: CallbackQuery, state: FSMContext, session: Any, bot: Bot, admin: bool) -> None:
     """Отправка сообщения об отказе в верификации изменений"""
+    is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
+
     # Проверяем админа
-    if not admin:
+    if not is_admin:
         await callback.message.answer("⚠️ Функция доступна только администраторам")
         return
 
