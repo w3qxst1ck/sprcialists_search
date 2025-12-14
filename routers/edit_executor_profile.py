@@ -283,7 +283,7 @@ async def edit_experience(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(EditExecutor.experience)
 
     # Отправляем сообщение
-    msg = "Отправь информацию о своем рабочем опыте/уровень (например: 6 лет или senior)"
+    msg = "Укажи свой опыт в профессии (например: 3 месяца или 5 лет)"
     prev_mess = await callback.message.answer(msg, reply_markup=kb.cancel_edit_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение

@@ -6,18 +6,17 @@ from routers.buttons import buttons as btn
 
 def get_executor_profile_message(executor: ExecutorAdd | Executor) -> str:
     """Анкета исполнителя для показа при регистрации"""
-    age = get_age_text(executor.age)
+    age = executor.age
     jobs = ", ".join([job.title for job in executor.jobs])
     links = "\n".join(executor.links)
-    contacts = f"📞 {executor.contacts}\n" if executor.contacts else ""
     location = f"📍 {executor.location}\n" if executor.location else ""
     emoji = f"{executor.profession.emoji}" if executor.profession.emoji else ""
 
     msg = f"👤 {executor.name}, {age}\n" \
-          f"{emoji} {executor.profession.title} ({jobs}). {executor.experience}\n" \
+          f"{emoji} {executor.profession.title} ({jobs})\n"\
+          f"💼 Опыт: {executor.experience}\n" \
           f"💵 {executor.rate}\n" \
           f"{location}" \
-          f"{contacts}" \
           f"📎 Портфолио:\n\n{links}\n\n" \
           f"О себе: {executor.description}"
 

@@ -329,7 +329,7 @@ async def get_rate(message: types.Message, state: FSMContext) -> None:
     await state.set_state(Executor.experience)
 
     # Отправляем сообщение
-    msg = "Укажи опыт по выбранному направлению (например: 5 лет)"
+    msg = "Укажи свой опыт в профессии (например: 3 месяца или 5 лет)"
     prev_mess = await message.answer(msg, reply_markup=kb.cancel_keyboard().as_markup())
 
     # Сохраняем предыдущее сообщение
@@ -430,14 +430,16 @@ async def get_link(message: types.Message, state: FSMContext) -> None:
 async def get_links(callback: types.CallbackQuery, state: FSMContext) -> None:
     """Получаем список ссылок на портфолио, запрашиваем контакты"""
     # Меняем стейт
-    await state.set_state(Executor.contacts)
+    await state.set_state(Executor.location)
 
-    # Заготовка на случай пропуска контактов
+    # Заготовка на случай пропуска города
+    await state.update_data(location=None)
+    # Заглушка от старого функционала TODO возможно потом убрать
     await state.update_data(contacts=None)
 
     # Отправляем сообщение
-    msg = "Отправь контакт для связи (например телефон: 8-999-888-77-66)\n\n" \
-          "❗<b>Важно</b>: указанные контакты будут видны другим пользователям сервиса"
+    msg = "Напиши свой город"
+
     await callback.answer()
     prev_mess = await callback.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
 
@@ -445,51 +447,51 @@ async def get_links(callback: types.CallbackQuery, state: FSMContext) -> None:
     await state.update_data(prev_mess=prev_mess)
 
 
-@router.message(Executor.contacts)
-# Если пропускают контакты
-@router.callback_query(F.data == "skip", Executor.contacts)
-async def get_contacts(message: types.Message | types.CallbackQuery, state: FSMContext) -> None:
-    """Получаем контакты, запрашиваем город"""
-    # Если ввели контакты
-    if type(message) == types.Message:
-        # Меняем предыдущее сообщение
-        data = await state.get_data()
-        try:
-            await data["prev_mess"].edit_text(data["prev_mess"].text, disable_web_page_preview=True)
-        except Exception:
-            pass
-
-        # Если отправлен не текст
-        if not message.text:
-            prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
-                                             reply_markup=kb.skip_cancel_keyboard().as_markup())
-            # Сохраняем предыдущее сообщение
-            await state.update_data(prev_mess=prev_mess)
-            return
-
-        # Записываем контакты
-        await state.update_data(contacts=message.text)
-
-    # Меняем стейт
-    await state.set_state(Executor.location)
-
-    # Заготовка на случай пропуска города
-    await state.update_data(location=None)
-
-    # Отправляем сообщение
-    msg = "Напиши свой город"
-
-    # Без пропуска контактов
-    if type(message) == types.Message:
-        prev_mess = await message.answer(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
-
-    # С пропуском контактов
-    else:
-        await message.answer()
-        prev_mess = await message.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
-
-    # Сохраняем сообщение
-    await state.update_data(prev_mess=prev_mess)
+# @router.message(Executor.contacts)
+# # Если пропускают контакты
+# @router.callback_query(F.data == "skip", Executor.contacts)
+# async def get_contacts(message: types.Message | types.CallbackQuery, state: FSMContext) -> None:
+#     """Получаем контакты, запрашиваем город"""
+#     # Если ввели контакты
+#     if type(message) == types.Message:
+#         # Меняем предыдущее сообщение
+#         data = await state.get_data()
+#         try:
+#             await data["prev_mess"].edit_text(data["prev_mess"].text, disable_web_page_preview=True)
+#         except Exception:
+#             pass
+#
+#         # Если отправлен не текст
+#         if not message.text:
+#             prev_mess = await message.answer("Неверный формат данных, необходимо отправить текст",
+#                                              reply_markup=kb.skip_cancel_keyboard().as_markup())
+#             # Сохраняем предыдущее сообщение
+#             await state.update_data(prev_mess=prev_mess)
+#             return
+#
+#         # Записываем контакты
+#         await state.update_data(contacts=message.text)
+#
+#     # Меняем стейт
+#     await state.set_state(Executor.location)
+#
+#     # Заготовка на случай пропуска города
+#     await state.update_data(location=None)
+#
+#     # Отправляем сообщение
+#     msg = "Напиши свой город"
+#
+#     # Без пропуска контактов
+#     if type(message) == types.Message:
+#         prev_mess = await message.answer(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
+#
+#     # С пропуском контактов
+#     else:
+#         await message.answer()
+#         prev_mess = await message.message.edit_text(msg, reply_markup=kb.skip_cancel_keyboard().as_markup())
+#
+#     # Сохраняем сообщение
+#     await state.update_data(prev_mess=prev_mess)
 
 
 @router.message(Executor.location)

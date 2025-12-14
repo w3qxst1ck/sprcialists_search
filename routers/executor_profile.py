@@ -82,9 +82,8 @@ async def executor_profile_menu(callback: CallbackQuery, session: Any, state: FS
                    f"<b>3.</b> Изменить ценовую информацию\n" \
                    f"<b>4.</b> Изменить информацию об опыте\n" \
                    f"<b>5.</b> Изменить информацию о себе\n" \
-                   f"<b>6.</b> Изменить контактную информацию\n" \
-                   f"<b>7.</b> Изменить город\n" \
-                   f"<b>8.</b> Изменить ссылки на портфолио"
+                   f"<b>6.</b> Изменить город\n" \
+                   f"<b>7.</b> Изменить ссылки на портфолио"
 
     caption = questionnaire + buttons_text
 
