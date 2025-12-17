@@ -76,7 +76,7 @@ async def confirm_executor_registration(callback: CallbackQuery, session: Any, b
 
 # Отказ в верификации исполнителя
 @group_router.callback_query(F.data.split("|")[0] == "executor_cancel")
-async def cancel_verification(callback: CallbackQuery, session: Any, admin: bool, state: FSMContext) -> None:
+async def cancel_verification(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
     """Выбор причины отказа в верификации профиля"""
     # Убираем клавиатуру сразу после нажатия
     await callback.message.edit_reply_markup(reply_markup=None)
@@ -113,7 +113,7 @@ async def cancel_verification(callback: CallbackQuery, session: Any, admin: bool
 
 
 @group_router.callback_query(F.data.split("|")[0] == "reject_reason", Reject.reason)
-async def select_reasons(callback: CallbackQuery, state: FSMContext, admin: bool, session: Any) -> None:
+async def select_reasons(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Вспомогательный хендлер для мультиселекта"""
     # Проверяем админа
     is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
@@ -154,7 +154,7 @@ async def select_reasons(callback: CallbackQuery, state: FSMContext, admin: bool
 
 
 @group_router.callback_query(F.data.split("|")[0] == "reject_reasons_done", Reject.reason)
-async def send_reject_to_user(callback: CallbackQuery, state: FSMContext, session: Any, bot: Bot, admin: bool) -> None:
+async def send_reject_to_user(callback: CallbackQuery, state: FSMContext, session: Any, bot: Bot) -> None:
     """Отправка сообщения об отказе в верификации"""
     # Проверяем админа
     is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
@@ -226,7 +226,7 @@ async def send_reject_to_user(callback: CallbackQuery, state: FSMContext, sessio
 
 # Подтверждение изменения анкеты исполнителя
 @group_router.callback_query(F.data.split("|")[0] == "executor_edit_confirm")
-async def confirm_executor_registration(callback: CallbackQuery, session: Any, bot: Bot, admin: bool) -> None:
+async def confirm_executor_registration(callback: CallbackQuery, session: Any, bot: Bot) -> None:
     """Верификация новой анкеты исполнителя в группе"""
     is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
 
@@ -259,7 +259,7 @@ async def confirm_executor_registration(callback: CallbackQuery, session: Any, b
 
 # Отклонение изменений анкеты исполнителя
 @group_router.callback_query(F.data.split("|")[0] == "executor_edit_cancel")
-async def cancel_executor_registration(callback: CallbackQuery, session: Any, admin: bool, state: FSMContext) -> None:
+async def cancel_executor_registration(callback: CallbackQuery, session: Any, state: FSMContext) -> None:
     """Отклонение верификации изменений анкеты пользователя"""
     # Убираем клавиатуру сразу после нажатия
     await callback.message.edit_reply_markup(reply_markup=None)
@@ -295,7 +295,7 @@ async def cancel_executor_registration(callback: CallbackQuery, session: Any, ad
 
 
 @group_router.callback_query(F.data.split("|")[0] == "reject_reason", RejectEdit.reason)
-async def select_reasons(callback: CallbackQuery, state: FSMContext, admin: bool, session: Any) -> None:
+async def select_reasons(callback: CallbackQuery, state: FSMContext, session: Any) -> None:
     """Вспомогательный хендлер для мультиселекта"""
     is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
 
@@ -335,7 +335,7 @@ async def select_reasons(callback: CallbackQuery, state: FSMContext, admin: bool
 
 
 @group_router.callback_query(F.data.split("|")[0] == "reject_reasons_done", RejectEdit.reason)
-async def send_reject_to_user(callback: CallbackQuery, state: FSMContext, session: Any, bot: Bot, admin: bool) -> None:
+async def send_reject_to_user(callback: CallbackQuery, state: FSMContext, session: Any, bot: Bot) -> None:
     """Отправка сообщения об отказе в верификации изменений"""
     is_admin = await AsyncOrm.check_is_admin(str(callback.from_user.id), session)
 

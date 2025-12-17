@@ -661,6 +661,10 @@ async def send_to_verification(callback: CallbackQuery, session: Any) -> None:
     # Проверка заблокирован ли пользователь
     blocked_user: BlockedUser = await AsyncOrm.get_blocked_user(tg_id, session)
 
+    # Проверка верифицирован ли пользователь в данный момент
+    # (защита от спама изменениями анкеты)
+    verified_user: bool = await AsyncOrm.is_verified(tg_id, session)
+
     if blocked_user:
         # Проверяем срок блокировки
         # Если срок еще не вышел
@@ -670,6 +674,12 @@ async def send_to_verification(callback: CallbackQuery, session: Any) -> None:
             await callback.answer()
             await callback.message.answer(msg)
             return
+
+    if not verified_user:
+        msg = f"Ты не можешь внести изменения в анкету, так как твой профиль не верифицирован (возможно твоя анкета еще находится на проверке)"
+        await callback.answer()
+        await callback.message.answer(msg)
+        return
 
     msg = f"❗ Во время проверки анкеты администратором большая часть функционала сервиса будет недоступна"
     keyboard = kb.send_to_verification_keyboard(tg_id)
