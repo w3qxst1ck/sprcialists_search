@@ -8,7 +8,7 @@ def get_executor_profile_message(executor: ExecutorAdd | Executor) -> str:
     """Анкета исполнителя для показа при регистрации"""
     age = executor.age
     jobs = ", ".join([job.title for job in executor.jobs])
-    links = "\n".join(executor.links)
+    links = "\n".join([f"<a href='{link}'>{link[:30]}...</a>" if len(link) > 30 else link for link in executor.links])
     location = f"📍 {executor.location}\n" if executor.location else ""
     emoji = f"{executor.profession.emoji}" if executor.profession.emoji else ""
 
